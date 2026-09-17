@@ -1,20 +1,111 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# bodh.
 
-## Getting Started
+**A calmer way to learn computer science.**
 
-First, run the development server:
+bodh. is a personalized learning experience for making difficult computer
+science ideas feel graspable. It combines short visual lessons, topic paths,
+mind maps, practice quizzes, progress tracking, and an AI-assisted explanation
+layer for the moment when a concept almost makes sense.
+
+## What is in the app
+
+...
+
+## Getting started
+
+### Prerequisites
+
+- Node.js 20 or newer
+- npm
+
+### Install and run
+
+From the `my-app` directory:
 
 ```bash
+npm install
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser.
+
+The main product flows are available at:
+
+| Route                    | Purpose                             |
+| ------------------------ | ----------------------------------- |
+| `/`                      | Product home page                   |
+| `/about`                 | About bodh.                         |
+| `/onboarding`            | Choose a learning starting point    |
+| `/onboarding/language`   | Choose a preferred language         |
+| `/learn`                 | Browse the learning library         |
+| `/learn/[topic]`         | View a topic path and lessons       |
+| `/learn/[topic]/article` | Read a lesson with its mind map     |
+| `/learn/[topic]/mindmap` | Explore the topic visually          |
+| `/learn/[topic]/quiz`    | Practice with a topic quiz          |
+| `/dashboard`             | Review progress and recommendations |
+
+## Configuration
+
+Copy the example environment file when working with AWS-backed features:
+
+```bash
+Copy-Item .env.example .env.local
+```
+
+The variables are:
+
+| Variable                | Used for                           |
+| ----------------------- | ---------------------------------- |
+| `AWS_REGION`            | AWS service region                 |
+| `AWS_ACCESS_KEY_ID`     | Local AWS credentials, when needed |
+| `AWS_SECRET_ACCESS_KEY` | Local AWS credentials, when needed |
+| `AWS_S3_BUCKET`         | Lesson/content storage             |
+| `AWS_DYNAMODB_TABLE`    | Student and progress persistence   |
+| `BEDROCK_MODEL_ID`      | Bedrock model selection            |
+
+The UI and local learning data can run without these values. Configure AWS
+credentials through your normal local AWS credential provider where possible;
+do not commit secrets to `.env.local` or source control.
+
+## Content and project structure
+
+```text
+content/seed/       Seed lesson material grouped by topic
+public/             Static icons and images
+scripts/            Content and storage utilities
+src/app/            App Router pages and API routes
+src/components/     Dashboard, learning, quiz, and shared UI components
+src/config/         Supported languages and learning topics
+src/lib/            AI, AWS, learning, and personalization logic
+src/types/          Shared TypeScript domain types
+```
+
+Topic metadata lives in `src/config/topics.ts`. Seed content is organized in
+`content/seed/` using the topic slugs `arrays`, `binary-search`, `linked-list`,
+`queues`, `recursion`, and `stacks`.
+
+## API routes
+
+The App Router includes server endpoints for the learning experience:
+
+- `/api/learn`
+- `/api/progress`
+- `/api/quiz/generate`
+- `/api/quiz/submit`
+- `/api/recommendation`
+- `/api/student`
+- `/api/topics`
+
+## Available scripts
+
+```bash
+npm run dev       # Start the development server
+npm run build     # Create a production build
+npm run start     # Serve the production build
+npm run lint      # Run ESLint
+```
+
+There is currently no automated test script in `package.json`.
 
 You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
 
