@@ -5,10 +5,13 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ExplainDifferently } from "@/components/learning/ExplainDifferently";
 export default async function TopicPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ topic: string }>;
+  searchParams: Promise<{ language?: string }>;
 }) {
   const { topic: slug } = await params;
+  const { language = "en" } = await searchParams;
   const topic = getTopic(slug);
   if (!topic) notFound();
   const lessons = getLessons(slug);
@@ -36,7 +39,7 @@ export default async function TopicPage({
           {lessons.map((lesson, index) => (
             <Link
               className="lesson-row"
-              href={`/learn/${slug}/article`}
+              href={`/learn/${slug}/article?language=${language}`}
               key={lesson.slug}
             >
               <span className="lesson-number">

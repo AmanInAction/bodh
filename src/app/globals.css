@@ -66,6 +66,55 @@ a {
     700 13px Arial,
     sans-serif;
 }
+label {
+  display: grid;
+  gap: 8px;
+  margin: 20px 0;
+  font:
+    700 12px Arial,
+    sans-serif;
+  color: var(--muted);
+}
+input {
+  width: 100%;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 14px 16px;
+  color: var(--ink);
+  background: var(--cream);
+  font:
+    18px Georgia,
+    serif;
+}
+.auth-page {
+  min-height: 100vh;
+  padding: 32px 7vw;
+  background:
+    radial-gradient(circle at 80% 15%, #e4eee1 0, transparent 32%), var(--paper);
+}
+.auth-panel {
+  max-width: 480px;
+  margin: 13vh auto 0;
+}
+.auth-panel h1 {
+  margin: 18px 0 12px;
+  font-size: clamp(48px, 8vw, 78px);
+  line-height: 0.95;
+  font-weight: 400;
+  letter-spacing: -3px;
+}
+.auth-panel p {
+  color: var(--muted);
+  font-size: 18px;
+  line-height: 1.55;
+}
+.auth-message {
+  margin-top: 18px;
+  color: var(--green) !important;
+  font:
+    14px Arial,
+    sans-serif;
+}
 .nav-cta,
 .button-primary {
   background: var(--green);
@@ -521,11 +570,82 @@ a {
   color: var(--ink);
   cursor: pointer;
 }
+.quiz-option.selected {
+  border-color: var(--green);
+  background: #edf4eb;
+  box-shadow: inset 3px 0 var(--green);
+}
 .quiz-option span {
   margin-left: 14px;
 }
-.quiz-wrap > .button {
+.quiz-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
   margin-top: 20px;
+}
+.quiz-actions button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.quiz-session .progress-track > div {
+  height: 100%;
+  border-radius: inherit;
+  background: var(--green);
+  transition: width 0.25s ease;
+}
+.assessment-result {
+  display: grid;
+  gap: 18px;
+}
+.result-score,
+.feedback-card {
+  background: var(--cream);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 26px;
+}
+.result-score strong {
+  display: block;
+  margin: 16px 0 4px;
+  font-size: 72px;
+  line-height: 0.9;
+  font-weight: 400;
+}
+.result-score p,
+.feedback-card p {
+  color: var(--muted);
+  line-height: 1.55;
+}
+.feedback-card h2 {
+  margin: 12px 0;
+  font-size: 28px;
+  font-weight: 400;
+}
+.style-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.style-picker button {
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 9px 13px;
+  background: white;
+  color: var(--muted);
+  cursor: pointer;
+  font:
+    12px Arial,
+    sans-serif;
+}
+.style-picker button.selected {
+  border-color: var(--green);
+  background: var(--green);
+  color: white;
+}
+.article-practice {
+  margin-top: 18px;
 }
 .dashboard-header {
   max-width: 1100px;

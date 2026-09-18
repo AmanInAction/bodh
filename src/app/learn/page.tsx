@@ -1,7 +1,12 @@
 import Link from "next/link";
 import { topics } from "@/config/topics";
 import { TopicCard } from "@/components/learning/TopicCard";
-export default function LearnPage() {
+export default async function LearnPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ language?: string }>;
+}) {
+  const { language = "en" } = await searchParams;
   return (
     <main className="site-shell">
       <nav className="nav">
@@ -26,7 +31,12 @@ export default function LearnPage() {
       <section className="section">
         <div className="topic-grid">
           {topics.map((topic) => (
-            <TopicCard key={topic.slug} topic={topic} />
+            <Link
+              key={topic.slug}
+              href={`/learn/${topic.slug}?language=${language}`}
+            >
+              <TopicCard topic={topic} />
+            </Link>
           ))}
         </div>
       </section>

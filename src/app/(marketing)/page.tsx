@@ -11,6 +11,7 @@ export default function MarketingPage() {
         </strong>
         <div>
           <Link href="/about">About</Link>
+          <Link href="/auth">Sign in</Link>
           <Link className="nav-cta" href="/onboarding">
             Start learning
           </Link>

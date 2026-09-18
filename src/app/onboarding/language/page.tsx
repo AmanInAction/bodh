@@ -12,7 +12,7 @@ export default function LanguagePage() {
         <p>You can change this later in your profile.</p>
         <div className="language-list">
           {languages.map((language) => (
-            <Link key={language.code} href="/dashboard">
+            <Link key={language.code} href={`/learn?language=${language.code}`}>
               <span>{language.nativeName}</span>
               {language.name}
               <span>→</span>

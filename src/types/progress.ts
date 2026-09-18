@@ -3,6 +3,9 @@ export type TopicProgress = {
   completedLessons: number;
   totalLessons: number;
   mastery: number;
+  attempts: number;
+  lastAttemptAt?: string;
+  teachingStyle?: string;
 };
 
 export type ProgressSummary = {

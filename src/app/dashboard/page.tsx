@@ -5,7 +5,14 @@ import { TopicProgress } from "@/components/dashboard/TopicProgress";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
 import { getRecommendations } from "@/lib/learning/personalization";
-export default function DashboardPage() {
+import { cookies } from "next/headers";
+import { readSession, sessionCookie } from "@/lib/auth/session";
+import { getRoadmap } from "@/lib/learning/roadmap";
+export default async function DashboardPage() {
+  const session = await readSession(
+    (await cookies()).get(sessionCookie)?.value,
+  );
+  const roadmap = await getRoadmap(session?.email ?? "demo@example.com");
   return (
     <main className="site-shell">
       <nav className="nav">
@@ -20,7 +27,7 @@ export default function DashboardPage() {
       <section className="dashboard-header">
         <div>
           <span className="eyebrow">Your learning space</span>
-          <h1>Good morning, Anika.</h1>
+          <h1>Good morning, {session?.name ?? "Anika"}.</h1>
           <p>Keep the thread going. You are building something durable.</p>
         </div>
         <div className="streak">
@@ -53,7 +60,10 @@ export default function DashboardPage() {
             <TopicProgress
               key={topic.slug}
               title={topic.title}
-              value={topic.mastery}
+              value={
+                roadmap.find((item) => item.topicSlug === topic.slug)
+                  ?.mastery ?? topic.mastery
+              }
             />
           ))}
         </div>

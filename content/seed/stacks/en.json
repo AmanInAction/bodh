@@ -1,0 +1,17 @@
+{
+  "topicSlug": "stacks",
+  "language": "en",
+  "title": "Stacks: Last In, First Out",
+  "lead": "A stack is a pile where you can only add or remove from the top. The last item added is always the first one out — like a stack of plates.",
+  "sections": [
+    {
+      "heading": "Push and Pop",
+      "body": "Two operations matter: push (add to top) and pop (remove from top). Both are O(1) — instant. Peek lets you see the top without removing it. Never touch the bottom directly."
+    },
+    {
+      "heading": "Real uses",
+      "body": "Browser back button, undo in editors, balanced parentheses checking, and recursive function calls all use a stack under the hood. Whenever you need to 'remember where you came from', a stack is the right tool."
+    }
+  ],
+  "tryThis": "Open a code editor. Push the letters A, B, C one at a time. Pop them — what order do they come out? Now use this to check if '([{}])' has balanced brackets."
+}

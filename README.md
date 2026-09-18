@@ -3,9 +3,9 @@
 **A calmer way to learn computer science.**
 
 bodh. is a personalized learning experience for making difficult computer
-science ideas feel graspable. It combines short visual lessons, topic paths,
-mind maps, practice quizzes, progress tracking, and an AI-assisted explanation
-layer for the moment when a concept almost makes sense.
+science ideas feel graspable. Learners aged 15-20 can study DSA in English or
+Hindi through short lessons, practice quizzes, agent feedback, and a roadmap
+that adjusts after each assessment.
 
 ## What is in the app
 
@@ -43,6 +43,11 @@ The main product flows are available at:
 | `/learn/[topic]/mindmap` | Explore the topic visually          |
 | `/learn/[topic]/quiz`    | Practice with a topic quiz          |
 | `/dashboard`             | Review progress and recommendations |
+| `/auth`                  | Request and verify an email code    |
+
+The learning flow is: sign in, choose a language, choose a topic, read the
+localized lesson, complete five questions, review the score and learning-team
+feedback, choose a teaching style, and continue to the next topic.
 
 ## Configuration
 
@@ -54,18 +59,29 @@ Copy-Item .env.example .env.local
 
 The variables are:
 
-| Variable                | Used for                           |
-| ----------------------- | ---------------------------------- |
-| `AWS_REGION`            | AWS service region                 |
-| `AWS_ACCESS_KEY_ID`     | Local AWS credentials, when needed |
-| `AWS_SECRET_ACCESS_KEY` | Local AWS credentials, when needed |
-| `AWS_S3_BUCKET`         | Lesson/content storage             |
-| `AWS_DYNAMODB_TABLE`    | Student and progress persistence   |
-| `BEDROCK_MODEL_ID`      | Bedrock model selection            |
+| Variable                | Used for                            |
+| ----------------------- | ----------------------------------- |
+| `AWS_REGION`            | AWS service region                  |
+| `AWS_ACCESS_KEY_ID`     | Local AWS credentials, when needed  |
+| `AWS_SECRET_ACCESS_KEY` | Local AWS credentials, when needed  |
+| `AWS_S3_BUCKET`         | Lesson/content storage              |
+| `AWS_DYNAMODB_TABLE`    | Student and progress persistence    |
+| `BEDROCK_MODEL_ID`      | Bedrock model selection             |
+| `AWS_AUTH_TABLE`        | Verification-code persistence       |
+| `AUTH_SECRET`           | Session signing secret              |
+| `RESEND_API_KEY`        | Resend email delivery               |
+| `RESEND_FROM_EMAIL`     | Verified Resend sender address      |
+| `AGENTCORE_RUNTIME_URL` | Optional AgentCore runtime endpoint |
 
 The UI and local learning data can run without these values. Configure AWS
 credentials through your normal local AWS credential provider where possible;
 do not commit secrets to `.env.local` or source control.
+
+Without `RESEND_API_KEY`, development prints verification codes to the server
+console. Without AWS or an AgentCore runtime, the teaching team uses a local
+adapter so the UI remains usable. In production, set `AUTH_SECRET`, Resend
+credentials, `AWS_REGION`, `AWS_AUTH_TABLE`, and either
+`AGENTCORE_RUNTIME_URL` or `BEDROCK_MODEL_ID`.
 
 ## Content and project structure
 
@@ -95,6 +111,10 @@ The App Router includes server endpoints for the learning experience:
 - `/api/recommendation`
 - `/api/student`
 - `/api/topics`
+- `/api/auth/request-code`
+- `/api/auth/verify`
+- `/api/auth/me`
+- `/api/teach` (teacher, evaluator, and assessor collaboration)
 
 ## Available scripts
 

@@ -1,0 +1,17 @@
+{
+  "topicSlug": "queues",
+  "language": "en",
+  "title": "Queues: Fair, Ordered Processing",
+  "lead": "A queue is a line where the first person in is the first person served. Unlike a stack, you add to the back and remove from the front — First In, First Out (FIFO).",
+  "sections": [
+    {
+      "heading": "Enqueue and Dequeue",
+      "body": "Enqueue adds to the back; dequeue removes from the front. Both are O(1). Queues model any system where order and fairness matter: print jobs, customer service, CPU task scheduling."
+    },
+    {
+      "heading": "Variants",
+      "body": "A deque (double-ended queue) lets you add or remove from both ends. A priority queue always serves the highest-priority item first regardless of arrival order — used in Dijkstra's shortest path algorithm."
+    }
+  ],
+  "tryThis": "Simulate a ticket counter: enqueue five names. Then serve (dequeue) them one by one and write the order. Confirm it matches the order they arrived."
+}
