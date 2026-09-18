@@ -4,7 +4,7 @@ import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { TopicProgress } from "@/components/dashboard/TopicProgress";
 import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
-import { getRecommendations } from "@/lib/learning/personalization";
+import { getRecommendations } from "@/lib/learning/recommendation";
 import { cookies } from "next/headers";
 import { readSession, sessionCookie } from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
@@ -69,7 +69,7 @@ export default async function DashboardPage() {
         </div>
         <div className="dashboard-side">
           <WeaknessCard />
-          {getRecommendations().map((recommendation) => (
+          {getRecommendations(roadmap).map((recommendation) => (
             <RecommendationCard
               key={recommendation.title}
               recommendation={recommendation}

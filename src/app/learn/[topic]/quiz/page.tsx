@@ -11,7 +11,7 @@ export default async function QuizPage({
   const { topic } = await params;
   const { language = "en" } = await searchParams;
   const selectedLanguage = language === "hi" ? "hi" : "en";
-  const questions = generateQuiz(topic, selectedLanguage);
+  const questions = await generateQuiz(topic, selectedLanguage);
   return (
     <main className="site-shell quiz-page">
       <nav className="nav">
