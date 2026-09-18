@@ -38,6 +38,9 @@ export async function POST(request: Request) {
   const updates = (await request.json()) as Partial<Student>;
   const existing = await getStudentProfile(session.email);
 
+  const { email: _ignored, ...safeUpdates } = updates; // strip any email field from updates
+  void _ignored;
+
   const student: Student = {
     id: session.email,
     name: existing?.name ?? session.email.split("@")[0],
@@ -45,8 +48,7 @@ export async function POST(request: Request) {
     language: existing?.language ?? "en",
     preferredStyle: existing?.preferredStyle ?? "simple",
     createdAt: existing?.createdAt ?? new Date().toISOString(),
-    ...updates,
-    email: session.email, // never allow changing email via POST
+    ...safeUpdates,
   };
 
   await putStudentProfile(student);
