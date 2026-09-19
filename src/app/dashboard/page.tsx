@@ -4,18 +4,12 @@ import { cookies } from "next/headers";
 import { topics } from "@/config/topics";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { TopicProgress } from "@/components/dashboard/TopicProgress";
-import { WeaknessCard } from "@/components/dashboard/WeaknessCard";
 import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
-import { LogoutButton } from "@/components/ui/LogoutButton";
-
 import { getRecommendations } from "@/lib/learning/recommendation";
+import { getSessionOrDemo, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
-import {
-  DEMO_STUDENT_ID,
-  getSessionOrDemo,
-  sessionCookie,
-} from "@/lib/auth/session";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
+import { LogoutButton } from "@/components/ui/LogoutButton";
 
 export default async function DashboardPage() {
   const session = await getSessionOrDemo(
@@ -25,30 +19,50 @@ export default async function DashboardPage() {
   const isDemoUser = session.email === "student_001@bodh.demo";
   const studentId = isDemoUser ? DEMO_STUDENT_ID : session.email;
 
-  const roadmap = await getRoadmap(studentId);
+  // Prefer the fine-grained StudentRecord for per-topic scores
   const record = await getStudentRecord(studentId);
+  const roadmap = await getRoadmap(session.email);
 
-  const entries = record ? Object.values(record.topics) : [];
-  const attempted = entries.filter((topic) => topic.attempts > 0);
+  // Build topic score map
+  const topicScoreMap = new Map<string, number>();
+  if (record) {
+    for (const [slug, perf] of Object.entries(record.topics)) {
+      topicScoreMap.set(slug, perf.score);
+    }
+  } else {
+    for (const item of roadmap) {
+      topicScoreMap.set(item.topicSlug, item.mastery);
+    }
+  }
 
+  // Overall metrics
+  const attempted = topics.filter((t) => (topicScoreMap.get(t.slug) ?? 0) > 0);
   const averageMastery =
     attempted.length > 0
       ? Math.round(
-          attempted.reduce((sum, topic) => sum + topic.score, 0) /
+          attempted.reduce((s, t) => s + (topicScoreMap.get(t.slug) ?? 0), 0) /
             attempted.length,
         )
       : 0;
+  const lessonsCompleted = record
+    ? Object.values(record.topics).reduce((s, t) => s + (t.attempts ?? 0), 0)
+    : roadmap.reduce((s, r) => s + r.completedLessons, 0);
+  const loginStreak = record?.loginCount ?? 1;
 
-  const lessonsCompleted =
-    record?.topics
-      ? Object.values(record.topics).reduce(
-          (sum, topic) => sum + topic.attempts,
-          0,
-        )
-      : roadmap.filter((item) => item.mastery > 0).length;
+  // Weak topics
+  const weakTopics = record
+    ? record.weakTopics
+    : roadmap
+        .filter((r) => r.attempts > 0 && r.mastery < 60)
+        .sort((a, b) => a.mastery - b.mastery)
+        .map((r) => r.topicSlug);
 
-  const minutesLearned = record ? 0 : 276;
-  const streak = record ? 0 : 5;
+  const weakestSlug = weakTopics[0];
+  const weakestTopic = topics.find((t) => t.slug === weakestSlug);
+
+  const recommendations = getRecommendations(roadmap);
+
+  const greeting = new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening";
 
   return (
     <main className="site-shell">
@@ -59,9 +73,7 @@ export default async function DashboardPage() {
 
         <div>
           <Link href="/learn">Learn</Link>
-          <span className="avatar">
-            {session.name.charAt(0).toUpperCase()}
-          </span>
+          <span className="avatar">{session.name[0].toUpperCase()}</span>
           <LogoutButton />
         </div>
       </nav>
@@ -69,18 +81,16 @@ export default async function DashboardPage() {
       <section className="dashboard-header">
         <div>
           <span className="eyebrow">Your learning space</span>
-          <h1>Good morning, {session.name}.</h1>
-          <p>
-            Keep the thread going. You are building something durable.
-          </p>
+          <h1>{greeting}, {session.name}.</h1>
+          <p>Keep the thread going. You are building something durable.</p>
         </div>
 
         <div className="streak">
-          <strong>{streak}</strong>
+          <strong>{loginStreak}</strong>
           <span>
-            day
+            session
             <br />
-            streak
+            {loginStreak === 1 ? "start" : "streak"}
           </span>
         </div>
       </section>
@@ -89,19 +99,17 @@ export default async function DashboardPage() {
         <ScoreCard
           label="Lessons completed"
           value={String(lessonsCompleted)}
-          detail="Your learning progress"
+          detail="Total quiz attempts"
         />
-
         <ScoreCard
           label="Time learning"
-          value={`${(minutesLearned / 60).toFixed(1)}h`}
-          detail="Total learning time"
+          value={`${Math.round(lessonsCompleted * 0.13 * 10) / 10}h`}
+          detail="Estimated"
         />
-
         <ScoreCard
           label="Average mastery"
           value={`${averageMastery}%`}
-          detail="Across attempted topics"
+          detail={attempted.length > 0 ? `Across ${attempted.length} topic${attempted.length !== 1 ? "s" : ""}` : "No quizzes yet"}
         />
       </div>
 
@@ -114,23 +122,44 @@ export default async function DashboardPage() {
               See library →
             </Link>
           </div>
-
-          {topics.slice(0, 4).map((topic) => (
+          {topics.map((topic) => (
             <TopicProgress
               key={topic.slug}
               title={topic.title}
-              value={
-                roadmap.find((item) => item.topicSlug === topic.slug)
-                  ?.mastery ?? 0
-              }
+              value={topicScoreMap.get(topic.slug) ?? 0}
             />
           ))}
         </div>
 
         <div className="dashboard-side">
-          <WeaknessCard />
-
-          {getRecommendations(roadmap).map((recommendation) => (
+          {weakestTopic && (
+            <div className="card focus-card">
+              <span className="eyebrow">Focus area</span>
+              <h3>{weakestTopic.title}</h3>
+              <p>
+                {topicScoreMap.get(weakestSlug!) === 0
+                  ? "You haven't tried this topic yet — it's your next frontier."
+                  : `You're at ${topicScoreMap.get(weakestSlug!)}% mastery. One focused session will make a real difference.`}
+              </p>
+              <Link
+                className="button button-primary"
+                href={`/learn/${weakestTopic.slug}`}
+              >
+                Start lesson →
+              </Link>
+            </div>
+          )}
+          {!weakestTopic && (
+            <div className="card focus-card">
+              <span className="eyebrow">Focus area</span>
+              <h3>Arrays</h3>
+              <p>Start your journey — take your first quiz to see personalised recommendations.</p>
+              <Link className="button button-primary" href="/learn/arrays/quiz">
+                Start lesson →
+              </Link>
+            </div>
+          )}
+          {recommendations.map((recommendation) => (
             <RecommendationCard
               key={recommendation.topicSlug}
               recommendation={recommendation}
@@ -141,6 +170,7 @@ export default async function DashboardPage() {
     </main>
   );
 }
+
 
 
 

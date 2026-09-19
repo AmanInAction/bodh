@@ -1541,3 +1541,147 @@ input {
   .ed-style-grid { grid-template-columns: repeat(2, 1fr); }
   .qs-result-header { flex-direction: column; text-align: center; }
 }
+
+/* ── Topic 3-Action Grid (spec §4.4) ───────────────────────────────────── */
+.topic-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  max-width: 800px;
+}
+@media (max-width: 640px) {
+  .topic-actions-grid { grid-template-columns: 1fr; }
+}
+.topic-action-card {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 28px 24px;
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  background: var(--cream);
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+  text-decoration: none;
+  color: inherit;
+}
+.topic-action-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 24px rgba(35, 92, 77, 0.12);
+  border-color: var(--green);
+}
+.topic-action-icon {
+  font-size: 2.4rem;
+  line-height: 1;
+}
+.topic-action-card strong {
+  font-family: Arial, sans-serif;
+  font-size: 1.1rem;
+}
+.topic-action-card p {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.7;
+  line-height: 1.4;
+}
+
+/* ── Dashboard Focus Card ──────────────────────────────────────────────── */
+.focus-card {
+  border: 2px solid var(--green);
+  background: linear-gradient(135deg, #e8f5f1 0%, #f7f7f1 100%);
+}
+.focus-card h3 {
+  margin: 8px 0 6px;
+  font-size: 1.3rem;
+}
+.focus-card p {
+  margin: 0 0 16px;
+  font-size: 0.9rem;
+  opacity: 0.8;
+}
+
+/* ── DSA Roadmap Journey (spec §4.3) ───────────────────────────────────── */
+.roadmap-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  max-width: 720px;
+}
+.roadmap-item {
+  display: flex;
+  gap: 20px;
+  align-items: flex-start;
+}
+.roadmap-track {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex-shrink: 0;
+  padding-top: 20px;
+}
+.roadmap-icon {
+  font-size: 1.5rem;
+  line-height: 1;
+  z-index: 1;
+}
+.roadmap-connector {
+  width: 2px;
+  flex: 1;
+  min-height: 32px;
+  background: var(--line);
+  margin: 6px 0;
+}
+.roadmap-card {
+  flex: 1;
+  margin-bottom: 16px;
+  padding: 22px 24px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: var(--cream);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s, box-shadow 0.15s, border-color 0.15s;
+}
+.roadmap-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 6px 20px rgba(35,92,77,0.1);
+  border-color: var(--green);
+}
+.roadmap-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 4px;
+}
+.roadmap-level-badge {
+  font-family: Arial, sans-serif;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 999px;
+  letter-spacing: 0.04em;
+}
+.roadmap-lessons {
+  font-family: Arial, sans-serif;
+  font-size: 0.8rem;
+  opacity: 0.6;
+}
+.roadmap-title {
+  font-size: 1.15rem;
+}
+.roadmap-desc {
+  margin: 0;
+  font-size: 0.875rem;
+  opacity: 0.7;
+  line-height: 1.4;
+}
+.roadmap-actions {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-family: Arial, sans-serif;
+  font-size: 0.78rem;
+  opacity: 0.6;
+}

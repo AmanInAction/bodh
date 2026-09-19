@@ -11,19 +11,18 @@ export const PROMPTS = {
 हर प्रश्न में 4 विकल्प हों।
 केवल वैध JSON array लौटाएं।
 Format:
-[{"id":"1","prompt":"प्रश्न","options":["A","B","C","D"],"answer":0,"explanation":"व्याख्या"}]`
+[{"id":"1","prompt":"प्रश्न...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"अवधारणा का नाम"}]`
       : `You are a DSA (Data Structures & Algorithms) teacher.
-Generate exactly 5 multiple-choice questions about the given topic.
-Each question must have 4 options.
-Return only a valid JSON array.
+Generate exactly 5 multiple-choice questions (MCQ) about the given topic.
+Each question must have 4 options. Return only a valid JSON array, no markdown.
+The "concept" field must be a short English phrase (2-5 words) naming the specific concept tested.
 Format:
-[{"id":"1","prompt":"Question","options":["A","B","C","D"],"answer":0,"explanation":"Explanation"}]`,
+[{"id":"1","prompt":"Question...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"mid calculation"}]`,
 
   quizUser: (topicSlug: string, language: "en" | "hi") =>
     language === "hi"
-      ? `विषय: ${topicSlug}।
-इस विषय की समझ को वास्तव में जांचने वाले 5 MCQ बनाएं।`
-      : `Topic: ${topicSlug}. Generate 5 MCQs that genuinely test understanding of this concept.`,
+      ? `विषय: ${topicSlug}. इस विषय पर 5 MCQ बनाएं जो अवधारणा को वास्तव में परखें। हर प्रश्न के लिए एक concept field भी दें।`
+      : `Topic: ${topicSlug}. Generate 5 MCQs that genuinely test understanding of this concept. Include a concept field for each question.`,
 
   feedbackSystem: (language: "en" | "hi") =>
     language === "hi"
@@ -32,9 +31,8 @@ Format:
 केवल JSON लौटाएं:
 {"strengths":["..."],"weaknesses":["..."],"nextStep":"...","confidence":75}`
       : `You are a kind, encouraging DSA teacher.
-Give brief feedback based on the student's quiz result.
-Return JSON only:
-{"strengths":["..."],"weaknesses":["..."],"nextStep":"...","confidence":75}`,
+Give brief feedback based on the student's quiz result and missed concepts.
+Return JSON only: {"strengths":["..."],"weaknesses":["..."],"nextStep":"...","confidence":75}`,
 
   feedbackUser: (
     topic: string,
@@ -42,12 +40,11 @@ Return JSON only:
     correct: number,
     total: number,
     language: "en" | "hi",
+    missedConcepts?: string[],
   ) =>
     language === "hi"
-      ? `विषय: ${topic}. स्कोर: ${score}% (${correct}/${total}).
-संक्षिप्त, सकारात्मक प्रतिक्रिया दें और एक उपयोगी अगला कदम बताएं।`
-      : `Topic: ${topic}. Score: ${score}% (${correct}/${total}).
-Give concise, positive feedback with one actionable next step.`,
+      ? `विषय: ${topic}. स्कोर: ${score}% (${correct}/${total}).${missedConcepts?.length ? ` कमज़ोर अवधारणाएं: ${missedConcepts.join(", ")}.` : ""} संक्षिप्त, सकारात्मक प्रतिक्रिया दें।`
+      : `Topic: ${topic}. Score: ${score}% (${correct}/${total}).${missedConcepts?.length ? ` Missed concepts: ${missedConcepts.join(", ")}.` : ""} Give concise, positive feedback with one actionable next step.`,
 
   teacherSystem: (style: string, language: "en" | "hi") =>
     language === "hi"

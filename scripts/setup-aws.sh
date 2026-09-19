@@ -216,17 +216,17 @@ echo ""
 echo "╔══════════════════════════════════════════════════╗"
 echo "║        Add these to your .env.local file         ║"
 echo "╠══════════════════════════════════════════════════╣"
-echo "║"
-echo "║  AWS_REGION=${REGION}"
-echo "║  AWS_S3_BUCKET=${S3_BUCKET}"
-echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"
-echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"
-echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"
-echo "║"
-echo "║  # JWT secret — generate with:"
-echo "║  #   openssl rand -base64 32"
-echo "║  JWT_SECRET=<your-secret-here>"
-echo "║"
+echo "║"                                                 ║
+echo "║  AWS_REGION=${REGION}"                           ║
+echo "║  AWS_S3_BUCKET=${S3_BUCKET}"                     ║
+echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
+echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
+echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"         ║
+echo "║"                                                 ║
+echo "║  # JWT secret — generate with:"                  ║
+echo "║  #   openssl rand -base64 32"                    ║
+echo "║  JWT_SECRET=<your-secret-here>"                  ║
+echo "║"                                                 ║
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 echo "Next step — upload seed content to S3:"

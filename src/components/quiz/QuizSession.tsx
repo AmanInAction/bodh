@@ -212,7 +212,7 @@ export function QuizSession({
       const response = await fetch("/api/quiz/submit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topicSlug: topic, answers, questions, language, style }),
+        body: JSON.stringify({ topicSlug: topic, answers, language, style, questions }),
       });
       const result = await response.json();
       if (response.ok) {

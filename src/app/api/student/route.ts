@@ -1,14 +1,7 @@
 ﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-
-import {
-  getSessionOrDemo,
-  sessionCookie,
-} from "@/lib/auth/session";
-import {
-  getStudentProfile,
-  putStudentProfile,
-} from "@/lib/aws/dynamodb";
+import { getSessionOrDemo, sessionCookie } from "@/lib/auth/session";
+import { getStudentProfile, putStudentProfile } from "@/lib/aws/dynamodb";
 import type { Student } from "@/types/student";
 
 export async function GET() {
