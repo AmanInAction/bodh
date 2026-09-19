@@ -46,8 +46,7 @@ export async function runTeachingTeam(input: {
 }): Promise<TeachingResult> {
   const style = input.style ?? "simple";
   const language = input.language ?? "en";
-  const isLocal =
-    !process.env.AWS_REGION || !process.env.BEDROCK_MODEL_ID && !process.env.AWS_REGION;
+  const isLocal = !process.env.AWS_REGION || !process.env.BEDROCK_MODEL_ID;
 
   // ── Agent 1: Teacher ─────────────────────────────────────────────────────
   let explanation: string;

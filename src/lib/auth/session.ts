@@ -7,6 +7,14 @@ const secret = new TextEncoder().encode(
 
 export type Session = { email: string; name: string };
 
+/** Demo session used when no auth cookie is present (hackathon / guest mode). */
+export const DEMO_SESSION: Session = {
+  email: "student_001@bodh.demo",
+  name: "Demo Student",
+};
+
+export const DEMO_STUDENT_ID = "student_001";
+
 export async function createSession(session: Session) {
   return new SignJWT(session)
     .setProtectedHeader({ alg: "HS256" })
@@ -26,4 +34,13 @@ export async function readSession(token: string | undefined) {
   } catch {
     return null;
   }
+}
+
+/**
+ * Returns the real session if the cookie is valid, otherwise returns the
+ * built-in demo session (student_001).  Use this in API routes and pages
+ * where the complete learning loop must work without sign-in.
+ */
+export async function getSessionOrDemo(token: string | undefined): Promise<Session> {
+  return (await readSession(token)) ?? DEMO_SESSION;
 }

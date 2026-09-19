@@ -22,6 +22,7 @@ function localFallbackQuiz(
         ],
         answer: 0,
         explanation: `${topic} का उद्देश्य डेटा को कुशलतापूर्वक संग्रहीत और एक्सेस करना है।`,
+        concept: "core purpose",
       },
       {
         id: `${topic}-2`,
@@ -34,6 +35,7 @@ function localFallbackQuiz(
         ],
         answer: 0,
         explanation: "छोटे उदाहरण से सोच साफ होती है।",
+        concept: "problem decomposition",
       },
       {
         id: `${topic}-3`,
@@ -46,6 +48,7 @@ function localFallbackQuiz(
         ],
         answer: 0,
         explanation: "Time complexity से हम जानते हैं कि बड़े inputs पर कोड कितना तेज़ होगा।",
+        concept: "time complexity",
       },
       {
         id: `${topic}-4`,
@@ -58,6 +61,7 @@ function localFallbackQuiz(
         ],
         answer: 0,
         explanation: "पैटर्न समझने से आप नई समस्याओं पर भी वही विचार लगा सकते हैं।",
+        concept: "pattern recognition",
       },
       {
         id: `${topic}-5`,
@@ -70,6 +74,7 @@ function localFallbackQuiz(
         ],
         answer: 0,
         explanation: "गलती की जगह ढूंढने से अगला सीखने का कदम साफ होता है।",
+        concept: "error analysis",
       },
     ];
   }
@@ -85,6 +90,7 @@ function localFallbackQuiz(
       ],
       answer: 0,
       explanation: `${topic} is designed for efficient data storage and retrieval.`,
+      concept: "core purpose",
     },
     {
       id: `${topic}-2`,
@@ -97,6 +103,7 @@ function localFallbackQuiz(
       ],
       answer: 0,
       explanation: "A tiny example makes the problem concrete and traceable.",
+      concept: "problem decomposition",
     },
     {
       id: `${topic}-3`,
@@ -109,6 +116,7 @@ function localFallbackQuiz(
       ],
       answer: 0,
       explanation: "Time complexity lets us predict performance on large inputs.",
+      concept: "time complexity",
     },
     {
       id: `${topic}-4`,
@@ -121,6 +129,7 @@ function localFallbackQuiz(
       ],
       answer: 0,
       explanation: "Patterns transfer to new problems and inputs.",
+      concept: "pattern recognition",
     },
     {
       id: `${topic}-5`,
@@ -133,6 +142,7 @@ function localFallbackQuiz(
       ],
       answer: 0,
       explanation: "Finding the turning point gives you a clear next step.",
+      concept: "error analysis",
     },
   ];
 }
@@ -154,9 +164,13 @@ export async function generateQuiz(
     const jsonStr = raw.replace(/```json?\n?/gi, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(jsonStr) as QuizQuestion[];
 
-    // Basic validation — ensure it's an array of 5
+    // Basic validation — ensure it's an array with at least 3 items
     if (Array.isArray(parsed) && parsed.length >= 3) {
-      return parsed.slice(0, 5);
+      // Ensure every question has a concept field (fallback to empty string)
+      return parsed.slice(0, 5).map((q) => ({
+        ...q,
+        concept: q.concept ?? "general concept",
+      }));
     }
     return localFallbackQuiz(topic, language);
   } catch {

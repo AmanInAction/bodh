@@ -1,26 +1,24 @@
 import { NextResponse } from "next/server";
-import { generateQuiz } from "@/lib/ai/quiz";
 import { generateFeedback } from "@/lib/ai/feedback";
 import { runTeachingTeam, type TeachingStyle } from "@/lib/agentcore/teaching";
 import { getNextTopic, recordAssessment } from "@/lib/learning/roadmap";
+import { updateTopicScore } from "@/lib/aws/dynamodb";
 import { cookies } from "next/headers";
-import { readSession, sessionCookie } from "@/lib/auth/session";
+import { getSessionOrDemo, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
+import type { QuizQuestion } from "@/types/quiz";
 
 export async function POST(request: Request) {
-  const session = await readSession(
+  const session = await getSessionOrDemo(
     (await cookies()).get(sessionCookie)?.value,
   );
-  if (!session)
-    return NextResponse.json(
-      { error: "Sign in to save your result." },
-      { status: 401 },
-    );
 
   const {
     topicSlug = "arrays",
     answers = [],
     language = "en",
     style = "simple",
+    // The client sends the original questions it received so scoring is deterministic
+    questions: clientQuestions = [],
   } = await request.json();
 
   const lang: "en" | "hi" = language === "hi" ? "hi" : "en";
@@ -28,27 +26,58 @@ export async function POST(request: Request) {
     ? style
     : "simple") as TeachingStyle;
 
-  // Regenerate questions server-side to score answers
-  const questions = await generateQuiz(topicSlug, lang);
+  // ── Score answers against the questions the student actually saw ──────────
+  const questions: QuizQuestion[] = clientQuestions;
   const correct = answers.filter(
     (ans: number, i: number) => ans === questions[i]?.answer,
   ).length;
-  const total = questions.length;
-  const score = Math.round((correct / total) * 100);
+  const total = questions.length || 5;
+  const score = Math.round((correct / (total || 1)) * 100);
 
-  // Run AI feedback (parallel with teaching team)
+  // ── Extract missed concepts from wrong answers ─────────────────────────────
+  const missedConcepts: string[] = answers
+    .map((ans: number, i: number) => {
+      if (ans !== questions[i]?.answer && questions[i]?.concept) {
+        return questions[i].concept;
+      }
+      return null;
+    })
+    .filter(Boolean) as string[];
+
+  // ── Determine studentId (email prefix or demo) ────────────────────────────
+  const isDemoUser = session.email === "student_001@bodh.demo";
+  const studentId = isDemoUser ? DEMO_STUDENT_ID : session.email;
+
+  // ── Run AI feedback + teaching team in parallel ───────────────────────────
   const [feedback, team] = await Promise.all([
-    generateFeedback(topicSlug, score, correct, total, lang),
+    generateFeedback(topicSlug, score, correct, total, lang, missedConcepts),
     runTeachingTeam({
       topic: topicSlug,
-      question: `The learner scored ${score}% (${correct}/${total}). Provide brief, kind feedback and one concrete next practice step.`,
+      question: `The learner scored ${score}% (${correct}/${total}). Missed concepts: ${missedConcepts.join(", ") || "none"}. Provide brief, kind feedback and one concrete next practice step.`,
       style: safeStyle,
       language: lang,
     }),
   ]);
 
-  // Persist to DynamoDB (roadmap updated with score + style)
-  await recordAssessment(session.email, topicSlug, score, safeStyle);
+  // ── Persist to DynamoDB (StudentRecord schema) ────────────────────────────
+  // Wrapped in try/catch — a DynamoDB failure must never kill the quiz result.
+  try {
+    await updateTopicScore({
+      studentId,
+      language: lang,
+      topicSlug,
+      score,
+    });
+  } catch (dbErr) {
+    console.warn("[quiz/submit] updateTopicScore failed (non-fatal):", dbErr);
+  }
+
+  // ── Also persist to roadmap (for recommendations / dashboard) ─────────────
+  try {
+    await recordAssessment(session.email, topicSlug, score, safeStyle);
+  } catch (roadmapErr) {
+    console.warn("[quiz/submit] recordAssessment failed (non-fatal):", roadmapErr);
+  }
 
   const nextTopic = getNextTopic(topicSlug);
   const nextStrategy =
@@ -64,6 +93,7 @@ export async function POST(request: Request) {
     score,
     correct,
     total,
+    missedConcepts,
     feedback: {
       strengths: feedback.strengths,
       weaknesses: feedback.weaknesses,
