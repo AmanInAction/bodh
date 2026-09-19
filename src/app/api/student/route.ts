@@ -35,6 +35,7 @@ export async function POST(request: Request) {
   if (!session)
     return NextResponse.json({ error: "Not signed in." }, { status: 401 });
 
+<<<<<<< HEAD
   const body = (await request.json().catch(() => null)) as {
     name?: unknown;
     language?: unknown;
@@ -91,6 +92,15 @@ export async function POST(request: Request) {
     ...(preferredStyle !== undefined ? { preferredStyle } : {}),
   };
 =======
+=======
+  const updates = (await request.json()) as Partial<Student>;
+  const existing = await getStudentProfile(session.email);
+
+  const { email: _ignored, ...safeUpdates } = updates; // strip any email field from updates
+  void _ignored;
+
+  const student: Student = {
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   id: session.email,
   name: existing?.name ?? session.email.split("@")[0],
   email: session.email,
@@ -98,6 +108,9 @@ export async function POST(request: Request) {
   preferredStyle: existing?.preferredStyle ?? "simple",
   createdAt: existing?.createdAt ?? new Date().toISOString(),
 };
+<<<<<<< HEAD
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
+=======
 >>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
   await putStudentProfile(student);

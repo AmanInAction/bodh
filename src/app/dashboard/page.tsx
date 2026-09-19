@@ -7,13 +7,19 @@ import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
 import { getRecommendations } from "@/lib/learning/recommendation";
 import { cookies } from "next/headers";
 import { readSession, sessionCookie } from "@/lib/auth/session";
+<<<<<<< HEAD
 import { getRoadmap, summarizeRoadmap } from "@/lib/learning/roadmap";
 import { LogoutButton } from "@/components/ui/LogoutButton";
 import { redirect } from "next/navigation";
+=======
+import { getRoadmap } from "@/lib/learning/roadmap";
+import { LogoutButton } from "@/components/ui/LogoutButton";
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 export default async function DashboardPage() {
   const session = await readSession(
     (await cookies()).get(sessionCookie)?.value,
   );
+<<<<<<< HEAD
   if (!session) redirect("/auth");
   const roadmap = await getRoadmap(session?.email ?? "demo@example.com");
   const summary = summarizeRoadmap(roadmap);
@@ -23,6 +29,9 @@ export default async function DashboardPage() {
   const weakestTopic = weakest
     ? topics.find((topic) => topic.slug === weakest.topicSlug)
     : null;
+=======
+  const roadmap = await getRoadmap(session?.email ?? "demo@example.com");
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   return (
     <main className="site-shell">
       <nav className="nav">
@@ -42,7 +51,11 @@ export default async function DashboardPage() {
           <p>Keep the thread going. You are building something durable.</p>
         </div>
         <div className="streak">
+<<<<<<< HEAD
           <strong>{summary.streak}</strong>
+=======
+          <strong>5</strong>
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           <span>
             day
             <br />
@@ -51,6 +64,7 @@ export default async function DashboardPage() {
         </div>
       </section>
       <div className="score-grid">
+<<<<<<< HEAD
         <ScoreCard
           label="Lessons completed"
           value={String(summary.lessonsCompleted)}
@@ -65,6 +79,14 @@ export default async function DashboardPage() {
           label="Average mastery"
           value={`${summary.averageMastery}%`}
           detail="Across attempted topics"
+=======
+        <ScoreCard label="Lessons completed" value="18" detail="+3 this week" />
+        <ScoreCard label="Time learning" value="4.6h" detail="This month" />
+        <ScoreCard
+          label="Average mastery"
+          value="61%"
+          detail="+8% this month"
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         />
       </div>
       <section className="dashboard-columns">
@@ -87,6 +109,7 @@ export default async function DashboardPage() {
           ))}
         </div>
         <div className="dashboard-side">
+<<<<<<< HEAD
           <WeaknessCard
             title={weakestTopic?.title ?? "Start a topic"}
             reason={
@@ -95,6 +118,9 @@ export default async function DashboardPage() {
                 : "Try your first practice quiz to build a personalised focus area."
             }
           />
+=======
+          <WeaknessCard />
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           {getRecommendations(roadmap).map((recommendation) => (
             <RecommendationCard
               key={recommendation.title}

@@ -9,6 +9,7 @@ type Step = "email" | "otp" | "signup";
 export default function AuthPage() {
   const router = useRouter();
 
+<<<<<<< HEAD
   const [step, setStep] = useState<Step>("email");
   const [email, setEmail] = useState("");
   const [code, setCode] = useState("");
@@ -17,15 +18,32 @@ export default function AuthPage() {
   const [error, setError] = useState("");
   const [info, setInfo] = useState("");
   const [loading, setLoading] = useState(false);
+=======
+  const [step, setStep]         = useState<Step>("email");
+  const [email, setEmail]       = useState("");
+  const [code, setCode]         = useState("");
+  const [name, setName]         = useState("");
+  const [language, setLang]     = useState<"en" | "hi">("en");
+  const [error, setError]       = useState("");
+  const [info, setInfo]         = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [isNewUser, setIsNewUser] = useState(false);
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
   // ── Step 1: request OTP ────────────────────────────────────────────────────
   async function handleRequestCode(e: FormEvent) {
     e.preventDefault();
+<<<<<<< HEAD
     setError("");
     setInfo("");
     setLoading(true);
     try {
       const res = await fetch("/api/auth/request-code", {
+=======
+    setError(""); setInfo(""); setLoading(true);
+    try {
+      const res  = await fetch("/api/auth/request-code", {
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         method: "POST",
         headers: { "content-type": "application/json" },
         body: JSON.stringify({ email }),
@@ -42,6 +60,7 @@ export default function AuthPage() {
   // ── Step 2 / 3: verify OTP (+ collect name on signup) ─────────────────────
   async function handleVerify(e: FormEvent) {
     e.preventDefault();
+<<<<<<< HEAD
     setError("");
     setLoading(true);
     try {
@@ -55,10 +74,17 @@ export default function AuthPage() {
         const data = (await res.json()) as { error?: string };
         if (!res.ok)
           return setError(data.error ?? "We could not save your profile.");
+=======
+    setError(""); setLoading(true);
+    try {
+      // On the "signup" step the code is already consumed — just redirect.
+      if (step === "signup") {
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         router.push("/onboarding");
         return;
       }
 
+<<<<<<< HEAD
       const res = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
@@ -74,10 +100,22 @@ export default function AuthPage() {
         isNewUser?: boolean;
         error?: string;
       };
+=======
+      const res  = await fetch("/api/auth/verify", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ email, code, name: name || undefined, language }),
+      });
+      const data = await res.json() as { ok?: boolean; isNewUser?: boolean; error?: string };
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
       if (!res.ok) return setError(data.error ?? "Invalid or expired code.");
 
       if (data.isNewUser) {
         // First-time user: ask for their name before finishing
+<<<<<<< HEAD
+=======
+        setIsNewUser(true);
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         setStep("signup");
         setError("");
         setLoading(false);
@@ -97,8 +135,13 @@ export default function AuthPage() {
   }
 
   const stepLabel: Record<Step, string> = {
+<<<<<<< HEAD
     email: "Send my code →",
     otp: "Continue →",
+=======
+    email:  "Send my code →",
+    otp:    "Continue →",
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
     signup: "Create my account →",
   };
 
@@ -110,12 +153,18 @@ export default function AuthPage() {
 
       <div className="auth-panel">
         <span className="eyebrow">
+<<<<<<< HEAD
           {step === "email" && "Your learning space"}
           {step === "otp" && "One-time code"}
+=======
+          {step === "email"  && "Your learning space"}
+          {step === "otp"    && "One-time code"}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           {step === "signup" && "Almost there"}
         </span>
 
         <h1>
+<<<<<<< HEAD
           {step === "email" && (
             <>
               Come as
@@ -145,6 +194,17 @@ export default function AuthPage() {
           {step === "otp" && `We sent a 6-digit code to ${email}.`}
           {step === "signup" &&
             "Tell us a bit about yourself so we can personalise your path."}
+=======
+          {step === "email"  && <>Come as<br />you are.</>}
+          {step === "otp"    && <>Enter your<br />code.</>}
+          {step === "signup" && <>Nice to<br />meet you.</>}
+        </h1>
+
+        <p>
+          {step === "email"  && "Use your email to pick up where your thinking left off."}
+          {step === "otp"    && `We sent a 6-digit code to ${email}.`}
+          {step === "signup" && "Tell us a bit about yourself so we can personalise your path."}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         </p>
 
         <form onSubmit={onSubmit} className="auth-form">
@@ -227,7 +287,11 @@ export default function AuthPage() {
           )}
 
           {error && <p className="auth-error">{error}</p>}
+<<<<<<< HEAD
           {info && <p className="auth-message">{info}</p>}
+=======
+          {info  && <p className="auth-message">{info}</p>}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
           <button
             id="auth-submit"
@@ -242,12 +306,16 @@ export default function AuthPage() {
         {step !== "email" && (
           <button
             className="auth-back"
+<<<<<<< HEAD
             onClick={() => {
               setStep("email");
               setCode("");
               setError("");
               setInfo("");
             }}
+=======
+            onClick={() => { setStep("email"); setCode(""); setError(""); setInfo(""); }}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           >
             ← Use a different email
           </button>

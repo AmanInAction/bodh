@@ -9,12 +9,15 @@ import {
 import type { Student } from "@/types/student";
 import type { TopicProgress } from "@/types/progress";
 import type { StudentRecord, TopicPerformance } from "@/types/student-record";
+<<<<<<< HEAD
 import {
   getLocalProfile,
   getLocalRoadmap,
   putLocalProfile,
   putLocalRoadmap,
 } from "@/lib/local/store";
+=======
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 
@@ -40,10 +43,14 @@ async function dbGet<T>(table: string, pk: string): Promise<T | null> {
   }
 }
 
+<<<<<<< HEAD
 async function dbPut(
   table: string,
   item: Record<string, unknown>,
 ): Promise<void> {
+=======
+async function dbPut(table: string, item: Record<string, unknown>): Promise<void> {
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   if (!db || !table) return;
   await db.send(new PutCommand({ TableName: table, Item: item }));
 }
@@ -55,10 +62,14 @@ async function dbDelete(table: string, pk: string): Promise<void> {
 
 // ── Student Profile ───────────────────────────────────────────────────────────
 
+<<<<<<< HEAD
 export async function getStudentProfile(
   email: string,
 ): Promise<Student | null> {
   if (!db || !STUDENT_TABLE) return getLocalProfile(email);
+=======
+export async function getStudentProfile(email: string): Promise<Student | null> {
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const row = await dbGet<{ pk: string; profile: Student }>(
     STUDENT_TABLE,
     `student:${email}`,
@@ -67,10 +78,13 @@ export async function getStudentProfile(
 }
 
 export async function putStudentProfile(student: Student): Promise<void> {
+<<<<<<< HEAD
   if (!db || !STUDENT_TABLE) {
     await putLocalProfile(student);
     return;
   }
+=======
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   await dbPut(STUDENT_TABLE, {
     pk: `student:${student.email}`,
     profile: student,
@@ -83,7 +97,10 @@ export async function putStudentProfile(student: Student): Promise<void> {
 export async function getRoadmapFromDB(
   email: string,
 ): Promise<TopicProgress[] | null> {
+<<<<<<< HEAD
   if (!db || !STUDENT_TABLE) return getLocalRoadmap(email);
+=======
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const row = await dbGet<{ pk: string; roadmap: TopicProgress[] }>(
     STUDENT_TABLE,
     `roadmap:${email}`,
@@ -95,10 +112,13 @@ export async function putRoadmapToDB(
   email: string,
   roadmap: TopicProgress[],
 ): Promise<void> {
+<<<<<<< HEAD
   if (!db || !STUDENT_TABLE) {
     await putLocalRoadmap(email, roadmap);
     return;
   }
+=======
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   await dbPut(STUDENT_TABLE, {
     pk: `roadmap:${email}`,
     roadmap,
@@ -182,7 +202,13 @@ export async function getStudentRecord(
  * Write (or overwrite) an entire StudentRecord.
  * Prefer `updateTopicScore` for incremental score updates.
  */
+<<<<<<< HEAD
 export async function putStudentRecord(record: StudentRecord): Promise<void> {
+=======
+export async function putStudentRecord(
+  record: StudentRecord,
+): Promise<void> {
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   if (!db || !STUDENT_RECORD_TABLE) return;
   await db.send(
     new PutCommand({
@@ -226,13 +252,18 @@ export async function updateTopicScore({
         UpdateExpression: [
           "SET #lang     = if_not_exists(#lang, :lang)",
           "    #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
+<<<<<<< HEAD
           "    #topics.#slug.#score    = :score",
+=======
+          "    #topics.#slug.#score    = if_not_exists(#topics.#slug.#score, :zero)",
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           "    #updatedAt = :now",
         ].join(", "),
         // Separately bump the score only when the new value is higher
         ConditionExpression:
           "attribute_not_exists(#topics.#slug.#score) OR #topics.#slug.#score < :score",
         ExpressionAttributeNames: {
+<<<<<<< HEAD
           "#lang": "language",
           "#topics": "topics",
           "#slug": topicSlug,
@@ -246,6 +277,21 @@ export async function updateTopicScore({
           ":zero": 0,
           ":one": 1,
           ":now": Date.now(),
+=======
+          "#lang"     : "language",
+          "#topics"   : "topics",
+          "#slug"     : topicSlug,
+          "#attempts" : "attempts",
+          "#score"    : "score",
+          "#updatedAt": "updatedAt",
+        },
+        ExpressionAttributeValues: {
+          ":lang" : language,
+          ":score": score,
+          ":zero" : 0,
+          ":one"  : 1,
+          ":now"  : Date.now(),
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         },
       }),
     );
@@ -261,6 +307,7 @@ export async function updateTopicScore({
           UpdateExpression:
             "SET #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one, #updatedAt = :now",
           ExpressionAttributeNames: {
+<<<<<<< HEAD
             "#topics": "topics",
             "#slug": topicSlug,
             "#attempts": "attempts",
@@ -271,6 +318,14 @@ export async function updateTopicScore({
             ":one": 1,
             ":now": Date.now(),
           },
+=======
+            "#topics"   : "topics",
+            "#slug"     : topicSlug,
+            "#attempts" : "attempts",
+            "#updatedAt": "updatedAt",
+          },
+          ExpressionAttributeValues: { ":zero": 0, ":one": 1, ":now": Date.now() },
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         }),
       );
     } else {
@@ -326,6 +381,7 @@ export async function recordLogin({
         "    #loginCount  = if_not_exists(#loginCount, :zero) + :one",
       ].join(", "),
       ExpressionAttributeNames: {
+<<<<<<< HEAD
         "#lang": "language",
         "#topics": "topics",
         "#weakTopics": "weakTopics",
@@ -341,6 +397,23 @@ export async function recordLogin({
         ":ts": Date.now(),
         ":zero": 0,
         ":one": 1,
+=======
+        "#lang"       : "language",
+        "#topics"     : "topics",
+        "#weakTopics" : "weakTopics",
+        "#lastLoginAt": "lastLoginAt",
+        "#updatedAt"  : "updatedAt",
+        "#loginCount" : "loginCount",
+      },
+      ExpressionAttributeValues: {
+        ":lang"     : language,
+        ":emptyMap" : {},
+        ":emptyList": [],
+        ":now"      : new Date().toISOString(),
+        ":ts"       : Date.now(),
+        ":zero"     : 0,
+        ":one"      : 1,
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
       },
     }),
   );

@@ -17,7 +17,6 @@
 #   S3_BUCKET             default: bodh-content-prod
 #   DYNAMO_STUDENT_TABLE  default: bodh-students
 #   DYNAMO_AUTH_TABLE     default: bodh-auth
-#   DYNAMO_RECORD_TABLE   default: bodh-student-records
 # =============================================================================
 
 set -euo pipefail
@@ -28,7 +27,6 @@ REGION="${AWS_REGION:-ap-south-1}"
 S3_BUCKET="${S3_BUCKET:-bodh-content-prod}"
 DYNAMO_STUDENT_TABLE="${DYNAMO_STUDENT_TABLE:-bodh-students}"
 DYNAMO_AUTH_TABLE="${DYNAMO_AUTH_TABLE:-bodh-auth}"
-DYNAMO_RECORD_TABLE="${DYNAMO_RECORD_TABLE:-bodh-student-records}"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -49,11 +47,10 @@ echo ""
 echo "╔══════════════════════════════════════════════════╗"
 echo "║         Bodh — AWS Infrastructure Setup          ║"
 echo "╠══════════════════════════════════════════════════╣"
-echo "║  Region         : ${REGION}"                     ║
-echo "║  S3 Bucket      : ${S3_BUCKET}"                  ║
-echo "║  Student Table  : ${DYNAMO_STUDENT_TABLE}"       ║
-echo "║  Auth Table     : ${DYNAMO_AUTH_TABLE}"          ║
-echo "║  Record Table   : ${DYNAMO_RECORD_TABLE}"        ║
+echo "║  Region         : ${REGION}"
+echo "║  S3 Bucket      : ${S3_BUCKET}"
+echo "║  Student Table  : ${DYNAMO_STUDENT_TABLE}"
+echo "║  Auth Table     : ${DYNAMO_AUTH_TABLE}"
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
@@ -73,10 +70,10 @@ echo ""
 
 log "Creating S3 bucket: ${S3_BUCKET}  (${REGION})"
 
-if aws s3api head-bucket --bucket "$S3_BUCKET" --region "$REGION" &>/dev/null; then
-  ok "Bucket already exists: s3://${S3_BUCKET}"
-else
-  # Bucket does not exist or is inaccessible; let AWS report access errors.
+BUCKET_EXISTS=$(aws s3api head-bucket --bucket "$S3_BUCKET" --region "$REGION" 2>&1 || true)
+
+if echo "$BUCKET_EXISTS" | grep -q "200\|NoSuchBucket" || [ -z "$BUCKET_EXISTS" ]; then
+  # Bucket does not exist — create it
   if [ "$REGION" = "us-east-1" ]; then
     aws s3api create-bucket \
       --bucket "$S3_BUCKET" \
@@ -88,6 +85,8 @@ else
       --create-bucket-configuration LocationConstraint="$REGION"
   fi
   ok "Bucket created: s3://${S3_BUCKET}"
+else
+  ok "Bucket already exists: s3://${S3_BUCKET}"
 fi
 
 # Block all public access
@@ -190,27 +189,7 @@ fi
 echo ""
 
 # =============================================================================
-# 4. DynamoDB — Student Record Table (topic performance + login history)
-# =============================================================================
-
-log "Creating DynamoDB table: ${DYNAMO_RECORD_TABLE}"
-
-if aws dynamodb describe-table --table-name "$DYNAMO_RECORD_TABLE" --region "$REGION" &>/dev/null; then
-  ok "Table already exists: ${DYNAMO_RECORD_TABLE}"
-else
-  aws dynamodb create-table \
-    --table-name "$DYNAMO_RECORD_TABLE" \
-    --attribute-definitions AttributeName=studentId,AttributeType=S \
-    --key-schema AttributeName=studentId,KeyType=HASH \
-    --billing-mode PAY_PER_REQUEST \
-    --region "$REGION"
-  aws dynamodb wait table-exists --table-name "$DYNAMO_RECORD_TABLE" --region "$REGION"
-  ok "Table created: ${DYNAMO_RECORD_TABLE}"
-fi
-echo ""
-
-# =============================================================================
-# 5. Bedrock Model Access (informational)
+# 4. Bedrock Model Access (informational)
 # =============================================================================
 
 log "Checking Bedrock model access for amazon.nova-lite-v1:0..."
@@ -231,7 +210,7 @@ fi
 echo ""
 
 # =============================================================================
-# 6. Print .env.local template
+# 5. Print .env.local template
 # =============================================================================
 
 echo "╔══════════════════════════════════════════════════╗"
@@ -242,12 +221,11 @@ echo "║  AWS_REGION=${REGION}"                           ║
 echo "║  AWS_S3_BUCKET=${S3_BUCKET}"                     ║
 echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
 echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
-echo "║  AWS_STUDENT_RECORD_TABLE=${DYNAMO_RECORD_TABLE}"║
 echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"         ║
 echo "║"                                                 ║
-echo "║  # Auth secret — generate with:"                 ║ 
-echo "║  # openssl rand -base64 32"                      ║        
-echo "║  AUTH_SECRET=<your-secret-here>"                 ║
+echo "║  # JWT secret — generate with:"                  ║
+echo "║  #   openssl rand -base64 32"                    ║
+echo "║  JWT_SECRET=<your-secret-here>"                  ║
 echo "║"                                                 ║
 echo "╚══════════════════════════════════════════════════╝"
 echo ""

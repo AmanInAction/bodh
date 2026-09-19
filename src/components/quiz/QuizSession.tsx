@@ -41,7 +41,11 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
       const eased = 1 - Math.pow(1 - t, 3); // ease-out cubic
       const current = Math.round(eased * score);
       setAnimatedScore(current);
+<<<<<<< HEAD
       setFilled(((eased * score) / 100) * circ);
+=======
+      setFilled((eased * score / 100) * circ);
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
       if (t < 1) raf = requestAnimationFrame(tick);
     };
 
@@ -49,6 +53,7 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
     return () => cancelAnimationFrame(raf);
   }, [score, circ]);
 
+<<<<<<< HEAD
   const color = score >= 80 ? "#34d399" : score >= 50 ? "#a78bfa" : "#f472b6";
   const trackColor =
     score >= 80
@@ -56,12 +61,19 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
       : score >= 50
         ? "rgba(167,139,250,0.12)"
         : "rgba(244,114,182,0.12)";
+=======
+  const color =
+    score >= 80 ? "#34d399" : score >= 50 ? "#a78bfa" : "#f472b6";
+  const trackColor =
+    score >= 80 ? "rgba(52,211,153,0.12)" : score >= 50 ? "rgba(167,139,250,0.12)" : "rgba(244,114,182,0.12)";
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const emoji = score >= 80 ? "🎉" : score >= 50 ? "👏" : "💪";
 
   return (
     <div className="score-ring-wrap" aria-label={`Score: ${score}%`}>
       <svg width="148" height="148" viewBox="0 0 148 148" aria-hidden="true">
         {/* Background track */}
+<<<<<<< HEAD
         <circle
           cx="74"
           cy="74"
@@ -70,6 +82,9 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
           stroke="rgba(255,255,255,0.06)"
           strokeWidth="11"
         />
+=======
+        <circle cx="74" cy="74" r={r} fill={trackColor} stroke="rgba(255,255,255,0.06)" strokeWidth="11" />
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         {/* Animated fill */}
         <circle
           cx="74"
@@ -85,9 +100,13 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
         />
         {/* Emoji cap dot */}
         {animatedScore === score && (
+<<<<<<< HEAD
           <text x="74" y="78" textAnchor="middle" fontSize="20">
             {emoji}
           </text>
+=======
+          <text x="74" y="78" textAnchor="middle" fontSize="20">{emoji}</text>
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         )}
       </svg>
       <div className="score-ring-label">
@@ -116,6 +135,7 @@ function ConfidenceMeter({
 
   const label =
     confidence >= 75
+<<<<<<< HEAD
       ? hindi
         ? "उत्कृष्ट समझ"
         : "Strong understanding"
@@ -126,21 +146,36 @@ function ConfidenceMeter({
         : hindi
           ? "अभ्यास जारी रखें"
           : "Keep practising";
+=======
+      ? hindi ? "उत्कृष्ट समझ" : "Strong understanding"
+      : confidence >= 50
+      ? hindi ? "अच्छी प्रगति" : "Good progress"
+      : hindi ? "अभ्यास जारी रखें" : "Keep practising";
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
   const fillColor =
     confidence >= 75
       ? "linear-gradient(90deg,#34d399,#059669)"
       : confidence >= 50
+<<<<<<< HEAD
         ? "linear-gradient(90deg,#a78bfa,#7c3aed)"
         : "linear-gradient(90deg,#f472b6,#db2777)";
+=======
+      ? "linear-gradient(90deg,#a78bfa,#7c3aed)"
+      : "linear-gradient(90deg,#f472b6,#db2777)";
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
   return (
     <div className="qs-confidence">
       <div className="qs-confidence-header">
         <span className="eyebrow">
+<<<<<<< HEAD
           {hindi
             ? "AI आत्मविश्वास स्तर"
             : "AI confidence in your understanding"}
+=======
+          {hindi ? "AI आत्मविश्वास स्तर" : "AI confidence in your understanding"}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
         </span>
         <span className="qs-conf-label">{label}</span>
       </div>
@@ -198,6 +233,7 @@ const STYLES: {
   icon: string;
   gradient: string;
 }[] = [
+<<<<<<< HEAD
   {
     id: "simple",
     label: "Simple",
@@ -226,6 +262,12 @@ const STYLES: {
     icon: "🎤",
     gradient: "linear-gradient(135deg,#f472b6,#db2777)",
   },
+=======
+  { id: "simple",    label: "Simple",    labelHi: "सरल",       icon: "💡", gradient: "linear-gradient(135deg,#34d399,#059669)" },
+  { id: "socratic",  label: "Socratic",  labelHi: "सवाल-जवाब", icon: "❓", gradient: "linear-gradient(135deg,#a78bfa,#7c3aed)" },
+  { id: "visual",    label: "Visual",    labelHi: "दृश्य",      icon: "🎨", gradient: "linear-gradient(135deg,#60a5fa,#2563eb)" },
+  { id: "interview", label: "Interview", labelHi: "इंटरव्यू",   icon: "🎤", gradient: "linear-gradient(135deg,#f472b6,#db2777)" },
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 ];
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -245,6 +287,10 @@ export function QuizSession({
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+<<<<<<< HEAD
+=======
+  const [revealed, setRevealed] = useState(false); // show correct/wrong after answer
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const question = questions[current];
   const hindi = language === "hi";
   const cardRef = useRef<HTMLDivElement>(null);
@@ -256,6 +302,7 @@ export function QuizSession({
       const response = await fetch("/api/quiz/submit", {
         method: "POST",
         headers: { "content-type": "application/json" },
+<<<<<<< HEAD
         body: JSON.stringify({
           topicSlug: topic,
           answers,
@@ -263,6 +310,9 @@ export function QuizSession({
           style,
           questions,
         }),
+=======
+        body: JSON.stringify({ topicSlug: topic, answers, language, style }),
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
       });
       const result = await response.json();
       if (response.ok) {
@@ -272,9 +322,13 @@ export function QuizSession({
         setError(result.error ?? "Something went wrong.");
       }
     } catch {
+<<<<<<< HEAD
       setError(
         hindi ? "नेटवर्क में समस्या है।" : "Network error. Please try again.",
       );
+=======
+      setError(hindi ? "नेटवर्क में समस्या है।" : "Network error. Please try again.");
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
     } finally {
       setLoading(false);
     }
@@ -284,6 +338,7 @@ export function QuizSession({
     const next = [...answers];
     next[current] = index;
     setAnswers(next);
+<<<<<<< HEAD
   }
 
   function advance() {
@@ -297,10 +352,21 @@ export function QuizSession({
         }),
       50,
     );
+=======
+    setRevealed(false);
+  }
+
+  function advance() {
+    setRevealed(false);
+    setCurrent((c) => c + 1);
+    // Scroll card into view smoothly
+    setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   }
 
   // ── Assessment Screen ─────────────────────────────────────────────────────
   if (assessment) {
+<<<<<<< HEAD
     const {
       feedback,
       score,
@@ -310,6 +376,9 @@ export function QuizSession({
       nextStrategy,
       recommendedStyle,
     } = assessment;
+=======
+    const { feedback, score, correct, total, nextTopic, nextStrategy, recommendedStyle } = assessment;
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
     return (
       <div className="qs-assessment">
@@ -317,6 +386,7 @@ export function QuizSession({
         <div className="qs-result-header">
           <ScoreRing score={score} hindi={hindi} />
           <div className="qs-result-header-text">
+<<<<<<< HEAD
             <span className="eyebrow">
               {hindi ? "आपका परिणाम" : "Your result"}
             </span>
@@ -332,6 +402,15 @@ export function QuizSession({
                   : hindi
                     ? "फिर कोशिश करें!"
                     : "Keep going!"}
+=======
+            <span className="eyebrow">{hindi ? "आपका परिणाम" : "Your result"}</span>
+            <h1 className="qs-result-title">
+              {score >= 80
+                ? hindi ? "शानदार!" : "Excellent!"
+                : score >= 50
+                ? hindi ? "अच्छा प्रयास!" : "Good effort!"
+                : hindi ? "फिर कोशिश करें!" : "Keep going!"}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
             </h1>
             <p className="qs-result-sub">
               {correct} / {total} {hindi ? "सही उत्तर" : "correct answers"}
@@ -346,9 +425,13 @@ export function QuizSession({
 
         {/* Learning snapshot */}
         <section className="qs-feedback-card">
+<<<<<<< HEAD
           <span className="eyebrow">
             {hindi ? "आपकी झलक" : "Your learning snapshot"}
           </span>
+=======
+          <span className="eyebrow">{hindi ? "आपकी झलक" : "Your learning snapshot"}</span>
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
           {feedback.strengths?.length > 0 && (
             <>
@@ -359,9 +442,13 @@ export function QuizSession({
 
           {feedback.weaknesses?.length > 0 && (
             <>
+<<<<<<< HEAD
               <p className="qs-chip-label">
                 {hindi ? "सुधार की जरूरत" : "Areas to improve"}
               </p>
+=======
+              <p className="qs-chip-label">{hindi ? "सुधार की जरूरत" : "Areas to improve"}</p>
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
               <ChipRow items={feedback.weaknesses} variant="amber" />
             </>
           )}
@@ -372,9 +459,13 @@ export function QuizSession({
 
           {feedback.followUp && (
             <div className="qs-followup">
+<<<<<<< HEAD
               <span className="eyebrow">
                 {hindi ? "सोचें:" : "Think about this:"}
               </span>
+=======
+              <span className="eyebrow">{hindi ? "सोचें:" : "Think about this:"}</span>
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
               <p>{feedback.followUp}</p>
             </div>
           )}
@@ -386,6 +477,7 @@ export function QuizSession({
 
         {/* Next strategy + style picker */}
         <section className="qs-feedback-card">
+<<<<<<< HEAD
           <span className="eyebrow">
             {hindi ? "अगली रणनीति" : "Next strategy"}
           </span>
@@ -395,6 +487,13 @@ export function QuizSession({
             {hindi
               ? "सीखने की शैली चुनें:"
               : "Choose how you want to learn next:"}
+=======
+          <span className="eyebrow">{hindi ? "अगली रणनीति" : "Next strategy"}</span>
+          <p className="qs-strategy-text">{nextStrategy}</p>
+
+          <p className="qs-style-prompt">
+            {hindi ? "सीखने की शैली चुनें:" : "Choose how you want to learn next:"}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           </p>
           <div className="qs-style-picker">
             {STYLES.map((s) => {
@@ -409,6 +508,7 @@ export function QuizSession({
                 >
                   <span className="qs-style-icon">{s.icon}</span>
                   <span>{hindi ? s.labelHi : s.label}</span>
+<<<<<<< HEAD
                   {isRec && (
                     <span
                       className="qs-rec-star"
@@ -417,14 +517,21 @@ export function QuizSession({
                       ★
                     </span>
                   )}
+=======
+                  {isRec && <span className="qs-rec-star" title={hindi ? "AI सुझाव" : "AI recommended"}>★</span>}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
                 </button>
               );
             })}
           </div>
           {recommendedStyle && (
             <p className="qs-rec-note">
+<<<<<<< HEAD
               💡{" "}
               {hindi
+=======
+              💡 {hindi
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
                 ? `AI सुझाव: "${STYLES.find((s) => s.id === recommendedStyle)?.labelHi}" शैली`
                 : `AI recommends: "${STYLES.find((s) => s.id === recommendedStyle)?.label}" style`}
             </p>
@@ -436,9 +543,13 @@ export function QuizSession({
           className="button button-primary qs-cta"
           href={`/learn/${nextTopic.slug}?language=${language}`}
         >
+<<<<<<< HEAD
           {hindi
             ? `${nextTopic.title} पर आगे बढ़ें`
             : `Continue to ${nextTopic.title}`}{" "}
+=======
+          {hindi ? `${nextTopic.title} पर आगे बढ़ें` : `Continue to ${nextTopic.title}`}{" "}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
           <span>→</span>
         </Link>
       </div>
@@ -511,6 +622,10 @@ export function QuizSession({
           <button
             className="button button-quiet"
             onClick={() => {
+<<<<<<< HEAD
+=======
+              setRevealed(false);
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
               setCurrent(current - 1);
             }}
           >
@@ -533,12 +648,17 @@ export function QuizSession({
             onClick={submit}
           >
             {loading
+<<<<<<< HEAD
               ? hindi
                 ? "जाँच हो रही है…"
                 : "Checking…"
               : hindi
                 ? "परिणाम देखें"
                 : "See my result"}{" "}
+=======
+              ? hindi ? "जाँच हो रही है…" : "Checking…"
+              : hindi ? "परिणाम देखें" : "See my result"}{" "}
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
             {!loading && <span>→</span>}
           </button>
         )}

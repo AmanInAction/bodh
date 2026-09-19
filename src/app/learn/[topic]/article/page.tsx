@@ -3,8 +3,11 @@ import { ArticleViewer } from "@/components/learning/ArticleViewer";
 import { MindMap } from "@/components/learning/MindMap";
 import { getLessonContent, getOrGenerateMindmap } from "@/lib/learning/content";
 import type { LanguageCode } from "@/config/languages";
+<<<<<<< HEAD
 import { getTopic } from "@/config/topics";
 import { notFound } from "next/navigation";
+=======
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 export default async function ArticlePage({
   params,
   searchParams,
@@ -13,7 +16,10 @@ export default async function ArticlePage({
   searchParams: Promise<{ language?: string }>;
 }) {
   const { topic } = await params;
+<<<<<<< HEAD
   if (!getTopic(topic)) notFound();
+=======
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const { language = "en" } = await searchParams;
   const selectedLanguage: LanguageCode = language === "hi" ? "hi" : "en";
   const [content, mindmap] = await Promise.all([
@@ -37,9 +43,13 @@ export default async function ArticlePage({
           practiceHref={`/learn/${topic}/quiz?language=${selectedLanguage}`}
         />
 <<<<<<< HEAD
+<<<<<<< HEAD
         <aside
           style={{ display: "flex", flexDirection: "column", gap: "18px" }}
         >
+=======
+        <aside>
+>>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 =======
         <aside>
 >>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
