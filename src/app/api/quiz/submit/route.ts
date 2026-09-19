@@ -1,17 +1,10 @@
 import { NextResponse } from "next/server";
-<<<<<<< HEAD
-=======
 import { generateQuiz } from "@/lib/ai/quiz";
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 import { generateFeedback } from "@/lib/ai/feedback";
 import { runTeachingTeam, type TeachingStyle } from "@/lib/agentcore/teaching";
 import { getNextTopic, recordAssessment } from "@/lib/learning/roadmap";
 import { cookies } from "next/headers";
 import { readSession, sessionCookie } from "@/lib/auth/session";
-<<<<<<< HEAD
-import { getTopic } from "@/config/topics";
-=======
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 
 export async function POST(request: Request) {
   const session = await readSession(
@@ -28,44 +21,6 @@ export async function POST(request: Request) {
     answers = [],
     language = "en",
     style = "simple",
-<<<<<<< HEAD
-    questions = [],
-  } = await request.json();
-
-  if (
-    !Array.isArray(questions) ||
-    questions.length === 0 ||
-    questions.length > 20
-  ) {
-    return NextResponse.json(
-      { error: "Quiz questions are missing or invalid." },
-      { status: 400 },
-    );
-  }
-  if (
-    !Array.isArray(answers) ||
-    answers.length !== questions.length ||
-    questions.some(
-      (question) => !question || typeof question.answer !== "number",
-    )
-  ) {
-    return NextResponse.json(
-      { error: "Please answer every question." },
-      { status: 400 },
-    );
-  }
-
-  const lang: "en" | "hi" = language === "hi" ? "hi" : "en";
-  if (typeof topicSlug !== "string" || !getTopic(topicSlug)) {
-    return NextResponse.json({ error: "Unknown topic." }, { status: 404 });
-  }
-  const safeStyle = (
-    ["simple", "socratic", "visual", "interview"].includes(style)
-      ? style
-      : "simple"
-  ) as TeachingStyle;
-
-=======
   } = await request.json();
 
   const lang: "en" | "hi" = language === "hi" ? "hi" : "en";
@@ -75,7 +30,6 @@ export async function POST(request: Request) {
 
   // Regenerate questions server-side to score answers
   const questions = await generateQuiz(topicSlug, lang);
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const correct = answers.filter(
     (ans: number, i: number) => ans === questions[i]?.answer,
   ).length;

@@ -1,26 +1,13 @@
 import Link from "next/link";
 import { MindMap } from "@/components/learning/MindMap";
 import { getOrGenerateMindmap } from "@/lib/learning/content";
-<<<<<<< HEAD
-<<<<<<< HEAD
-import { getTopic } from "@/config/topics";
-import { notFound } from "next/navigation";
-=======
 
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
-=======
-
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 export default async function MindMapPage({
   params,
 }: {
   params: Promise<{ topic: string }>;
 }) {
   const { topic } = await params;
-<<<<<<< HEAD
-  if (!getTopic(topic)) notFound();
-=======
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   const mindmap = await getOrGenerateMindmap(topic);
 
   return (

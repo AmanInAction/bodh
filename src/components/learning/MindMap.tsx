@@ -9,11 +9,7 @@ type Point = { x: number; y: number };
 
 function layoutNodes(
   nodes: MindmapNode[],
-<<<<<<< HEAD
-  edges: MindmapEdge[],
-=======
   edges: MindmapEdge[]
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 ): Map<string, Point> {
   const positions = new Map<string, Point>();
   const root = nodes.find((n) => n.level === 0);
@@ -58,18 +54,7 @@ const LEVEL_COLORS = [
   ["#7c3aed", "#4c1d95"], // branch: violet
   ["#2563eb", "#1e3a8a"], // leaf: blue
 ];
-<<<<<<< HEAD
-const ACCENT_COLORS = [
-  "#f59e0b",
-  "#10b981",
-  "#3b82f6",
-  "#f43f5e",
-  "#8b5cf6",
-  "#06b6d4",
-];
-=======
 const ACCENT_COLORS = ["#f59e0b", "#10b981", "#3b82f6", "#f43f5e", "#8b5cf6", "#06b6d4"];
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
 const NODE_RADIUS = [38, 26, 18];
 const NODE_FONT_SIZE = [14, 11, 9.5];
 
@@ -92,11 +77,8 @@ function wrapLabel(label: string, maxChars = 10): string[] {
 // ── Curved edge path ─────────────────────────────────────────────────────────
 
 function curvedPath(from: Point, to: Point): string {
-<<<<<<< HEAD
-=======
   const mx = (from.x + to.x) / 2;
   const my = (from.y + to.y) / 2;
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
   // Slight cubic bezier for organic feel
   const dx = to.x - from.x;
   const dy = to.y - from.y;
@@ -193,47 +175,18 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
             </filter>
             {/* Drop shadow for nodes */}
             <filter id="mm-shadow" x="-20%" y="-20%" width="140%" height="140%">
-<<<<<<< HEAD
-              <feDropShadow
-                dx="0"
-                dy="2"
-                stdDeviation="3"
-                floodOpacity="0.25"
-              />
-            </filter>
-            {/* Gradient defs for each level */}
-            {LEVEL_COLORS.map(([start, end], li) => (
-              <radialGradient
-                key={li}
-                id={`mm-grad-${li}`}
-                cx="40%"
-                cy="35%"
-                r="65%"
-              >
-=======
               <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
             </filter>
             {/* Gradient defs for each level */}
             {LEVEL_COLORS.map(([start, end], li) => (
               <radialGradient key={li} id={`mm-grad-${li}`} cx="40%" cy="35%" r="65%">
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
                 <stop offset="0%" stopColor={start} />
                 <stop offset="100%" stopColor={end} />
               </radialGradient>
             ))}
             {/* Accent gradients for branches */}
             {ACCENT_COLORS.map((c, ci) => (
-<<<<<<< HEAD
-              <radialGradient
-                key={`acc-${ci}`}
-                id={`mm-acc-${ci}`}
-                cx="40%"
-                cy="35%"
-                r="65%"
-              >
-=======
               <radialGradient key={`acc-${ci}`} id={`mm-acc-${ci}`} cx="40%" cy="35%" r="65%">
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
                 <stop offset="0%" stopColor={c} stopOpacity="0.95" />
                 <stop offset="100%" stopColor={c} stopOpacity="0.7" />
               </radialGradient>
@@ -241,14 +194,7 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
           </defs>
 
           {/* Transform group for pan+zoom */}
-<<<<<<< HEAD
-          <g
-            transform={`translate(${pan.x},${pan.y}) scale(${zoom})`}
-            style={{ transformOrigin: "310px 220px" }}
-          >
-=======
           <g transform={`translate(${pan.x},${pan.y}) scale(${zoom})`} style={{ transformOrigin: "310px 220px" }}>
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
             {/* Edges */}
             {mindmap.edges.map((edge) => {
               const from = positions.get(edge.from);
@@ -276,13 +222,7 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
             {mindmap.nodes.map((node, idx) => {
               const pos = positions.get(node.id);
               if (!pos) return null;
-<<<<<<< HEAD
-              const r =
-                (NODE_RADIUS[node.level] ?? 14) *
-                (hovered === node.id ? 1.15 : 1);
-=======
               const r = (NODE_RADIUS[node.level] ?? 14) * (hovered === node.id ? 1.15 : 1);
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
               const fontSize = NODE_FONT_SIZE[node.level] ?? 9;
               const lines = wrapLabel(node.label, node.level === 0 ? 12 : 9);
               const lineH = fontSize * 1.25;
@@ -324,13 +264,7 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
                     cy={pos.y}
                     r={r}
                     fill={fillUrl}
-<<<<<<< HEAD
-                    filter={
-                      node.level === 0 ? "url(#mm-glow)" : "url(#mm-shadow)"
-                    }
-=======
                     filter={node.level === 0 ? "url(#mm-glow)" : "url(#mm-shadow)"}
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
                     style={{
                       transition: "r 0.2s ease",
                     }}
@@ -361,27 +295,6 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
       </div>
 
       {/* Tooltip for hovered node */}
-<<<<<<< HEAD
-      {hovered &&
-        (() => {
-          const node = mindmap.nodes.find((n) => n.id === hovered);
-          return node ? (
-            <div className="mm-tooltip">
-              <strong>{node.label}</strong>
-              <span className="mm-tooltip-level">
-                {node.level === 0
-                  ? "Root"
-                  : node.level === 1
-                    ? "Branch"
-                    : "Leaf"}
-              </span>
-            </div>
-          ) : null;
-        })()}
-
-      {/* Zoom hint */}
-      <p className="mm-hint">Scroll to zoom · Drag to pan</p>
-=======
       {hovered && (() => {
         const node = mindmap.nodes.find((n) => n.id === hovered);
         return node ? (
@@ -398,7 +311,6 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
       <p className="mm-hint">
         Scroll to zoom · Drag to pan
       </p>
->>>>>>> a131f76c845f6d6475dcd2fc563db117b9a9ae5a
     </div>
   );
 }
