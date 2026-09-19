@@ -1,0 +1,209 @@
+/**
+ * scripts/seed-s3.ts
+ *
+ * Uploads all seed content (articles + mindmaps) to the configured S3 bucket.
+ *
+ * Usage:
+ *   npx tsx scripts/seed-s3.ts
+ *
+ * Required env vars (set in .env.local or shell):
+ *   AWS_REGION          – e.g. ap-south-1
+ *   AWS_S3_BUCKET       – e.g. bodh-content-prod
+ *
+ * Optional:
+ *   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  (falls back to instance role / SSO)
+ *   SEED_DRY_RUN=true   – print what would be uploaded without touching S3
+ */
+
+import { readdir, readFile } from "node:fs/promises";
+import { join } from "node:path";
+import {
+  S3Client,
+  PutObjectCommand,
+  HeadObjectCommand,
+} from "@aws-sdk/client-s3";
+import type { Article, Mindmap, MindmapNode, MindmapEdge } from "../src/types/content";
+
+// ── Config ────────────────────────────────────────────────────────────────────
+
+const REGION = process.env.AWS_REGION?.trim();
+const BUCKET = process.env.AWS_S3_BUCKET?.trim();
+const DRY_RUN = process.env.SEED_DRY_RUN?.trim() === "true";
+
+if (!REGION || !BUCKET) {
+  console.error(
+    "❌  AWS_REGION and AWS_S3_BUCKET must be set.\n" +
+      "    Example:\n" +
+      "      AWS_REGION=ap-south-1 AWS_S3_BUCKET=bodh-content-prod npx tsx scripts/seed-s3.ts"
+  );
+  process.exit(1);
+}
+
+// Client is created lazily so SEED_DRY_RUN=true never validates the region
+let _client: S3Client | null = null;
+function getClient(): S3Client {
+  if (!_client) _client = new S3Client({ region: REGION });
+  return _client;
+}
+const SEED_ROOT = join(process.cwd(), "content", "seed");
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+async function s3Put(key: string, body: unknown): Promise<void> {
+  const json = JSON.stringify(body, null, 2);
+  if (DRY_RUN) {
+    console.log(`  [dry-run] PUT s3://${BUCKET}/${key}  (${json.length} bytes)`);
+    return;
+  }
+  await getClient().send(
+    new PutObjectCommand({
+      Bucket: BUCKET,
+      Key: key,
+      Body: json,
+      ContentType: "application/json",
+    })
+  );
+}
+
+async function s3Exists(key: string): Promise<boolean> {
+  if (DRY_RUN) return false; // always re-upload in dry-run so output is visible
+  try {
+    await getClient().send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// ── Mindmap builder ───────────────────────────────────────────────────────────
+// Generates a static mindmap from the article seed so the script works
+// without a Bedrock call. The live app will overwrite this with an AI-generated
+// version the first time a user visits the mindmap page.
+
+function buildMindmap(article: Article): Mindmap {
+  const rootId = "root";
+  const nodes: MindmapNode[] = [
+    { id: rootId, label: article.title, level: 0 },
+  ];
+  const edges: MindmapEdge[] = [];
+
+  article.sections.forEach((section, i) => {
+    const branchId = `branch-${i}`;
+    nodes.push({ id: branchId, label: section.heading, level: 1 });
+    edges.push({ from: rootId, to: branchId });
+
+    // Extract two meaningful phrases from the section body as leaf nodes
+    const sentences = section.body
+      .split(/[.!?]+/)
+      .map((s) => s.trim())
+      .filter((s) => s.length > 10)
+      .slice(0, 2);
+
+    sentences.forEach((phrase, j) => {
+      const leafId = `leaf-${i}-${j}`;
+      const label =
+        phrase.length > 40 ? phrase.slice(0, 37).trimEnd() + "…" : phrase;
+      nodes.push({ id: leafId, label, level: 2 });
+      edges.push({ from: branchId, to: leafId });
+    });
+  });
+
+  // Add "Try This" as a branch
+  nodes.push({ id: "try", label: "Try This", level: 1 });
+  edges.push({ from: rootId, to: "try" });
+
+  return { topicSlug: article.topicSlug, nodes, edges };
+}
+
+// ── Main ──────────────────────────────────────────────────────────────────────
+
+async function main() {
+  console.log(`\n📦  Bodh S3 Seeder${DRY_RUN ? "  [DRY RUN]" : ""}`);
+  console.log(`    Bucket : s3://${BUCKET}`);
+  console.log(`    Region : ${REGION}`);
+  console.log(`    Source : ${SEED_ROOT}\n`);
+
+  // Enumerate topic folders
+  const topicEntries = await readdir(SEED_ROOT, { withFileTypes: true });
+  const topicFolders = topicEntries
+    .filter((e) => e.isDirectory())
+    .map((e) => e.name);
+
+  if (topicFolders.length === 0) {
+    console.warn("⚠️  No topic folders found in content/seed — nothing to do.");
+    return;
+  }
+
+  let totalUploads = 0;
+  let totalSkips = 0;
+  const errors: string[] = [];
+
+  for (const topic of topicFolders) {
+    console.log(`── ${topic}`);
+    const topicDir = join(SEED_ROOT, topic);
+    const files = await readdir(topicDir);
+    const jsonFiles = files.filter((f) => f.endsWith(".json"));
+
+    // Track whether we've already built + uploaded a mindmap for this topic
+    let mindmapDone = false;
+
+    for (const file of jsonFiles) {
+      const language = file.replace(".json", "") as "en" | "hi";
+      const articleKey = `articles/${topic}/${language}.json`;
+
+      try {
+        // ── Article ──────────────────────────────────────────────────────────
+        const raw = await readFile(join(topicDir, file), "utf-8");
+        const article = JSON.parse(raw) as Article;
+
+        const articleExists = await s3Exists(articleKey);
+        if (articleExists) {
+          console.log(`  ⏭  ${articleKey}  (already exists)`);
+          totalSkips++;
+        } else {
+          await s3Put(articleKey, article);
+          console.log(`  ✅  ${articleKey}`);
+          totalUploads++;
+        }
+
+        // ── Mindmap (English article only, language-agnostic mindmap) ────────
+        if (language === "en" && !mindmapDone) {
+          const mindmapKey = `mindmaps/${topic}.json`;
+          const mindmapExists = await s3Exists(mindmapKey);
+          if (mindmapExists) {
+            console.log(`  ⏭  ${mindmapKey}  (already exists)`);
+            totalSkips++;
+          } else {
+            const mindmap = buildMindmap(article);
+            await s3Put(mindmapKey, mindmap);
+            console.log(`  ✅  ${mindmapKey}`);
+            totalUploads++;
+          }
+          mindmapDone = true;
+        }
+      } catch (err) {
+        const msg = `  ❌  ${articleKey}: ${String(err)}`;
+        console.error(msg);
+        errors.push(msg);
+      }
+    }
+  }
+
+  // ── Summary ────────────────────────────────────────────────────────────────
+  console.log("\n────────────────────────────────────────");
+  console.log(`  Topics  : ${topicFolders.length}`);
+  console.log(`  Uploaded: ${totalUploads}`);
+  console.log(`  Skipped : ${totalSkips}`);
+  if (errors.length) {
+    console.error(`  Errors  : ${errors.length}`);
+    errors.forEach((e) => console.error(e));
+    process.exitCode = 1;
+  } else {
+    console.log("\n🎉  Done!");
+  }
+}
+
+main().catch((err) => {
+  console.error("Fatal:", err);
+  process.exitCode = 1;
+});

@@ -1,0 +1,17 @@
+{
+  "topicSlug": "queues",
+  "language": "hi",
+  "title": "क्यू: पहले आया, पहले गया",
+  "lead": "क्यू में डेटा एक क्रम में रहता है: जो आइटम पहले आता है, वही पहले बाहर जाता है—जैसे लोगों की लाइन।",
+  "sections": [
+    {
+      "heading": "Enqueue और dequeue",
+      "body": "Enqueue से आइटम पीछे जुड़ता है और dequeue से सामने वाला आइटम निकलता है। सही implementation में दोनों काम तेज़ हो सकते हैं।"
+    },
+    {
+      "heading": "कहाँ उपयोग होता है",
+      "body": "Task scheduling, print jobs, message processing और breadth-first search में queue का विचार काम आता है।"
+    }
+  ],
+  "tryThis": "A, B और C को queue में डालें। उन्हें एक-एक करके निकालें। सबसे पहले कौन-सा आइटम निकलेगा?"
+}

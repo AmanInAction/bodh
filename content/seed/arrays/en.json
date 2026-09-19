@@ -1,0 +1,17 @@
+{
+  "topicSlug": "arrays",
+  "language": "en",
+  "title": "Arrays: Ordered Storage in a Row",
+  "lead": "An array stores items side-by-side in memory. Because each slot is the same size, finding any element takes the same time no matter how big the array is.",
+  "sections": [
+    {
+      "heading": "The core idea",
+      "body": "Imagine a row of labelled mailboxes. Box 0, box 1, box 2… You jump straight to box 5 without opening the others. That instant access (O(1)) is what makes arrays powerful for reading data."
+    },
+    {
+      "heading": "The trade-off",
+      "body": "Insertion in the middle is slow — every element after the insertion point must shift one step. If you insert at position 2 in an array of 1000 elements, 998 items move. For heavy insertion workloads, consider a linked list instead."
+    }
+  ],
+  "tryThis": "Declare an array of 5 numbers. Access the last element using its index. Now insert a value at position 1 and count how many items had to move."
+}

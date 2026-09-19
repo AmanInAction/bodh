@@ -1,0 +1,17 @@
+{
+  "topicSlug": "binary-search",
+  "language": "en",
+  "title": "Binary Search: Halving Your Way to the Answer",
+  "lead": "Binary search finds a value in a sorted list by always cutting the search space in half. Instead of checking each element, you check the middle and discard the half where the answer cannot be.",
+  "sections": [
+    {
+      "heading": "The algorithm",
+      "body": "Start with low=0 and high=last index. Compute mid=(low+high)/2. If arr[mid] equals target — done. If target is smaller, move high to mid-1. If larger, move low to mid+1. Repeat until found or low > high. This is O(log N)."
+    },
+    {
+      "heading": "Why it needs sorted data",
+      "body": "The 'discard half' trick only works because in a sorted list you know the answer cannot be on the wrong side of mid. If the list is unsorted, binary search gives wrong answers. Always confirm sorted order first."
+    }
+  ],
+  "tryThis": "Write the numbers 1 to 16 on paper. Find the number 11 using binary search — track how many comparisons you make. Compare that to checking one by one."
+}

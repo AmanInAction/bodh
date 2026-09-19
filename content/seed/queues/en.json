@@ -1,0 +1,17 @@
+{
+  "topicSlug": "queues",
+  "language": "en",
+  "title": "Queues: First In, First Out",
+  "lead": "A queue keeps items in order: the first item added is the first item removed, like people waiting in a line.",
+  "sections": [
+    {
+      "heading": "Enqueue and dequeue",
+      "body": "Add an item at the back with enqueue and remove one from the front with dequeue. With a suitable queue implementation, both operations can be O(1)."
+    },
+    {
+      "heading": "Where queues help",
+      "body": "Task scheduling, print jobs, message processing, and breadth-first search all use the idea of handling work in arrival order."
+    }
+  ],
+  "tryThis": "Write a queue with A, B, and C. Dequeue them one at a time. Which value leaves first?"
+}

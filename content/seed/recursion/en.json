@@ -1,0 +1,17 @@
+{
+  "topicSlug": "recursion",
+  "language": "en",
+  "title": "Recursion: Solving a Problem One Smaller Step at a Time",
+  "lead": "Recursion solves a problem by having a function call itself on a smaller version of the same problem until it reaches a clear stopping point.",
+  "sections": [
+    {
+      "heading": "The two essential parts",
+      "body": "Every recursive solution needs a base case that stops the calls and a recursive step that moves toward that base case."
+    },
+    {
+      "heading": "Tracing the calls",
+      "body": "For factorial(4), think 4 × factorial(3), then 3 × factorial(2), until factorial(1) reaches the base case. The calls then return in reverse order."
+    }
+  ],
+  "tryThis": "Trace factorial(4) on paper. Circle the call that reaches the base case and then write the return order."
+}
