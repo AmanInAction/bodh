@@ -47,10 +47,10 @@ echo ""
 echo "╔══════════════════════════════════════════════════╗"
 echo "║         Bodh — AWS Infrastructure Setup          ║"
 echo "╠══════════════════════════════════════════════════╣"
-echo "║  Region         : ${REGION}"
-echo "║  S3 Bucket      : ${S3_BUCKET}"
-echo "║  Student Table  : ${DYNAMO_STUDENT_TABLE}"
-echo "║  Auth Table     : ${DYNAMO_AUTH_TABLE}"
+echo "║  Region         : ${REGION}"                     ║ 
+echo "║  S3 Bucket      : ${S3_BUCKET}"                  ║
+echo "║  Student Table  : ${DYNAMO_STUDENT_TABLE}"       ║
+echo "║  Auth Table     : ${DYNAMO_AUTH_TABLE}"          ║
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
 
