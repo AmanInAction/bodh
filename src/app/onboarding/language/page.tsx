@@ -1,6 +1,19 @@
+"use client";
+
 import Link from "next/link";
 import { languages } from "@/config/languages";
+import { setClientLanguage } from "@/lib/i18n";
+
 export default function LanguagePage() {
+  function handleSelect(code: string) {
+    setClientLanguage(code);
+    fetch("/api/student", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ language: code }),
+    }).catch(() => {});
+  }
+
   return (
     <main className="onboarding">
       <div className="onboarding-mark">
@@ -12,7 +25,11 @@ export default function LanguagePage() {
         <p>You can change this later in your profile.</p>
         <div className="language-list">
           {languages.map((language) => (
-            <Link key={language.code} href={`/learn?language=${language.code}`}>
+            <Link
+              key={language.code}
+              href={`/learn?language=${language.code}`}
+              onClick={() => handleSelect(language.code)}
+            >
               <span>{language.nativeName}</span>
               {language.name}
               <span>→</span>

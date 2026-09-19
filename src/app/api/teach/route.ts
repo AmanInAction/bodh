@@ -1,6 +1,4 @@
-﻿import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { readSession, sessionCookie } from "@/lib/auth/session";
+import { NextResponse } from "next/server";
 import {
   runTeachingTeam,
   type TeachingStyle,
@@ -21,18 +19,6 @@ function safeStyle(value: unknown): TeachingStyle {
 
 export async function POST(request: Request) {
   try {
-    const cookieStore = await cookies();
-    const session = await readSession(
-      cookieStore.get(sessionCookie)?.value,
-    );
-
-    if (!session) {
-      return NextResponse.json(
-        { error: "Authentication required." },
-        { status: 401 },
-      );
-    }
-
     const body = await request.json();
 
     const topic =
