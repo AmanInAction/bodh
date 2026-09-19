@@ -201,7 +201,6 @@ export function QuizSession({
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false); // show correct/wrong after answer
   const question = questions[current];
   const hindi = language === "hi";
   const cardRef = useRef<HTMLDivElement>(null);
@@ -233,11 +232,9 @@ export function QuizSession({
     const next = [...answers];
     next[current] = index;
     setAnswers(next);
-    setRevealed(false);
   }
 
   function advance() {
-    setRevealed(false);
     setCurrent((c) => c + 1);
     // Scroll card into view smoothly
     setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
@@ -419,8 +416,7 @@ export function QuizSession({
           <button
             className="button button-quiet"
             onClick={() => {
-              setRevealed(false);
-              setCurrent(current - 1);
+                        setCurrent(current - 1);
             }}
           >
             {hindi ? "पीछे" : "Back"}
@@ -461,3 +457,4 @@ export function QuizSession({
     </div>
   );
 }
+

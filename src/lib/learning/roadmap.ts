@@ -1,11 +1,8 @@
 import { topics } from "@/config/topics";
 import type { TopicProgress } from "@/types/progress";
 import { getRoadmapFromDB, putRoadmapToDB } from "@/lib/aws/dynamodb";
+import { getLocalRoadmap, putLocalRoadmap } from "@/lib/local/store";
 import type { TeachingStyle } from "@/lib/agentcore/teaching";
-
-// ── In-memory fallback (used when DynamoDB is not configured) ─────────────────
-
-const inMemory = new Map<string, TopicProgress[]>();
 
 function defaultRoadmap(): TopicProgress[] {
   return topics.map((topic) => ({
@@ -17,16 +14,21 @@ function defaultRoadmap(): TopicProgress[] {
   }));
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────────
+// Make sure every current topic exists in a stored roadmap.
+function withAllTopics(stored: TopicProgress[]): TopicProgress[] {
+  const defaults = defaultRoadmap();
+  return defaults.map((d) => stored.find((s) => s.topicSlug === d.topicSlug) ?? d);
+}
 
 export async function getRoadmap(email: string): Promise<TopicProgress[]> {
-  // Try DynamoDB first
   const dbRoadmap = await getRoadmapFromDB(email);
-  if (dbRoadmap) return dbRoadmap;
+  if (dbRoadmap) return withAllTopics(dbRoadmap);
 
-  // In-memory fallback
-  if (!inMemory.has(email)) inMemory.set(email, defaultRoadmap());
-  return inMemory.get(email)!;
+  // Local file store (used when DynamoDB is not configured).
+  const local = await getLocalRoadmap(email).catch(() => null);
+  if (local) return withAllTopics(local);
+
+  return defaultRoadmap();
 }
 
 export async function recordAssessment(
@@ -46,12 +48,8 @@ export async function recordAssessment(
     if (style) item.teachingStyle = style;
   }
 
-  // Persist
-  try {
-    await putRoadmapToDB(email, roadmap);
-  } catch {
-    inMemory.set(email, roadmap);
-  }
+  try { await putRoadmapToDB(email, roadmap); } catch { /* not configured */ }
+  try { await putLocalRoadmap(email, roadmap); } catch { /* read-only filesystem */ }
 
   return roadmap;
 }

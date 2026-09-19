@@ -1,4 +1,4 @@
-import { jwtVerify, SignJWT } from "jose";
+﻿import { jwtVerify, SignJWT } from "jose";
 
 export const sessionCookie = "bodh_session";
 const secret = new TextEncoder().encode(
@@ -25,12 +25,21 @@ export async function createSession(session: Session) {
 
 export async function readSession(token: string | undefined) {
   if (!token) return null;
+
   try {
     const { payload } = await jwtVerify(token, secret);
-    if (typeof payload.email !== "string" || typeof payload.name !== "string") {
+
+    if (
+      typeof payload.email !== "string" ||
+      typeof payload.name !== "string"
+    ) {
       return null;
     }
-    return { email: payload.email, name: payload.name };
+
+    return {
+      email: payload.email,
+      name: payload.name,
+    };
   } catch {
     return null;
   }

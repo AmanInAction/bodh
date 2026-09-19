@@ -1,4 +1,4 @@
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+﻿import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -221,6 +221,17 @@ export async function updateTopicScore({
     }),
   );
 
+  // Phase 1b: ensure topics[slug] exists (DynamoDB cannot SET a nested path
+  // whose parent map is missing, e.g. the first attempt on a topic).
+  await db.send(
+    new UpdateCommand({
+      TableName: STUDENT_RECORD_TABLE,
+      Key: { studentId },
+      UpdateExpression: "SET #topics.#slug = if_not_exists(#topics.#slug, :emptyTopic)",
+      ExpressionAttributeNames: { "#topics": "topics", "#slug": topicSlug },
+      ExpressionAttributeValues: { ":emptyTopic": { score: 0, attempts: 0 } },
+    }),
+  );
   // ── Phase 2: Write nested score + increment attempts ──────────────────────
   try {
     await db.send(
@@ -340,3 +351,4 @@ export async function recordLogin({
     }),
   );
 }
+

@@ -1,108 +1,145 @@
-import { invokeBedrockText } from "@/lib/aws/bedrock";
+﻿import { invokeBedrockText } from "@/lib/aws/bedrock";
 import { PROMPTS } from "@/lib/ai/prompts";
 
-export type TeachingStyle = "simple" | "socratic" | "visual" | "interview";
+export type TeachingStyle =
+  | "simple"
+  | "socratic"
+  | "visual"
+  | "interview";
 
 export type TeachingResult = {
-  style: TeachingStyle;
-  explanation: string;      // Teacher agent output
-  followUp: string;         // Evaluator agent: one clarifying question
+  provider: "agentcore" | "bedrock" | "local";
+  explanation: string;
+  followUp: string;
   recommendedStyle: TeachingStyle;
-  nextSkill: string;
-  confidence: number;       // 0-100
-  provider: "bedrock" | "local";
+  confidence: number;
 };
 
-// ── Local fallbacks ────────────────────────────────────────────────────────────
+const LOCAL_EXPLANATIONS: Record<TeachingStyle, string> = {
+  simple:
+    "Let's break the concept into one small idea at a time, then connect it to a simple example.",
+  socratic:
+    "Think about what the data structure needs to do first. What operation should be fastest, and why?",
+  visual:
+    "Imagine the data as a row of boxes. Each box stores a value, and the way we connect or access those boxes defines the structure.",
+  interview:
+    "Imagine an interviewer asks you to explain the concept and its time complexity. Start with the core idea, then give one example.",
+};
 
-function localExplanation(topic: string, style: TeachingStyle, language: "en" | "hi"): string {
-  const styleNote =
-    style === "socratic"
-      ? language === "hi" ? "सवाल पूछकर:" : "By asking:"
-      : style === "visual"
-        ? language === "hi" ? "चित्र से:" : "Visually:"
-        : style === "interview"
-          ? language === "hi" ? "इंटरव्यू में:" : "Interview-style:"
-          : language === "hi" ? "सरल तरीके से:" : "Simply put:";
-
-  return language === "hi"
-    ? `${styleNote} ${topic} एक डेटा संरचना है जो जानकारी को व्यवस्थित रखती है और कुशल एक्सेस की सुविधा देती है।`
-    : `${styleNote} ${topic} is a data structure that organises information for efficient access and manipulation.`;
-}
-
-function localFollowUp(topic: string, language: "en" | "hi"): string {
-  return language === "hi"
-    ? `${topic} का उपयोग कब करना उचित होगा और कब नहीं?`
-    : `When would you choose ${topic} over an alternative, and when would you not?`;
-}
-
-// ── Main multi-agent pipeline ─────────────────────────────────────────────────
-
-export async function runTeachingTeam(input: {
-  topic: string;
-  question: string;
-  style?: TeachingStyle;
-  language?: "en" | "hi";
-}): Promise<TeachingResult> {
-  const style = input.style ?? "simple";
-  const language = input.language ?? "en";
-  const isLocal = !process.env.AWS_REGION || !process.env.BEDROCK_MODEL_ID;
-
-  // ── Agent 1: Teacher ─────────────────────────────────────────────────────
-  let explanation: string;
-  try {
-    explanation = await invokeBedrockText(
-      PROMPTS.teacherSystem(style, language),
-      `Topic: ${input.topic}\nLearner question / context: ${input.question}`,
-      { maxTokens: 300, temperature: 0.5 },
-    );
-  } catch {
-    explanation = localExplanation(input.topic, style, language);
-  }
-
-  // ── Agent 2: Evaluator ────────────────────────────────────────────────────
-  let followUp: string;
-  try {
-    followUp = await invokeBedrockText(
-      PROMPTS.evaluatorSystem(language),
-      `Topic: ${input.topic}\nTeacher explanation:\n${explanation}`,
-      { maxTokens: 150, temperature: 0.3 },
-    );
-  } catch {
-    followUp = localFollowUp(input.topic, language);
-  }
-
-  // ── Agent 3: Assessor ─────────────────────────────────────────────────────
-  let recommendedStyle: TeachingStyle = "simple";
-  let nextSkill = input.topic;
-  let confidence = 60;
-
-  try {
-    const raw = await invokeBedrockText(
-      PROMPTS.assessorSystem(language),
-      `Topic: ${input.topic}\nTeacher:\n${explanation}\nEvaluator:\n${followUp}`,
-      { maxTokens: 200, temperature: 0.2 },
-    );
-    const jsonStr = raw.replace(/```json?\n?/gi, "").replace(/```/g, "").trim();
-    const parsed = JSON.parse(jsonStr) as {
-      recommendedStyle: TeachingStyle;
-      nextSkill: string;
-      confidence: number;
-    };
-    if (parsed.recommendedStyle) recommendedStyle = parsed.recommendedStyle;
-    if (parsed.nextSkill) nextSkill = parsed.nextSkill;
-    if (typeof parsed.confidence === "number") confidence = parsed.confidence;
-  } catch {
-    // Use defaults above
-  }
-
+function localResult(
+  style: TeachingStyle,
+  language: "en" | "hi",
+): TeachingResult {
   return {
-    style,
-    explanation,
-    followUp,
-    recommendedStyle,
-    nextSkill,
-    confidence,
-    provider: isLocal ? "local" : "bedrock",
+    provider: "local",
+    explanation:
+      language === "hi"
+        ? "आइए इस concept को छोटे हिस्सों में समझते हैं और फिर एक आसान उदाहरण से जोड़ते हैं।"
+        : LOCAL_EXPLANATIONS[style],
+    followUp:
+      language === "hi"
+        ? "अब सोचिए कि इस concept का सबसे महत्वपूर्ण operation कौन सा है और क्यों?"
+        : "Which operation matters most for this concept, and why?",
+    recommendedStyle: style,
+    confidence: 55,
   };
+}
+
+async function tryAgentCore(
+  topic: string,
+  question: string,
+  style: TeachingStyle,
+  language: "en" | "hi",
+): Promise<TeachingResult | null> {
+  const url = process.env.AGENTCORE_RUNTIME_URL;
+
+  if (!url) return null;
+
+  try {
+    const response = await fetch(url, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        task: "teach",
+        topic,
+        question,
+        style,
+        language,
+      }),
+      cache: "no-store",
+    });
+
+    if (!response.ok) return null;
+
+    const data = await response.json();
+
+    if (
+      typeof data.explanation !== "string" ||
+      typeof data.followUp !== "string"
+    ) {
+      return null;
+    }
+
+    return {
+      provider: "agentcore",
+      explanation: data.explanation,
+      followUp: data.followUp,
+      recommendedStyle:
+        data.recommendedStyle === "socratic" ||
+        data.recommendedStyle === "visual" ||
+        data.recommendedStyle === "interview"
+          ? data.recommendedStyle
+          : style,
+      confidence:
+        typeof data.confidence === "number" ? data.confidence : 70,
+    };
+  } catch {
+    return null;
+  }
+}
+
+export async function runTeachingTeam(
+  question: string,
+  topic: string,
+  style: TeachingStyle,
+  language: "en" | "hi",
+): Promise<TeachingResult> {
+  const agentCore = await tryAgentCore(
+    topic,
+    question,
+    style,
+    language,
+  );
+
+  if (agentCore) return agentCore;
+
+  try {
+    const explanation = await invokeBedrockText(
+      PROMPTS.teacherSystem(style, language),
+      `Topic: ${topic}\nStudent question/context: ${question}`,
+      { maxTokens: 450 },
+    );
+
+    if (explanation && !explanation.startsWith("[local]")) {
+      const followUp = await invokeBedrockText(
+        PROMPTS.evaluatorSystem(language),
+        explanation,
+        { maxTokens: 180 },
+      );
+
+      return {
+        provider: "bedrock",
+        explanation,
+        followUp,
+        recommendedStyle: style,
+        confidence: 75,
+      };
+    }
+  } catch (error) {
+    console.error("[teaching] Bedrock fallback:", error);
+  }
+
+  return localResult(style, language);
 }

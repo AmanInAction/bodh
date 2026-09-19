@@ -1,4 +1,7 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { getSessionOrDemo, sessionCookie } from "@/lib/auth/session";
+import { getTopicScores } from "@/lib/learning/scores";
 import { notFound } from "next/navigation";
 import { getTopic } from "@/lib/learning/topics";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -24,6 +27,8 @@ export default async function TopicPage({
   const { language = "en" } = await searchParams;
   const topic = getTopic(slug);
   if (!topic) notFound();
+  const session = await getSessionOrDemo((await cookies()).get(sessionCookie)?.value);
+  const mastery = (await getTopicScores(session))[slug] ?? 0;
 
   const isHindi = language === "hi";
   const topicTitleHi = TOPIC_TITLE_HI[slug] ?? topic.title;
@@ -44,9 +49,9 @@ export default async function TopicPage({
         <p>{topic.description}</p>
         <div className="topic-summary">
           <span>{topic.lessons} lessons</span>
-          <span>{topic.mastery}% mastered</span>
+          <span>{mastery}% mastered</span>
         </div>
-        <ProgressBar value={topic.mastery} />
+        <ProgressBar value={mastery} />
       </section>
 
       {/* ── 3-Action Buttons (Spec §4.4) ──────────────────────────── */}
