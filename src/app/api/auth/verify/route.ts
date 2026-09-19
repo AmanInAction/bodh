@@ -1,15 +1,27 @@
 import { NextResponse } from "next/server";
 import { createSession, sessionCookie } from "@/lib/auth/session";
 import { consumeVerificationCode } from "@/lib/auth/store";
+import {
+  getStudentRecord,
+  putStudentRecord,
+  getStudentProfile,
+  putStudentProfile,
+  recordLogin,
+} from "@/lib/aws/dynamodb";
+import type { Student } from "@/types/student";
 
 export async function POST(request: Request) {
   const body = (await request.json()) as {
     email?: string;
     code?: string;
     name?: string;
+    language?: "en" | "hi";
   };
+
   const email = body.email?.trim().toLowerCase();
   const code = body.code?.trim();
+
+  // ── Validate OTP ────────────────────────────────────────────────────────────
   if (
     !email ||
     !code ||
@@ -21,17 +33,52 @@ export async function POST(request: Request) {
       { status: 401 },
     );
   }
-  const token = await createSession({
-    email,
-    name: body.name?.trim() || email.split("@")[0],
-  });
-  const response = NextResponse.json({ ok: true });
+
+  // ── Determine: new user or returning? ───────────────────────────────────────
+  const studentId = email; // studentId === email for this app
+  const existingRecord  = await getStudentRecord(studentId);
+  const existingProfile = await getStudentProfile(email);
+  const isNewUser = !existingRecord && !existingProfile;
+
+  const name     = body.name?.trim() || email.split("@")[0];
+  const language = body.language ?? existingRecord?.language ?? existingProfile?.language ?? "en";
+
+  if (isNewUser) {
+    // ── Signup: create Student profile ──────────────────────────────────────
+    const newProfile: Student = {
+      id: email,
+      name,
+      email,
+      language,
+      preferredStyle: "simple",
+      createdAt: new Date().toISOString(),
+    };
+    await putStudentProfile(newProfile);
+
+    // Create the base StudentRecord (recordLogin below will upsert on top)
+    await putStudentRecord({
+      studentId,
+      language,
+      topics: {},
+      weakTopics: [],
+    });
+  }
+
+  // ── Always write login event to DynamoDB (new + returning) ──────────────────
+  // This upserts: lastLoginAt, loginCount, updatedAt — and initialises the
+  // row for new users if AWS_STUDENT_RECORD_TABLE is set.
+  await recordLogin({ studentId, language });
+
+  // ── Issue session JWT ────────────────────────────────────────────────────────
+  const token = await createSession({ email, name });
+  const response = NextResponse.json({ ok: true, isNewUser });
   response.cookies.set(sessionCookie, token, {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 30, // 30 days
     path: "/",
   });
   return response;
 }
+

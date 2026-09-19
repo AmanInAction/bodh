@@ -1,0 +1,17 @@
+{
+  "topicSlug": "recursion",
+  "language": "en",
+  "title": "Recursion: Functions That Call Themselves",
+  "lead": "Recursion is when a function solves a problem by calling itself on a smaller version of that problem. Every recursive solution has two parts: a base case that stops the calls, and a recursive case that breaks the problem down.",
+  "sections": [
+    {
+      "heading": "The core idea",
+      "body": "Think of Russian nesting dolls: open one and there's a smaller one inside, until you reach the tiniest doll that doesn't open. The base case is that tiny doll — without it, calls go on forever and you get a stack overflow. The recursive case is every doll that opens into another."
+    },
+    {
+      "heading": "How the call stack works",
+      "body": "Each recursive call is pushed onto the call stack and waits until the call below it returns. For factorial(4), the stack builds up: factorial(4) → factorial(3) → factorial(2) → factorial(1). Then results bubble back up: 1 → 2 → 6 → 24. Deep recursion on large inputs can exhaust the stack — that's when an iterative approach or tail-call optimisation is preferred."
+    }
+  ],
+  "tryThis": "Write a recursive function to compute factorial(n). Trace factorial(5) by hand, drawing each call frame on paper. Then identify what happens if you forget the base case."
+}
