@@ -42,13 +42,13 @@ export async function POST(request: Request) {
   void _ignored;
 
   const student: Student = {
-    id: session.email,
-    name: existing?.name ?? session.email.split("@")[0],
-    language: existing?.language ?? "en",
-    preferredStyle: existing?.preferredStyle ?? "simple",
-    createdAt: existing?.createdAt ?? new Date().toISOString(),
-    ...safeUpdates,
-  };
+  id: session.email,
+  name: existing?.name ?? session.email.split("@")[0],
+  email: session.email,
+  language: existing?.language ?? "en",
+  preferredStyle: existing?.preferredStyle ?? "simple",
+  createdAt: existing?.createdAt ?? new Date().toISOString(),
+};
 
   await putStudentProfile(student);
   return NextResponse.json(student, { status: 200 });
