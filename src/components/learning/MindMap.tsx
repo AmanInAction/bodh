@@ -77,8 +77,6 @@ function wrapLabel(label: string, maxChars = 10): string[] {
 // ── Curved edge path ─────────────────────────────────────────────────────────
 
 function curvedPath(from: Point, to: Point): string {
-  const mx = (from.x + to.x) / 2;
-  const my = (from.y + to.y) / 2;
   // Slight cubic bezier for organic feel
   const dx = to.x - from.x;
   const dy = to.y - from.y;
@@ -91,7 +89,13 @@ function curvedPath(from: Point, to: Point): string {
 
 // ── Main Component ────────────────────────────────────────────────────────────
 
-export function MindMap({ mindmap }: { mindmap: Mindmap }) {
+export function MindMap({
+  mindmap,
+  language = "en",
+}: {
+  mindmap: Mindmap;
+  language?: string;
+}) {
   const svgRef = useRef<SVGSVGElement>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const positions = layoutNodes(mindmap.nodes, mindmap.edges);
@@ -297,19 +301,27 @@ export function MindMap({ mindmap }: { mindmap: Mindmap }) {
       {/* Tooltip for hovered node */}
       {hovered && (() => {
         const node = mindmap.nodes.find((n) => n.id === hovered);
+        const isHindi = language === "hi";
+        const levelLabel =
+          node?.level === 0
+            ? isHindi ? "मुख्य" : "Root"
+            : node?.level === 1
+            ? isHindi ? "शाखा" : "Branch"
+            : isHindi ? "उप-शाखा" : "Leaf";
+
         return node ? (
           <div className="mm-tooltip">
             <strong>{node.label}</strong>
-            <span className="mm-tooltip-level">
-              {node.level === 0 ? "Root" : node.level === 1 ? "Branch" : "Leaf"}
-            </span>
+            <span className="mm-tooltip-level">{levelLabel}</span>
           </div>
         ) : null;
       })()}
 
       {/* Zoom hint */}
       <p className="mm-hint">
-        Scroll to zoom · Drag to pan
+        {language === "hi"
+          ? "ज़ूम करने के लिए स्क्रॉल करें · आगे-पीछे करने के लिए ड्रैग करें"
+          : "Scroll to zoom · Drag to pan"}
       </p>
     </div>
   );

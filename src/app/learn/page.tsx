@@ -1,5 +1,16 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import { topics } from "@/config/topics";
+import {
+  LANGUAGE_COOKIE,
+  resolveLanguage,
+  getTopicTitle,
+  getTopicDescription,
+  getLevelLabel,
+  formatLessons,
+  UI_STRINGS,
+} from "@/lib/i18n";
+import { LanguageToggle } from "@/components/ui/LanguageToggle";
 
 // Status indicators matching spec §4.3
 const STATUS_ICONS: Record<string, string> = {
@@ -22,34 +33,37 @@ export default async function LearnPage({
 }: {
   searchParams: Promise<{ language?: string }>;
 }) {
-  const { language = "en" } = await searchParams;
-  const isHindi = language === "hi";
+  const resolvedSearchParams = await searchParams;
+  const cookieStore = await cookies();
+  const language = resolveLanguage(
+    resolvedSearchParams.language,
+    cookieStore.get(LANGUAGE_COOKIE)?.value,
+  );
+  const strings = UI_STRINGS[language];
 
   return (
     <main className="site-shell">
       <nav className="nav">
-        <Link className="brand" href="/">
+        <Link className="brand" href={`/?language=${language}`}>
           bodh<span>.</span>
         </Link>
         <div>
-          <Link href="/dashboard">Dashboard</Link>
-          <Link href={`/learn?language=${language === "hi" ? "en" : "hi"}`}>
-            {language === "hi" ? "Switch to English" : "हिन्दी में पढ़ें"}
+          <Link href={`/dashboard?language=${language}`}>
+            {strings.nav.dashboard}
           </Link>
+          <LanguageToggle currentLanguage={language} />
         </div>
       </nav>
 
       <section className="library-header">
         <span className="eyebrow">
-          {isHindi ? "डीएसए यात्रा" : "Your DSA Journey"}
+          {strings.learnPage.eyebrow}
         </span>
         <h1>
-          {isHindi ? "अपना विषय चुनें।" : "Follow your curiosity."}
+          {strings.learnPage.title}
         </h1>
         <p>
-          {isHindi
-            ? "छोटे-छोटे पाठ, दृश्य सोच, और एक धैर्यवान AI शिक्षक।"
-            : "Short lessons, visual thinking, and a patient AI coach."}
+          {strings.learnPage.subtitle}
         </p>
       </section>
 
@@ -59,6 +73,11 @@ export default async function LearnPage({
           {topics.map((topic, index) => {
             const icon = STATUS_ICONS[topic.slug] ?? "🔒";
             const levelColor = LEVEL_COLORS[topic.level] ?? "#a78bfa";
+            const title = getTopicTitle(topic.slug, language);
+            const description = getTopicDescription(topic.slug, language);
+            const level = getLevelLabel(topic.level, language);
+            const lessonsCount = formatLessons(topic.lessons, language);
+
             return (
               <div key={topic.slug} className="roadmap-item">
                 <div className="roadmap-track">
@@ -76,18 +95,18 @@ export default async function LearnPage({
                       className="roadmap-level-badge"
                       style={{ background: `${levelColor}22`, color: levelColor }}
                     >
-                      {topic.level}
+                      {level}
                     </span>
                     <span className="roadmap-lessons">
-                      {topic.lessons} lessons
+                      {lessonsCount}
                     </span>
                   </div>
-                  <strong className="roadmap-title">{topic.title}</strong>
-                  <p className="roadmap-desc">{topic.description}</p>
+                  <strong className="roadmap-title">{title}</strong>
+                  <p className="roadmap-desc">{description}</p>
                   <div className="roadmap-actions">
-                    <span>📖 Learn</span>
-                    <span>🧠 Mind Map</span>
-                    <span>📝 Quiz</span>
+                    <span>{strings.learnPage.learnCard}</span>
+                    <span>{strings.learnPage.mindmapCard}</span>
+                    <span>{strings.learnPage.quizCard}</span>
                   </div>
                 </Link>
               </div>

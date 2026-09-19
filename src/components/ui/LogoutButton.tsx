@@ -1,17 +1,24 @@
 "use client";
 
-import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-export function LogoutButton() {
-  const router = useRouter();
+export function LogoutButton({
+  language = "en",
+}: {
+  language?: "en" | "hi";
+}) {
   const [loading, setLoading] = useState(false);
+  const isHindi = language === "hi";
 
   async function handleLogout() {
     setLoading(true);
-    await fetch("/api/auth/logout", { method: "POST" });
-    router.push("/");
-    router.refresh();
+    try {
+      await fetch("/api/auth/logout", { method: "POST" });
+    } catch (err) {
+      console.error("Logout error:", err);
+    } finally {
+      window.location.replace("/");
+    }
   }
 
   return (
@@ -19,9 +26,15 @@ export function LogoutButton() {
       onClick={handleLogout}
       disabled={loading}
       className="logout-btn"
-      aria-label="Log out"
+      aria-label={isHindi ? "लॉग आउट" : "Log out"}
     >
-      {loading ? "Logging out…" : "Log out"}
+      {loading
+        ? isHindi
+          ? "लॉग आउट हो रहे हैं…"
+          : "Logging out…"
+        : isHindi
+        ? "लॉग आउट"
+        : "Log out"}
     </button>
   );
 }
