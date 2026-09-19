@@ -1,38 +1,78 @@
-import {
+﻿import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
 
-const MODEL_ID =
-  process.env.BEDROCK_MODEL_ID ?? "amazon.nova-lite-v1:0";
+const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? "amazon.nova-lite-v1:0";
 
-const client = process.env.AWS_REGION
-  ? new BedrockRuntimeClient({ region: process.env.AWS_REGION })
-  : null;
+function hasExplicitCredentials() {
+  return Boolean(
+    process.env.AWS_ACCESS_KEY_ID &&
+    process.env.AWS_SECRET_ACCESS_KEY,
+  );
+}
+
+export function isBedrockConfigured() {
+  return Boolean(
+    process.env.AWS_REGION &&
+    process.env.BEDROCK_MODEL_ID &&
+    (
+      hasExplicitCredentials() ||
+      process.env.AWS_EXECUTION_ENV ||
+      process.env.AWS_LAMBDA_FUNCTION_NAME ||
+      process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
+      process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI
+    ),
+  );
+}
+
+function getClient() {
+  if (!isBedrockConfigured()) return null;
+
+  return new BedrockRuntimeClient({
+    region: process.env.AWS_REGION,
+  });
+}
 
 export async function invokeBedrockText(
   systemPrompt: string,
   userPrompt: string,
-  opts?: { maxTokens?: number; temperature?: number },
+  opts?: {
+    temperature?: number;
+    maxTokens?: number;
+  },
 ): Promise<string> {
+  const client = getClient();
+
   if (!client) {
-    // local fallback — never crashes the UI
-    return `[local] ${userPrompt.slice(0, 120)}`;
+    return `[local] ${userPrompt.slice(0, 160)}`;
   }
-  const response = await client.send(
-    new ConverseCommand({
-      modelId: MODEL_ID,
-      system: [{ text: systemPrompt }],
-      messages: [{ role: "user", content: [{ text: userPrompt }] }],
-      inferenceConfig: {
-        maxTokens: opts?.maxTokens ?? 800,
-        temperature: opts?.temperature ?? 0.4,
-      },
-    }),
-  );
-  return (
-    response.output?.message?.content
-      ?.map((part) => part.text ?? "")
-      .join("") ?? ""
-  );
+
+  try {
+    const response = await client.send(
+      new ConverseCommand({
+        modelId: MODEL_ID,
+        system: [{ text: systemPrompt }],
+        messages: [
+          {
+            role: "user",
+            content: [{ text: userPrompt }],
+          },
+        ],
+        inferenceConfig: {
+          temperature: opts?.temperature ?? 0.4,
+          maxTokens: opts?.maxTokens ?? 700,
+        },
+      }),
+    );
+
+    return (
+      response.output?.message?.content
+        ?.map((part) => part.text ?? "")
+        .join("") ?? ""
+    );
+  } catch (error) {
+    console.error("[bedrock] invocation failed:", error);
+    throw error;
+  }
 }

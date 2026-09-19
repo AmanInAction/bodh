@@ -1,10 +1,11 @@
-import Link from "next/link";
+﻿import Link from "next/link";
+import { cookies } from "next/headers";
+
 import { topics } from "@/config/topics";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { TopicProgress } from "@/components/dashboard/TopicProgress";
 import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
 import { getRecommendations } from "@/lib/learning/recommendation";
-import { cookies } from "next/headers";
 import { getSessionOrDemo, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
@@ -69,18 +70,21 @@ export default async function DashboardPage() {
         <Link className="brand" href="/">
           bodh<span>.</span>
         </Link>
+
         <div>
           <Link href="/learn">Learn</Link>
           <span className="avatar">{session.name[0].toUpperCase()}</span>
           <LogoutButton />
         </div>
       </nav>
+
       <section className="dashboard-header">
         <div>
           <span className="eyebrow">Your learning space</span>
           <h1>{greeting}, {session.name}.</h1>
           <p>Keep the thread going. You are building something durable.</p>
         </div>
+
         <div className="streak">
           <strong>{loginStreak}</strong>
           <span>
@@ -90,6 +94,7 @@ export default async function DashboardPage() {
           </span>
         </div>
       </section>
+
       <div className="score-grid">
         <ScoreCard
           label="Lessons completed"
@@ -107,10 +112,12 @@ export default async function DashboardPage() {
           detail={attempted.length > 0 ? `Across ${attempted.length} topic${attempted.length !== 1 ? "s" : ""}` : "No quizzes yet"}
         />
       </div>
+
       <section className="dashboard-columns">
         <div className="dashboard-panel">
           <div className="section-heading">
             <h2>Your progress</h2>
+
             <Link className="text-link" href="/learn">
               See library →
             </Link>
@@ -123,6 +130,7 @@ export default async function DashboardPage() {
             />
           ))}
         </div>
+
         <div className="dashboard-side">
           {weakestTopic && (
             <div className="card focus-card">
@@ -153,7 +161,7 @@ export default async function DashboardPage() {
           )}
           {recommendations.map((recommendation) => (
             <RecommendationCard
-              key={recommendation.title}
+              key={recommendation.topicSlug}
               recommendation={recommendation}
             />
           ))}
@@ -162,3 +170,7 @@ export default async function DashboardPage() {
     </main>
   );
 }
+
+
+
+

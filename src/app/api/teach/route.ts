@@ -1,43 +1,70 @@
+﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { NextResponse } from "next/server";
 import { readSession, sessionCookie } from "@/lib/auth/session";
-import { runTeachingTeam, type TeachingStyle } from "@/lib/agentcore/teaching";
+import {
+  runTeachingTeam,
+  type TeachingStyle,
+} from "@/lib/agentcore/teaching";
 
-const styles = new Set<TeachingStyle>([
+const VALID_STYLES: TeachingStyle[] = [
   "simple",
   "socratic",
   "visual",
   "interview",
-]);
+];
+
+function safeStyle(value: unknown): TeachingStyle {
+  return VALID_STYLES.includes(value as TeachingStyle)
+    ? (value as TeachingStyle)
+    : "simple";
+}
 
 export async function POST(request: Request) {
-  const session = await readSession(
-    (await cookies()).get(sessionCookie)?.value,
-  );
-  if (!session)
-    return NextResponse.json(
-      { error: "Sign in to start a teaching session." },
-      { status: 401 },
+  try {
+    const cookieStore = await cookies();
+    const session = await readSession(
+      cookieStore.get(sessionCookie)?.value,
     );
-  const body = (await request.json()) as {
-    topic?: string;
-    question?: string;
-    style?: TeachingStyle;
-    language?: string;
-  };
-  if (!body.topic || !body.question)
-    return NextResponse.json(
-      { error: "topic and question are required." },
-      { status: 400 },
-    );
-  const style = body.style && styles.has(body.style) ? body.style : "simple";
-  const language = body.language === "hi" ? "hi" : "en";
-  return NextResponse.json(
-    await runTeachingTeam({
-      topic: body.topic,
-      question: body.question,
+
+    if (!session) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
+
+    const body = await request.json();
+
+    const topic =
+      typeof body.topic === "string" ? body.topic.trim() : "";
+
+    const question =
+      typeof body.question === "string" ? body.question.trim() : "";
+
+    const language = body.language === "hi" ? "hi" : "en";
+    const style = safeStyle(body.style);
+
+    if (!topic || !question) {
+      return NextResponse.json(
+        { error: "Topic and question are required." },
+        { status: 400 },
+      );
+    }
+
+    const result = await runTeachingTeam(
+      question,
+      topic,
       style,
       language,
-    }),
-  );
+    );
+
+    return NextResponse.json(result);
+  } catch (error) {
+    console.error("[teach]", error);
+
+    return NextResponse.json(
+      { error: "Unable to generate teaching response right now." },
+      { status: 500 },
+    );
+  }
 }

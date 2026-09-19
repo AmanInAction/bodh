@@ -1,4 +1,4 @@
-{
+﻿{
   "compilerOptions": {
     "target": "ES2017",
     "lib": [
@@ -42,3 +42,4 @@
     "**/*.test.ts"
   ]
 }
+

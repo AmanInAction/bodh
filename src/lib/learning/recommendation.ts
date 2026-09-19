@@ -1,58 +1,110 @@
+﻿import { invokeBedrockText } from "@/lib/aws/bedrock";
+import { PROMPTS } from "@/lib/ai/prompts";
 import type { TopicProgress } from "@/types/progress";
-import type { Recommendation } from "@/types/ai";
 import { topics } from "@/config/topics";
 
-/**
- * Generates personalised recommendations from the student's roadmap.
- * Priority order:
- *  1. Topics started but mastery < 50% (needs reinforcement)
- *  2. Topics not yet started (next in sequence)
- *  3. Topics with mastery < 80% (could improve)
- */
-export function getRecommendations(roadmap: TopicProgress[]): Recommendation[] {
-  const progressMap = new Map(roadmap.map((p) => [p.topicSlug, p]));
+export type Recommendation = {
+  topicSlug: string;
+  reason: string;
+};
 
-  const recommendations: Recommendation[] = [];
+export function getRecommendations(
+  roadmap: TopicProgress[],
+): Recommendation[] {
+  const weak = roadmap
+    .filter((item) => item.mastery < 50)
+    .sort((a, b) => a.mastery - b.mastery);
 
-  // 1. Reinforcement: started but low mastery
-  for (const topic of topics) {
-    const p = progressMap.get(topic.slug);
-    if (p && p.attempts > 0 && p.mastery < 50) {
-      recommendations.push({
-        title: topic.title,
-        reason:
-          p.mastery < 30
-            ? `You scored ${p.mastery}% — a quick review will make a big difference.`
-            : `You're at ${p.mastery}% mastery. One more practice session should do it.`,
-        href: `/learn/${topic.slug}`,
+  const developing = roadmap
+    .filter((item) => item.mastery >= 50 && item.mastery < 80)
+    .sort((a, b) => a.mastery - b.mastery);
+
+  const untouched = roadmap.filter((item) => item.attempts === 0);
+
+  const result: Recommendation[] = [];
+
+  for (const item of weak) {
+    if (!result.some((r) => r.topicSlug === item.topicSlug)) {
+      result.push({
+        topicSlug: item.topicSlug,
+        reason: "Reinforce the core concept before moving on.",
       });
     }
   }
 
-  // 2. Next unstarted topic
-  for (const topic of topics) {
-    const p = progressMap.get(topic.slug);
-    if (!p || p.attempts === 0) {
-      recommendations.push({
-        title: topic.title,
-        reason: "You haven't tried this topic yet — it's the natural next step.",
-        href: `/learn/${topic.slug}`,
-      });
-      break; // only one unstarted at a time
-    }
-  }
+  for (const item of untouched) {
+    if (result.length >= 3) break;
 
-  // 3. Could-improve
-  for (const topic of topics) {
-    const p = progressMap.get(topic.slug);
-    if (p && p.mastery >= 50 && p.mastery < 80) {
-      recommendations.push({
-        title: topic.title,
-        reason: `You're at ${p.mastery}% — push to 80% and you'll feel solid.`,
-        href: `/learn/${topic.slug}`,
+    if (!result.some((r) => r.topicSlug === item.topicSlug)) {
+      result.push({
+        topicSlug: item.topicSlug,
+        reason: "A new topic to keep your learning path moving.",
       });
     }
   }
 
-  return recommendations.slice(0, 3);
+  for (const item of developing) {
+    if (result.length >= 3) break;
+
+    if (!result.some((r) => r.topicSlug === item.topicSlug)) {
+      result.push({
+        topicSlug: item.topicSlug,
+        reason: "A little more practice can strengthen this skill.",
+      });
+    }
+  }
+
+  return result.slice(0, 3);
+}
+
+export async function getAIRecommendations(
+  roadmap: TopicProgress[],
+  language: "en" | "hi" = "en",
+): Promise<Recommendation[]> {
+  const fallback = getRecommendations(roadmap);
+
+  try {
+    const raw = await invokeBedrockText(
+      PROMPTS.recommendationSystem(language),
+      PROMPTS.recommendationUser(
+        roadmap.map((item) => ({
+          topicSlug: item.topicSlug,
+          mastery: item.mastery,
+          attempts: item.attempts,
+        })),
+        language,
+      ),
+      { maxTokens: 300 },
+    );
+
+    if (!raw || raw.startsWith("[local]")) {
+      return fallback;
+    }
+
+    const cleaned = raw
+      .replace(/^```json\s*/i, "")
+      .replace(/^```\s*/i, "")
+      .replace(/\s*```$/i, "")
+      .trim();
+
+    const parsed = JSON.parse(cleaned);
+
+    if (!Array.isArray(parsed)) return fallback;
+
+    const valid = parsed
+      .filter(
+        (item): item is Recommendation =>
+          item &&
+          typeof item === "object" &&
+          typeof item.topicSlug === "string" &&
+          typeof item.reason === "string" &&
+          topics.some((topic) => topic.slug === item.topicSlug),
+      )
+      .slice(0, 3);
+
+    return valid.length ? valid : fallback;
+  } catch (error) {
+    console.error("[recommendation] AI fallback:", error);
+    return fallback;
+  }
 }
