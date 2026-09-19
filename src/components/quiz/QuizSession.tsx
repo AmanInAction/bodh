@@ -1,4 +1,4 @@
-"use client";
+﻿"use client";
 
 import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
@@ -22,7 +22,7 @@ type Assessment = {
   nextTopic: { slug: string; title: string };
 };
 
-// ── Animated Score Ring ───────────────────────────────────────────────────────
+// â”€â”€ Animated Score Ring â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
   const r = 56;
@@ -53,7 +53,7 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
     score >= 80 ? "#34d399" : score >= 50 ? "#a78bfa" : "#f472b6";
   const trackColor =
     score >= 80 ? "rgba(52,211,153,0.12)" : score >= 50 ? "rgba(167,139,250,0.12)" : "rgba(244,114,182,0.12)";
-  const emoji = score >= 80 ? "🎉" : score >= 50 ? "👏" : "💪";
+  const emoji = score >= 80 ? "ðŸŽ‰" : score >= 50 ? "ðŸ‘" : "ðŸ’ª";
 
   return (
     <div className="score-ring-wrap" aria-label={`Score: ${score}%`}>
@@ -80,13 +80,13 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
       </svg>
       <div className="score-ring-label">
         <strong style={{ color }}>{animatedScore}%</strong>
-        <span>{hindi ? "स्कोर" : "score"}</span>
+        <span>{hindi ? "à¤¸à¥à¤•à¥‹à¤°" : "score"}</span>
       </div>
     </div>
   );
 }
 
-// ── Animated Confidence Meter ─────────────────────────────────────────────────
+// â”€â”€ Animated Confidence Meter â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ConfidenceMeter({
   confidence,
@@ -104,10 +104,10 @@ function ConfidenceMeter({
 
   const label =
     confidence >= 75
-      ? hindi ? "उत्कृष्ट समझ" : "Strong understanding"
+      ? hindi ? "à¤‰à¤¤à¥à¤•à¥ƒà¤·à¥à¤Ÿ à¤¸à¤®à¤" : "Strong understanding"
       : confidence >= 50
-      ? hindi ? "अच्छी प्रगति" : "Good progress"
-      : hindi ? "अभ्यास जारी रखें" : "Keep practising";
+      ? hindi ? "à¤…à¤šà¥à¤›à¥€ à¤ªà¥à¤°à¤—à¤¤à¤¿" : "Good progress"
+      : hindi ? "à¤…à¤­à¥à¤¯à¤¾à¤¸ à¤œà¤¾à¤°à¥€ à¤°à¤–à¥‡à¤‚" : "Keep practising";
 
   const fillColor =
     confidence >= 75
@@ -120,7 +120,7 @@ function ConfidenceMeter({
     <div className="qs-confidence">
       <div className="qs-confidence-header">
         <span className="eyebrow">
-          {hindi ? "AI आत्मविश्वास स्तर" : "AI confidence in your understanding"}
+          {hindi ? "AI à¤†à¤¤à¥à¤®à¤µà¤¿à¤¶à¥à¤µà¤¾à¤¸ à¤¸à¥à¤¤à¤°" : "AI confidence in your understanding"}
         </span>
         <span className="qs-conf-label">{label}</span>
       </div>
@@ -136,15 +136,15 @@ function ConfidenceMeter({
         <div className="qs-conf-thumb" style={{ left: `${width}%` }} />
       </div>
       <div className="qs-conf-scale">
-        <span>{hindi ? "नौसिखिया" : "Novice"}</span>
+        <span>{hindi ? "à¤¨à¥Œà¤¸à¤¿à¤–à¤¿à¤¯à¤¾" : "Novice"}</span>
         <span className="qs-conf-pct">{confidence}%</span>
-        <span>{hindi ? "विशेषज्ञ" : "Expert"}</span>
+        <span>{hindi ? "à¤µà¤¿à¤¶à¥‡à¤·à¤œà¥à¤ž" : "Expert"}</span>
       </div>
     </div>
   );
 }
 
-// ── Chip Row (strengths / weaknesses) ────────────────────────────────────────
+// â”€â”€ Chip Row (strengths / weaknesses) â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 function ChipRow({
   items,
@@ -162,14 +162,14 @@ function ChipRow({
           className={`qs-chip qs-chip-${variant}`}
           style={{ animationDelay: `${i * 60}ms` }}
         >
-          {variant === "green" ? "✓" : "△"} {item}
+          {variant === "green" ? "âœ“" : "â–³"} {item}
         </span>
       ))}
     </div>
   );
 }
 
-// ── STYLES constant ───────────────────────────────────────────────────────────
+// â”€â”€ STYLES constant â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 const STYLES: {
   id: TeachingStyle;
@@ -178,13 +178,13 @@ const STYLES: {
   icon: string;
   gradient: string;
 }[] = [
-  { id: "simple",    label: "Simple",    labelHi: "सरल",       icon: "💡", gradient: "linear-gradient(135deg,#34d399,#059669)" },
-  { id: "socratic",  label: "Socratic",  labelHi: "सवाल-जवाब", icon: "❓", gradient: "linear-gradient(135deg,#a78bfa,#7c3aed)" },
-  { id: "visual",    label: "Visual",    labelHi: "दृश्य",      icon: "🎨", gradient: "linear-gradient(135deg,#60a5fa,#2563eb)" },
-  { id: "interview", label: "Interview", labelHi: "इंटरव्यू",   icon: "🎤", gradient: "linear-gradient(135deg,#f472b6,#db2777)" },
+  { id: "simple",    label: "Simple",    labelHi: "à¤¸à¤°à¤²",       icon: "ðŸ’¡", gradient: "linear-gradient(135deg,#34d399,#059669)" },
+  { id: "socratic",  label: "Socratic",  labelHi: "à¤¸à¤µà¤¾à¤²-à¤œà¤µà¤¾à¤¬", icon: "â“", gradient: "linear-gradient(135deg,#a78bfa,#7c3aed)" },
+  { id: "visual",    label: "Visual",    labelHi: "à¤¦à¥ƒà¤¶à¥à¤¯",      icon: "ðŸŽ¨", gradient: "linear-gradient(135deg,#60a5fa,#2563eb)" },
+  { id: "interview", label: "Interview", labelHi: "à¤‡à¤‚à¤Ÿà¤°à¤µà¥à¤¯à¥‚",   icon: "ðŸŽ¤", gradient: "linear-gradient(135deg,#f472b6,#db2777)" },
 ];
 
-// ── Main Component ────────────────────────────────────────────────────────────
+// â”€â”€ Main Component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 export function QuizSession({
   topic,
@@ -201,7 +201,6 @@ export function QuizSession({
   const [assessment, setAssessment] = useState<Assessment | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [revealed, setRevealed] = useState(false); // show correct/wrong after answer
   const question = questions[current];
   const hindi = language === "hi";
   const cardRef = useRef<HTMLDivElement>(null);
@@ -213,7 +212,7 @@ export function QuizSession({
       const response = await fetch("/api/quiz/submit", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ topicSlug: topic, answers, language, style }),
+        body: JSON.stringify({ topicSlug: topic, answers, questions, language, style }),
       });
       const result = await response.json();
       if (response.ok) {
@@ -223,7 +222,7 @@ export function QuizSession({
         setError(result.error ?? "Something went wrong.");
       }
     } catch {
-      setError(hindi ? "नेटवर्क में समस्या है।" : "Network error. Please try again.");
+      setError(hindi ? "à¤¨à¥‡à¤Ÿà¤µà¤°à¥à¤• à¤®à¥‡à¤‚ à¤¸à¤®à¤¸à¥à¤¯à¤¾ à¤¹à¥ˆà¥¤" : "Network error. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -233,17 +232,15 @@ export function QuizSession({
     const next = [...answers];
     next[current] = index;
     setAnswers(next);
-    setRevealed(false);
   }
 
   function advance() {
-    setRevealed(false);
     setCurrent((c) => c + 1);
     // Scroll card into view smoothly
     setTimeout(() => cardRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 50);
   }
 
-  // ── Assessment Screen ─────────────────────────────────────────────────────
+  // â”€â”€ Assessment Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   if (assessment) {
     const { feedback, score, correct, total, nextTopic, nextStrategy, recommendedStyle } = assessment;
 
@@ -253,16 +250,16 @@ export function QuizSession({
         <div className="qs-result-header">
           <ScoreRing score={score} hindi={hindi} />
           <div className="qs-result-header-text">
-            <span className="eyebrow">{hindi ? "आपका परिणाम" : "Your result"}</span>
+            <span className="eyebrow">{hindi ? "à¤†à¤ªà¤•à¤¾ à¤ªà¤°à¤¿à¤£à¤¾à¤®" : "Your result"}</span>
             <h1 className="qs-result-title">
               {score >= 80
-                ? hindi ? "शानदार!" : "Excellent!"
+                ? hindi ? "à¤¶à¤¾à¤¨à¤¦à¤¾à¤°!" : "Excellent!"
                 : score >= 50
-                ? hindi ? "अच्छा प्रयास!" : "Good effort!"
-                : hindi ? "फिर कोशिश करें!" : "Keep going!"}
+                ? hindi ? "à¤…à¤šà¥à¤›à¤¾ à¤ªà¥à¤°à¤¯à¤¾à¤¸!" : "Good effort!"
+                : hindi ? "à¤«à¤¿à¤° à¤•à¥‹à¤¶à¤¿à¤¶ à¤•à¤°à¥‡à¤‚!" : "Keep going!"}
             </h1>
             <p className="qs-result-sub">
-              {correct} / {total} {hindi ? "सही उत्तर" : "correct answers"}
+              {correct} / {total} {hindi ? "à¤¸à¤¹à¥€ à¤‰à¤¤à¥à¤¤à¤°" : "correct answers"}
             </p>
           </div>
         </div>
@@ -274,18 +271,18 @@ export function QuizSession({
 
         {/* Learning snapshot */}
         <section className="qs-feedback-card">
-          <span className="eyebrow">{hindi ? "आपकी झलक" : "Your learning snapshot"}</span>
+          <span className="eyebrow">{hindi ? "à¤†à¤ªà¤•à¥€ à¤à¤²à¤•" : "Your learning snapshot"}</span>
 
           {feedback.strengths?.length > 0 && (
             <>
-              <p className="qs-chip-label">{hindi ? "ताकत" : "Strengths"}</p>
+              <p className="qs-chip-label">{hindi ? "à¤¤à¤¾à¤•à¤¤" : "Strengths"}</p>
               <ChipRow items={feedback.strengths} variant="green" />
             </>
           )}
 
           {feedback.weaknesses?.length > 0 && (
             <>
-              <p className="qs-chip-label">{hindi ? "सुधार की जरूरत" : "Areas to improve"}</p>
+              <p className="qs-chip-label">{hindi ? "à¤¸à¥à¤§à¤¾à¤° à¤•à¥€ à¤œà¤°à¥‚à¤°à¤¤" : "Areas to improve"}</p>
               <ChipRow items={feedback.weaknesses} variant="amber" />
             </>
           )}
@@ -296,23 +293,23 @@ export function QuizSession({
 
           {feedback.followUp && (
             <div className="qs-followup">
-              <span className="eyebrow">{hindi ? "सोचें:" : "Think about this:"}</span>
+              <span className="eyebrow">{hindi ? "à¤¸à¥‹à¤šà¥‡à¤‚:" : "Think about this:"}</span>
               <p>{feedback.followUp}</p>
             </div>
           )}
 
           {feedback.nextStep && (
-            <p className="qs-nextstep">→ {feedback.nextStep}</p>
+            <p className="qs-nextstep">â†’ {feedback.nextStep}</p>
           )}
         </section>
 
         {/* Next strategy + style picker */}
         <section className="qs-feedback-card">
-          <span className="eyebrow">{hindi ? "अगली रणनीति" : "Next strategy"}</span>
+          <span className="eyebrow">{hindi ? "à¤…à¤—à¤²à¥€ à¤°à¤£à¤¨à¥€à¤¤à¤¿" : "Next strategy"}</span>
           <p className="qs-strategy-text">{nextStrategy}</p>
 
           <p className="qs-style-prompt">
-            {hindi ? "सीखने की शैली चुनें:" : "Choose how you want to learn next:"}
+            {hindi ? "à¤¸à¥€à¤–à¤¨à¥‡ à¤•à¥€ à¤¶à¥ˆà¤²à¥€ à¤šà¥à¤¨à¥‡à¤‚:" : "Choose how you want to learn next:"}
           </p>
           <div className="qs-style-picker">
             {STYLES.map((s) => {
@@ -327,15 +324,15 @@ export function QuizSession({
                 >
                   <span className="qs-style-icon">{s.icon}</span>
                   <span>{hindi ? s.labelHi : s.label}</span>
-                  {isRec && <span className="qs-rec-star" title={hindi ? "AI सुझाव" : "AI recommended"}>★</span>}
+                  {isRec && <span className="qs-rec-star" title={hindi ? "AI à¤¸à¥à¤à¤¾à¤µ" : "AI recommended"}>â˜…</span>}
                 </button>
               );
             })}
           </div>
           {recommendedStyle && (
             <p className="qs-rec-note">
-              💡 {hindi
-                ? `AI सुझाव: "${STYLES.find((s) => s.id === recommendedStyle)?.labelHi}" शैली`
+              ðŸ’¡ {hindi
+                ? `AI à¤¸à¥à¤à¤¾à¤µ: "${STYLES.find((s) => s.id === recommendedStyle)?.labelHi}" à¤¶à¥ˆà¤²à¥€`
                 : `AI recommends: "${STYLES.find((s) => s.id === recommendedStyle)?.label}" style`}
             </p>
           )}
@@ -346,14 +343,14 @@ export function QuizSession({
           className="button button-primary qs-cta"
           href={`/learn/${nextTopic.slug}?language=${language}`}
         >
-          {hindi ? `${nextTopic.title} पर आगे बढ़ें` : `Continue to ${nextTopic.title}`}{" "}
-          <span>→</span>
+          {hindi ? `${nextTopic.title} à¤ªà¤° à¤†à¤—à¥‡ à¤¬à¤¢à¤¼à¥‡à¤‚` : `Continue to ${nextTopic.title}`}{" "}
+          <span>â†’</span>
         </Link>
       </div>
     );
   }
 
-  // ── Quiz Questions Screen ─────────────────────────────────────────────────
+  // â”€â”€ Quiz Questions Screen â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
   const selected = answers[current];
   const progress = ((current + 1) / questions.length) * 100;
@@ -366,7 +363,7 @@ export function QuizSession({
         <div className="qs-progress-meta">
           <span className="qs-progress-label">
             {hindi
-              ? `प्रश्न ${current + 1} / ${questions.length}`
+              ? `à¤ªà¥à¤°à¤¶à¥à¤¨ ${current + 1} / ${questions.length}`
               : `Question ${current + 1} of ${questions.length}`}
           </span>
           <span className="qs-progress-pct">{Math.round(progress)}%</span>
@@ -388,7 +385,7 @@ export function QuizSession({
 
       {/* Question card */}
       <div className="qs-card" ref={cardRef}>
-        <span className="eyebrow">{hindi ? "छोटी जाँच" : "Quick check"}</span>
+        <span className="eyebrow">{hindi ? "à¤›à¥‹à¤Ÿà¥€ à¤œà¤¾à¤à¤š" : "Quick check"}</span>
         <h2 className="qs-question">{question.prompt}</h2>
 
         <div className="qs-options">
@@ -404,7 +401,7 @@ export function QuizSession({
                   {String.fromCharCode(65 + index)}
                 </span>
                 <span className="qs-option-text">{option}</span>
-                {isSelected && <span className="qs-option-check">✓</span>}
+                {isSelected && <span className="qs-option-check">âœ“</span>}
               </button>
             );
           })}
@@ -419,11 +416,10 @@ export function QuizSession({
           <button
             className="button button-quiet"
             onClick={() => {
-              setRevealed(false);
-              setCurrent(current - 1);
+                        setCurrent(current - 1);
             }}
           >
-            {hindi ? "पीछे" : "Back"}
+            {hindi ? "à¤ªà¥€à¤›à¥‡" : "Back"}
           </button>
         )}
 
@@ -433,7 +429,7 @@ export function QuizSession({
             disabled={selected === undefined}
             onClick={advance}
           >
-            {hindi ? "अगला" : "Next"} <span>→</span>
+            {hindi ? "à¤…à¤—à¤²à¤¾" : "Next"} <span>â†’</span>
           </button>
         ) : (
           <button
@@ -442,9 +438,9 @@ export function QuizSession({
             onClick={submit}
           >
             {loading
-              ? hindi ? "जाँच हो रही है…" : "Checking…"
-              : hindi ? "परिणाम देखें" : "See my result"}{" "}
-            {!loading && <span>→</span>}
+              ? hindi ? "à¤œà¤¾à¤à¤š à¤¹à¥‹ à¤°à¤¹à¥€ à¤¹à¥ˆâ€¦" : "Checkingâ€¦"
+              : hindi ? "à¤ªà¤°à¤¿à¤£à¤¾à¤® à¤¦à¥‡à¤–à¥‡à¤‚" : "See my result"}{" "}
+            {!loading && <span>â†’</span>}
           </button>
         )}
       </div>
@@ -454,10 +450,11 @@ export function QuizSession({
         {(() => {
           const done = answers.filter((a) => a !== undefined).length;
           return hindi
-            ? `${done} / ${questions.length} प्रश्नों के उत्तर दिए`
+            ? `${done} / ${questions.length} à¤ªà¥à¤°à¤¶à¥à¤¨à¥‹à¤‚ à¤•à¥‡ à¤‰à¤¤à¥à¤¤à¤° à¤¦à¤¿à¤`
             : `${done} of ${questions.length} answered`;
         })()}
       </p>
     </div>
   );
 }
+

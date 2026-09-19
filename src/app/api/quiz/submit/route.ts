@@ -1,79 +1,145 @@
-import { NextResponse } from "next/server";
-import { generateQuiz } from "@/lib/ai/quiz";
+﻿import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
+import { readSession, sessionCookie } from "@/lib/auth/session";
 import { generateFeedback } from "@/lib/ai/feedback";
 import { runTeachingTeam, type TeachingStyle } from "@/lib/agentcore/teaching";
 import { getNextTopic, recordAssessment } from "@/lib/learning/roadmap";
-import { cookies } from "next/headers";
-import { readSession, sessionCookie } from "@/lib/auth/session";
+import type { QuizQuestion } from "@/types/quiz";
+
+const VALID_STYLES: TeachingStyle[] = [
+  "simple",
+  "socratic",
+  "visual",
+  "interview",
+];
+
+function safeStyle(value: unknown): TeachingStyle {
+  return VALID_STYLES.includes(value as TeachingStyle)
+    ? (value as TeachingStyle)
+    : "simple";
+}
+
+function normalizeQuestions(value: unknown): QuizQuestion[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.filter((question): question is QuizQuestion => {
+    if (!question || typeof question !== "object") return false;
+
+    const q = question as QuizQuestion;
+
+    return (
+      typeof q.id === "string" &&
+      typeof q.prompt === "string" &&
+      Array.isArray(q.options) &&
+      q.options.length === 4 &&
+      q.options.every((option) => typeof option === "string") &&
+      Number.isInteger(q.answer) &&
+      q.answer >= 0 &&
+      q.answer < 4
+    );
+  });
+}
 
 export async function POST(request: Request) {
-  const session = await readSession(
-    (await cookies()).get(sessionCookie)?.value,
-  );
-  if (!session)
-    return NextResponse.json(
-      { error: "Sign in to save your result." },
-      { status: 401 },
+  try {
+    const cookieStore = await cookies();
+    const session = await readSession(
+      cookieStore.get(sessionCookie)?.value,
     );
 
-  const {
-    topicSlug = "arrays",
-    answers = [],
-    language = "en",
-    style = "simple",
-  } = await request.json();
+    if (!session) {
+      return NextResponse.json(
+        { error: "Authentication required." },
+        { status: 401 },
+      );
+    }
 
-  const lang: "en" | "hi" = language === "hi" ? "hi" : "en";
-  const safeStyle = (["simple", "socratic", "visual", "interview"].includes(style)
-    ? style
-    : "simple") as TeachingStyle;
+    const body = await request.json();
 
-  // Regenerate questions server-side to score answers
-  const questions = await generateQuiz(topicSlug, lang);
-  const correct = answers.filter(
-    (ans: number, i: number) => ans === questions[i]?.answer,
-  ).length;
-  const total = questions.length;
-  const score = Math.round((correct / total) * 100);
+    const topicSlug =
+      typeof body.topicSlug === "string" ? body.topicSlug : "";
 
-  // Run AI feedback (parallel with teaching team)
-  const [feedback, team] = await Promise.all([
-    generateFeedback(topicSlug, score, correct, total, lang),
-    runTeachingTeam({
-      topic: topicSlug,
-      question: `The learner scored ${score}% (${correct}/${total}). Provide brief, kind feedback and one concrete next practice step.`,
-      style: safeStyle,
-      language: lang,
-    }),
-  ]);
+    const language = body.language === "hi" ? "hi" : "en";
+    const style = safeStyle(body.style);
 
-  // Persist to DynamoDB (roadmap updated with score + style)
-  await recordAssessment(session.email, topicSlug, score, safeStyle);
+    const answers = Array.isArray(body.answers)
+      ? body.answers.map((answer: unknown) =>
+          Number.isInteger(answer) ? Number(answer) : -1,
+        )
+      : [];
 
-  const nextTopic = getNextTopic(topicSlug);
-  const nextStrategy =
-    score >= 80
-      ? lang === "hi"
-        ? "एक नया उदाहरण आज़माएं और गति बढ़ाएं।"
-        : "Build speed with one new example."
-      : lang === "hi"
-        ? "एक छोटे उदाहरण के साथ फिर से समझें, फिर कोशिश करें।"
-        : "Review with a smaller example, then try again.";
+    const questions = normalizeQuestions(body.questions);
 
-  return NextResponse.json({
-    score,
-    correct,
-    total,
-    feedback: {
-      strengths: feedback.strengths,
-      weaknesses: feedback.weaknesses,
-      nextStep: feedback.nextStep,
-      confidence: feedback.confidence,
-      teacher: team.explanation,
-      followUp: team.followUp,
-    },
-    recommendedStyle: team.recommendedStyle,
-    nextStrategy,
-    nextTopic: { slug: nextTopic.slug, title: nextTopic.title },
-  });
+    if (!topicSlug || !questions.length) {
+      return NextResponse.json(
+        { error: "Quiz questions are required." },
+        { status: 400 },
+      );
+    }
+
+    if (answers.length !== questions.length) {
+      return NextResponse.json(
+        { error: "Please answer every question." },
+        { status: 400 },
+      );
+    }
+
+    const correct = questions.reduce((count, question, index) => {
+      return count + (answers[index] === question.answer ? 1 : 0);
+    }, 0);
+
+    const total = questions.length;
+    const score = Math.round((correct / total) * 100);
+
+    const feedback = await generateFeedback(
+      topicSlug,
+      score,
+      correct,
+      total,
+      language,
+    );
+
+    const teaching = await runTeachingTeam(
+      `The student scored ${score}% (${correct}/${total}) on ${topicSlug}.`,
+      topicSlug,
+      style,
+      language,
+    );
+
+    const roadmap = await recordAssessment(
+      session.email,
+      topicSlug,
+      score,
+      teaching.recommendedStyle,
+    );
+
+    const nextTopic = getNextTopic(topicSlug);
+
+    return NextResponse.json({
+      score,
+      correct,
+      total,
+      feedback: {
+        ...feedback,
+        teacher: teaching.explanation,
+        followUp: teaching.followUp,
+      },
+      recommendedStyle: teaching.recommendedStyle,
+      nextStrategy:
+        score < 50
+          ? "Review the core concept and try another short practice set."
+          : score < 80
+            ? "Review the weak areas and practise one more example."
+            : "Move forward and revisit this topic later for spaced practice.",
+      nextTopic,
+      roadmap,
+    });
+  } catch (error) {
+    console.error("[quiz/submit]", error);
+
+    return NextResponse.json(
+      { error: "Unable to evaluate the quiz right now." },
+      { status: 500 },
+    );
+  }
 }

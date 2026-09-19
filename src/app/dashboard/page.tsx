@@ -1,4 +1,4 @@
-import Link from "next/link";
+﻿import Link from "next/link";
 import { topics } from "@/config/topics";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { TopicProgress } from "@/components/dashboard/TopicProgress";
@@ -55,7 +55,7 @@ export default async function DashboardPage() {
           <div className="section-heading">
             <h2>Your progress</h2>
             <Link className="text-link" href="/learn">
-              See library →
+              See library â†’
             </Link>
           </div>
           {topics.slice(0, 4).map((topic) => (
@@ -73,7 +73,7 @@ export default async function DashboardPage() {
           <WeaknessCard />
           {getRecommendations(roadmap).map((recommendation) => (
             <RecommendationCard
-              key={recommendation.title}
+              key={recommendation.topicSlug}
               recommendation={recommendation}
             />
           ))}
@@ -82,3 +82,4 @@ export default async function DashboardPage() {
     </main>
   );
 }
+

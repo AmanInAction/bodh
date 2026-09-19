@@ -1,20 +1,30 @@
-import { NextResponse } from "next/server";
+﻿import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { readSession, sessionCookie } from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
-import { getRecommendations } from "@/lib/learning/recommendation";
+import { getAIRecommendations } from "@/lib/learning/recommendation";
 
-export async function GET() {
+export async function GET(request: Request) {
+  const cookieStore = await cookies();
   const session = await readSession(
-    (await cookies()).get(sessionCookie)?.value,
+    cookieStore.get(sessionCookie)?.value,
   );
 
-  // If signed in, use real roadmap data; otherwise return empty set
   if (!session) {
-    return NextResponse.json([]);
+    return NextResponse.json(
+      { error: "Authentication required." },
+      { status: 401 },
+    );
   }
 
+  const url = new URL(request.url);
+  const language = url.searchParams.get("language") === "hi" ? "hi" : "en";
+
   const roadmap = await getRoadmap(session.email);
-  const recommendations = getRecommendations(roadmap);
-  return NextResponse.json(recommendations);
+  const recommendations = await getAIRecommendations(roadmap, language);
+
+  return NextResponse.json({
+    recommendations,
+    roadmap,
+  });
 }

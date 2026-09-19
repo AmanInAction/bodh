@@ -15,13 +15,13 @@ export function RecommendationCard({
       href={`/learn/${recommendation.topicSlug}`}
       className="group block rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
     >
-      <p className="text-sm font-medium text-primary">
-        Recommended next
-      </p>
-
-      <div className="mt-1 flex items-start justify-between gap-4">
+      <div className="flex items-start justify-between gap-4">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">
+          <p className="text-sm font-medium text-primary">
+            Recommended next
+          </p>
+
+          <h3 className="mt-1 text-lg font-semibold text-foreground">
             {recommendation.topicSlug}
           </h3>
 
