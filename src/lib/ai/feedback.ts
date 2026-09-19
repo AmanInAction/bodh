@@ -8,9 +8,11 @@ export type QuizFeedback = {
   confidence: number;
 };
 
-const localFeedback = (score: number): QuizFeedback => ({
+const localFeedback = (score: number, missedConcepts?: string[]): QuizFeedback => ({
   strengths: score >= 60 ? ["Good conceptual grasp", "Consistent reasoning"] : ["Attempted all questions"],
-  weaknesses: score < 60 ? ["Core concept needs more practice"] : [],
+  weaknesses: missedConcepts?.length
+    ? missedConcepts
+    : score < 60 ? ["Core concept needs more practice"] : [],
   nextStep:
     score >= 80
       ? "Try a harder variant or move to the next topic."
@@ -26,18 +28,20 @@ export async function generateFeedback(
   correct: number,
   total: number,
   language: "en" | "hi",
+  missedConcepts?: string[],
 ): Promise<QuizFeedback> {
   try {
     const raw = await invokeBedrockText(
       PROMPTS.feedbackSystem(language),
-      PROMPTS.feedbackUser(topic, score, correct, total, language),
+      PROMPTS.feedbackUser(topic, score, correct, total, language, missedConcepts),
       { maxTokens: 400, temperature: 0.3 },
     );
     const jsonStr = raw.replace(/```json?\n?/gi, "").replace(/```/g, "").trim();
     const parsed = JSON.parse(jsonStr) as QuizFeedback;
     if (parsed.nextStep && Array.isArray(parsed.strengths)) return parsed;
-    return localFeedback(score);
+    return localFeedback(score, missedConcepts);
   } catch {
-    return localFeedback(score);
+    return localFeedback(score, missedConcepts);
   }
 }
+

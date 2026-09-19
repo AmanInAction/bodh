@@ -2,22 +2,24 @@
 
 import { FormEvent, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 type Step = "email" | "otp" | "signup";
 
-export default function AuthPage() {
-  const router = useRouter();
+function AuthForm() {
+  const router       = useRouter();
+  const searchParams = useSearchParams();
+  const nextPath     = searchParams.get("next") ?? "/dashboard";
 
-  const [step, setStep]         = useState<Step>("email");
-  const [email, setEmail]       = useState("");
-  const [code, setCode]         = useState("");
-  const [name, setName]         = useState("");
-  const [language, setLang]     = useState<"en" | "hi">("en");
-  const [error, setError]       = useState("");
-  const [info, setInfo]         = useState("");
-  const [loading, setLoading]   = useState(false);
-  const [isNewUser, setIsNewUser] = useState(false);
+  const [step, setStep]       = useState<Step>("email");
+  const [email, setEmail]     = useState("");
+  const [code, setCode]       = useState("");
+  const [name, setName]       = useState("");
+  const [language, setLang]   = useState<"en" | "hi">("en");
+  const [error, setError]     = useState("");
+  const [info, setInfo]       = useState("");
+  const [loading, setLoading] = useState(false);
 
   // ── Step 1: request OTP ────────────────────────────────────────────────────
   async function handleRequestCode(e: FormEvent) {
@@ -30,7 +32,7 @@ export default function AuthPage() {
         body: JSON.stringify({ email }),
       });
       const data = await res.json();
-      if (!res.ok) return setError(data.error ?? "Something went wrong.");
+      if (!res.ok) { setError(data.error ?? "Something went wrong."); return; }
       setInfo("Check your inbox — a 6-digit code is on its way.");
       setStep("otp");
     } finally {
@@ -38,44 +40,55 @@ export default function AuthPage() {
     }
   }
 
-  // ── Step 2 / 3: verify OTP (+ collect name on signup) ─────────────────────
+  // ── Step 2: verify OTP ─────────────────────────────────────────────────────
   async function handleVerify(e: FormEvent) {
     e.preventDefault();
     setError(""); setLoading(true);
     try {
-      // On the "signup" step the code is already consumed — just redirect.
-      if (step === "signup") {
-        router.push("/onboarding");
-        return;
-      }
-
       const res  = await fetch("/api/auth/verify", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email, code, name: name || undefined, language }),
+        body: JSON.stringify({ email, code }),
       });
       const data = await res.json() as { ok?: boolean; isNewUser?: boolean; error?: string };
-      if (!res.ok) return setError(data.error ?? "Invalid or expired code.");
+      if (!res.ok) { setError(data.error ?? "Invalid or expired code."); return; }
 
       if (data.isNewUser) {
-        // First-time user: ask for their name before finishing
-        setIsNewUser(true);
+        // New user — collect their name/language then finalize
         setStep("signup");
-        setError("");
-        setLoading(false);
         return;
       }
 
-      router.push("/dashboard");
+      // Returning user — session cookie is already set, go to destination
+      router.push(nextPath);
     } finally {
       setLoading(false);
     }
   }
 
-  // ── Shared submit handler ──────────────────────────────────────────────────
+  // ── Step 3: finish signup (name + language already known) ─────────────────
+  async function handleFinishSignup(e: FormEvent) {
+    e.preventDefault();
+    setError(""); setLoading(true);
+    try {
+      // Update the profile with name + language (session is already live)
+      if (name.trim()) {
+        await fetch("/api/student", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ name: name.trim(), language }),
+        });
+      }
+      router.push("/onboarding");
+    } finally {
+      setLoading(false);
+    }
+  }
+
   function onSubmit(e: FormEvent) {
-    if (step === "email") return handleRequestCode(e);
-    return handleVerify(e);
+    if (step === "email")  return handleRequestCode(e);
+    if (step === "otp")    return handleVerify(e);
+    if (step === "signup") return handleFinishSignup(e);
   }
 
   const stepLabel: Record<Step, string> = {
@@ -104,13 +117,13 @@ export default function AuthPage() {
         </h1>
 
         <p>
-          {step === "email"  && "Use your email to pick up where your thinking left off."}
+          {step === "email"  && "Sign in or create an account — same flow, same email."}
           {step === "otp"    && `We sent a 6-digit code to ${email}.`}
           {step === "signup" && "Tell us a bit about yourself so we can personalise your path."}
         </p>
 
         <form onSubmit={onSubmit} className="auth-form">
-          {/* ── Step: email ── */}
+          {/* ── Email ── */}
           {step === "email" && (
             <label>
               Email address
@@ -127,8 +140,8 @@ export default function AuthPage() {
             </label>
           )}
 
-          {/* ── Step: OTP ── */}
-          {(step === "otp" || step === "signup") && (
+          {/* ── OTP ── */}
+          {step === "otp" && (
             <label>
               Verification code
               <input
@@ -142,11 +155,12 @@ export default function AuthPage() {
                 onChange={(e) => setCode(e.target.value.replace(/\D/g, ""))}
                 placeholder="123456"
                 disabled={loading}
+                autoFocus
               />
             </label>
           )}
 
-          {/* ── Step: signup extras ── */}
+          {/* ── Signup extras ── */}
           {step === "signup" && (
             <>
               <label>
@@ -159,6 +173,7 @@ export default function AuthPage() {
                   onChange={(e) => setName(e.target.value)}
                   placeholder="Arjun"
                   disabled={loading}
+                  autoFocus
                 />
               </label>
 
@@ -209,7 +224,22 @@ export default function AuthPage() {
             ← Use a different email
           </button>
         )}
+
+        {step === "email" && (
+          <p style={{ marginTop: "20px", fontSize: "0.85rem", opacity: 0.6, textAlign: "center" }}>
+            No password needed. We email you a code each time.
+          </p>
+        )}
       </div>
     </main>
+  );
+}
+
+// Wrap in Suspense because useSearchParams() requires it in Next.js 15
+export default function AuthPage() {
+  return (
+    <Suspense>
+      <AuthForm />
+    </Suspense>
   );
 }

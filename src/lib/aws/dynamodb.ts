@@ -116,7 +116,7 @@ export async function deleteAuthCode(email: string): Promise<void> {
   await dbDelete(AUTH_TABLE, `auth:${email}`);
 }
 
-// ── Student Record (new schema) ───────────────────────────────────────────────
+// ── Student Record ────────────────────────────────────────────────────────────
 // Partition key: studentId
 // Shape: { studentId, language, topics: { [slug]: { score, attempts } }, weakTopics }
 
@@ -134,6 +134,20 @@ export function computeWeakTopics(
     .filter(([, perf]) => perf.score < WEAK_THRESHOLD)
     .sort(([, a], [, b]) => a.score - b.score) // lowest score first
     .map(([slug]) => slug);
+}
+
+/**
+ * Write (or overwrite) an entire StudentRecord.
+ * Prefer `updateTopicScore` for incremental score updates.
+ */
+export async function putStudentRecord(record: StudentRecord): Promise<void> {
+  if (!db || !STUDENT_RECORD_TABLE) return;
+  await db.send(
+    new PutCommand({
+      TableName: STUDENT_RECORD_TABLE,
+      Item: { ...record, updatedAt: Date.now() },
+    }),
+  );
 }
 
 /**
@@ -158,31 +172,14 @@ export async function getStudentRecord(
 }
 
 /**
- * Write (or overwrite) an entire StudentRecord.
- * Prefer `updateTopicScore` for incremental score updates.
- */
-export async function putStudentRecord(
-  record: StudentRecord,
-): Promise<void> {
-  if (!db || !STUDENT_RECORD_TABLE) return;
-  await db.send(
-    new PutCommand({
-      TableName: STUDENT_RECORD_TABLE,
-      Item: {
-        ...record,
-        updatedAt: Date.now(),
-      },
-    }),
-  );
-}
-
-/**
  * Atomically update a single topic's score + attempts for a student,
  * then recompute and persist weakTopics.
  *
- * - Creates the student item if it doesn't exist (upsert).
- * - Only updates the score if the new score is higher than the stored one
- *   (tracks best performance; remove the condition to always overwrite).
+ * Uses a TWO-PHASE write to avoid a DynamoDB ValidationException:
+ *   Phase 1 — ensures the item + topics map exist (safe to run on new students).
+ *   Phase 2 — writes the nested topics.slug.score / attempts path.
+ *
+ * Only keeps the best (highest) score per topic across attempts.
  */
 export async function updateTopicScore({
   studentId,
@@ -197,24 +194,48 @@ export async function updateTopicScore({
 }): Promise<StudentRecord | null> {
   if (!db || !STUDENT_RECORD_TABLE) return null;
 
-  // Step 1 — upsert the topic score + attempts
+  // ── Phase 1: Ensure the item and top-level topics map exist ──────────────
+  // DynamoDB cannot write to topics.slug.score when topics map doesn't exist.
+  await db.send(
+    new UpdateCommand({
+      TableName: STUDENT_RECORD_TABLE,
+      Key: { studentId },
+      UpdateExpression: [
+        "SET #lang       = if_not_exists(#lang,       :lang)",
+        "    #topics     = if_not_exists(#topics,     :emptyMap)",
+        "    #weakTopics = if_not_exists(#weakTopics, :emptyList)",
+        "    #updatedAt  = :now",
+      ].join(", "),
+      ExpressionAttributeNames: {
+        "#lang"      : "language",
+        "#topics"    : "topics",
+        "#weakTopics": "weakTopics",
+        "#updatedAt" : "updatedAt",
+      },
+      ExpressionAttributeValues: {
+        ":lang"     : language,
+        ":emptyMap" : {},
+        ":emptyList": [],
+        ":now"      : Date.now(),
+      },
+    }),
+  );
+
+  // ── Phase 2: Write nested score + increment attempts ──────────────────────
   try {
     await db.send(
       new UpdateCommand({
         TableName: STUDENT_RECORD_TABLE,
         Key: { studentId },
-        // Initialize the item + topic map if they don't exist yet
         UpdateExpression: [
-          "SET #lang     = if_not_exists(#lang, :lang)",
-          "    #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
-          "    #topics.#slug.#score    = if_not_exists(#topics.#slug.#score, :zero)",
-          "    #updatedAt = :now",
+          "SET #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
+          "    #topics.#slug.#score    = :score",
+          "    #updatedAt              = :now",
         ].join(", "),
-        // Separately bump the score only when the new value is higher
+        // Only overwrite score when the new score is strictly higher
         ConditionExpression:
           "attribute_not_exists(#topics.#slug.#score) OR #topics.#slug.#score < :score",
         ExpressionAttributeNames: {
-          "#lang"     : "language",
           "#topics"   : "topics",
           "#slug"     : topicSlug,
           "#attempts" : "attempts",
@@ -222,7 +243,6 @@ export async function updateTopicScore({
           "#updatedAt": "updatedAt",
         },
         ExpressionAttributeValues: {
-          ":lang" : language,
           ":score": score,
           ":zero" : 0,
           ":one"  : 1,
@@ -232,9 +252,8 @@ export async function updateTopicScore({
     );
   } catch (err: unknown) {
     const awsErr = err as { name?: string };
-    // ConditionalCheckFailedException = existing score is already >= new score.
-    // Still increment attempts but keep the higher score.
     if (awsErr?.name === "ConditionalCheckFailedException") {
+      // Existing score >= new score — just increment attempts, keep the higher score.
       await db.send(
         new UpdateCommand({
           TableName: STUDENT_RECORD_TABLE,
@@ -255,11 +274,10 @@ export async function updateTopicScore({
     }
   }
 
-  // Step 2 — re-read the updated record
+  // ── Phase 3: Re-read and recompute weakTopics ─────────────────────────────
   const updated = await getStudentRecord(studentId);
   if (!updated) return null;
 
-  // Step 3 — recompute and persist weakTopics
   const weakTopics = computeWeakTopics(updated.topics);
   await db.send(
     new UpdateCommand({
@@ -274,7 +292,7 @@ export async function updateTopicScore({
   return { ...updated, weakTopics };
 }
 
-// ── recordLogin ────────────────────────────────────────────────────────────────
+// ── recordLogin ───────────────────────────────────────────────────────────────
 // Called on EVERY successful login (new + returning users).
 // Atomically upserts the StudentRecord row:
 //   • initialises topics / weakTopics / language if the item is brand-new
