@@ -4,6 +4,7 @@ import { FormEvent, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense } from "react";
+import { validateEmailFormat } from "@/lib/auth/email-format";
 
 type Step = "email" | "otp" | "signup";
 
@@ -24,12 +25,20 @@ function AuthForm() {
   // ── Step 1: request OTP ────────────────────────────────────────────────────
   async function handleRequestCode(e: FormEvent) {
     e.preventDefault();
-    setError(""); setInfo(""); setLoading(true);
+    setError(""); setInfo("");
+
+    const formatCheck = validateEmailFormat(email);
+    if (!formatCheck.valid) {
+      setError(formatCheck.error ?? "Please enter a valid email address.");
+      return;
+    }
+
+    setLoading(true);
     try {
       const res  = await fetch("/api/auth/request-code", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email: formatCheck.normalizedEmail }),
       });
       const data = await res.json();
       if (!res.ok) { setError(data.error ?? "Something went wrong."); return; }
@@ -133,7 +142,10 @@ function AuthForm() {
                 autoComplete="email"
                 required
                 value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                onChange={(e) => {
+                  setEmail(e.target.value);
+                  if (error) setError("");
+                }}
                 placeholder="you@example.com"
                 disabled={loading}
               />
