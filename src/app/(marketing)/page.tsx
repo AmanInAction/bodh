@@ -56,7 +56,9 @@ export default function MarketingPage() {
         </div>
         <div className="topic-grid">
           {topics.slice(0, 3).map((topic) => (
-            <TopicCard key={topic.slug} topic={topic} />
+            <Link key={topic.slug} href={`/learn/${topic.slug}`}>
+              <TopicCard topic={topic} />
+            </Link>
           ))}
         </div>
       </section>

@@ -1,0 +1,17 @@
+{
+  "topicSlug": "recursion",
+  "language": "hi",
+  "title": "रिकर्शन: समस्या को छोटे कदमों में हल करना",
+  "lead": "रिकर्शन में कोई function उसी समस्या के छोटे रूप पर खुद को call करता है और एक स्पष्ट stopping point तक पहुँचता है।",
+  "sections": [
+    {
+      "heading": "दो ज़रूरी हिस्से",
+      "body": "हर recursive solution में base case होना चाहिए जो calls को रोकता है, और recursive step जो समस्या को base case की ओर ले जाता है।"
+    },
+    {
+      "heading": "Calls को trace करें",
+      "body": "factorial(4) को 4 × factorial(3) की तरह सोचें। फिर factorial(2) और factorial(1) तक जाएँ। base case के बाद calls उल्टे क्रम में वापस आते हैं।"
+    }
+  ],
+  "tryThis": "factorial(4) को कागज़ पर trace करें। base case को घेरें और फिर return होने का क्रम लिखें।"
+}

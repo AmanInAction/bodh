@@ -1,7 +1,7 @@
 type ArticleViewerProps = {
   title: string;
   lead: string;
-  sections: { heading: string; body: string }[];
+  sections?: { heading: string; body: string }[];
   tryThis: string;
   practiceHref: string;
 };
@@ -18,7 +18,7 @@ export function ArticleViewer({
       <span className="eyebrow">Lesson note</span>
       <h1>{title}</h1>
       <p className="lead">{lead}</p>
-      {sections.map((section) => (
+      {(sections ?? []).map((section) => (
         <section key={section.heading}>
           <h2>{section.heading}</h2>
           <p>{section.body}</p>

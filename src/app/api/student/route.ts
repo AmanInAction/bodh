@@ -41,7 +41,6 @@ export async function POST(request: Request) {
   const student: Student = {
     id: session.email,
     name: existing?.name ?? session.email.split("@")[0],
-    email: session.email,
     language: existing?.language ?? "en",
     preferredStyle: existing?.preferredStyle ?? "simple",
     createdAt: existing?.createdAt ?? new Date().toISOString(),
