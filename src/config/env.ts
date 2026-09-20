@@ -17,11 +17,11 @@ export function validateProductionEnv(): void {
   const missing: string[] = [];
 
   const requiredKeys = [
-    "AWS_REGION",
-    "AWS_S3_BUCKET",
-    "AWS_DYNAMODB_TABLE",
-    "AWS_AUTH_TABLE",
-    "AWS_STUDENT_RECORD_TABLE",
+    "aWs_REGION",
+    "aWs_S3_BUCKET",
+    "aWs_DYNAMODB_TABLE",
+    "aWs_AUTH_TABLE",
+    "aWs_STUDENT_RECORD_TABLE",
     "BEDROCK_MODEL_ID",
     "RESEND_API_KEY",
   ];
