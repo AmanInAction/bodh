@@ -1,0 +1,30 @@
+version: 1
+
+frontend:
+  phases:
+    preBuild:
+      commands:
+        - npm ci
+
+    build:
+      commands:
+        - |
+          env | grep -e app_aWs_REGION \
+                 -e app_aWs_S3_BUCKET \
+                 -e app_aWs_DYNAMODB_TABLE \
+                 -e app_aWs_AUTH_TABLE \
+                 -e app_aWs_STUDENT_RECORD_TABLE \
+                 -e app_BEDROCK_MODEL_ID \
+                 -e app_RESEND_API_KEY \
+                 -e app_AUTH_SECRET >> .env.production
+        - npm run build
+
+  artifacts:
+    baseDirectory: .next
+    files:
+      - '**/*'
+
+  cache:
+    paths:
+      - node_modules/**/*
+      - .next/cache/**/*
