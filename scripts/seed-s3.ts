@@ -7,38 +7,92 @@
  *   npx tsx scripts/seed-s3.ts
  *
  * Required env vars (set in .env.local or shell):
- *   AWS_REGION          – e.g. ap-south-1
- *   AWS_S3_BUCKET       – e.g. bodh-content-prod
+ *   app_aWs_REGION          – e.g. ap-south-1
+ *   app_aWs_S3_BUCKET       – e.g. bodh-content-prod
  *
  * Optional:
- *   AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY  (falls back to instance role / SSO)
+ *   app_aWs_ACCESS_KEY_ID / app_aWs_SECRET_ACCESS_KEY  (falls back to instance role / SSO)
  *   SEED_DRY_RUN=true   – print what would be uploaded without touching S3
  */
 
-import { readdir, readFile } from "node:fs/promises";
+import { readdir, readFile, access } from "node:fs/promises";
 import { join } from "node:path";
 import {
   S3Client,
   PutObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
-import type { Article, Mindmap, MindmapNode, MindmapEdge } from "../src/types/content";
+import type {
+  Article,
+  Mindmap,
+  MindmapNode,
+  MindmapEdge,
+} from "../src/types/content";
+
+async function loadEnvFile(filePath: string) {
+  try {
+    await access(filePath);
+  } catch {
+    return;
+  }
+
+  const content = await readFile(filePath, "utf-8");
+  for (const rawLine of content.split(/\r?\n/)) {
+    const line = rawLine.trim();
+    if (!line || line.startsWith("#")) continue;
+
+    const match = line.match(/^([A-Za-z_][A-Za-z0-9_]*)=(.*)$/);
+    if (!match) continue;
+
+    const [, key, valuePart] = match;
+    const value = valuePart.trim();
+    if (!value || value === '""' || value === "''") continue;
+
+    const cleaned = value
+      .replace(/\s+#.*$/, "")
+      .replace(/^['"]|['"]$/g, "")
+      .trim();
+
+    if (!cleaned) continue;
+    if ((process.env[key] ?? "") === "") {
+      process.env[key] = cleaned;
+    }
+  }
+}
+
+async function loadProjectEnv() {
+  await loadEnvFile(join(process.cwd(), ".env"));
+  await loadEnvFile(join(process.cwd(), ".env.local"));
+}
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const REGION = process.env.aWs_REGION?.trim();
-const BUCKET = process.env.aWs_S3_BUCKET?.trim();
-const DRY_RUN = process.env.SEED_DRY_RUN?.trim() === "true";
+let REGION = "";
+let BUCKET = "";
+let DRY_RUN = false;
 
-if (!REGION || !BUCKET) {
-  console.error(
-    "❌  aWs_REGION and aWs_S3_BUCKET must be set.\n" +
-      "    Example:\n" +
-      "      aWs_REGION=ap-south-1 aWs_S3_BUCKET=bodh-content-prod npx tsx scripts/seed-s3.ts"
-  );
-  process.exit(1);
+async function initializeConfig() {
+  await loadProjectEnv();
+  REGION =
+    process.env.app_aWs_REGION?.trim() ||
+    process.env.aWs_REGION?.trim() ||
+    "";
+  BUCKET =
+    process.env.app_aWs_S3_BUCKET?.trim() ||
+    process.env.aWs_S3_BUCKET?.trim() ||
+    "";
+  DRY_RUN = process.env.SEED_DRY_RUN?.trim() === "true";
+
+  if (!REGION || !BUCKET) {
+    console.error(
+      "❌  app_aWs_REGION and app_aWs_S3_BUCKET must be set.\n" +
+        "    Example:\n" +
+        "      app_aWs_REGION=ap-south-1 app_aWs_S3_BUCKET=bodh-content-prod npx tsx scripts/seed-s3.ts",
+    );
+    process.exit(1);
+  }
 }
-
+``
 // Client is created lazily so SEED_DRY_RUN=true never validates the region
 let _client: S3Client | null = null;
 function getClient(): S3Client {
@@ -52,7 +106,9 @@ const SEED_ROOT = join(process.cwd(), "content", "seed");
 async function s3Put(key: string, body: unknown): Promise<void> {
   const json = JSON.stringify(body, null, 2);
   if (DRY_RUN) {
-    console.log(`  [dry-run] PUT s3://${BUCKET}/${key}  (${json.length} bytes)`);
+    console.log(
+      `  [dry-run] PUT s3://${BUCKET}/${key}  (${json.length} bytes)`,
+    );
     return;
   }
   await getClient().send(
@@ -61,7 +117,7 @@ async function s3Put(key: string, body: unknown): Promise<void> {
       Key: key,
       Body: json,
       ContentType: "application/json",
-    })
+    }),
   );
 }
 
@@ -82,9 +138,7 @@ async function s3Exists(key: string): Promise<boolean> {
 
 function buildMindmap(article: Article): Mindmap {
   const rootId = "root";
-  const nodes: MindmapNode[] = [
-    { id: rootId, label: article.title, level: 0 },
-  ];
+  const nodes: MindmapNode[] = [{ id: rootId, label: article.title, level: 0 }];
   const edges: MindmapEdge[] = [];
 
   article.sections.forEach((section, i) => {
@@ -118,6 +172,8 @@ function buildMindmap(article: Article): Mindmap {
 // ── Main ──────────────────────────────────────────────────────────────────────
 
 async function main() {
+  await initializeConfig();
+
   console.log(`\n📦  Bodh S3 Seeder${DRY_RUN ? "  [DRY RUN]" : ""}`);
   console.log(`    Bucket : s3://${BUCKET}`);
   console.log(`    Region : ${REGION}`);

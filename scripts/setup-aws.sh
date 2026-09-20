@@ -23,8 +23,8 @@ set -euo pipefail
 
 # ── Defaults (override with env vars) ─────────────────────────────────────────
 
-REGION="${app_aWs_REGION:-ap-south-1}"
-S3_BUCKET="${app_aWs_S3_BUCKET:-bodh-content-prod}"
+REGION="${app_aWs_REGION:-ap-southeast-2}"
+S3_BUCKET="${app_aWs_S3_BUCKET:-regional-dsa-learning}"
 DYNAMO_STUDENT_TABLE="${app_aWs_DYNAMODB_TABLE:-bodh-students}"
 DYNAMO_AUTH_TABLE="${app_aWs_AUTH_TABLE:-bodh-auth}"
 
