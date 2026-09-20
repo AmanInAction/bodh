@@ -17,13 +17,13 @@ export function validateProductionEnv(): void {
   const missing: string[] = [];
 
   const requiredKeys = [
-    "aWs_REGION",
-    "aWs_S3_BUCKET",
-    "aWs_DYNAMODB_TABLE",
-    "aWs_AUTH_TABLE",
-    "aWs_STUDENT_RECORD_TABLE",
-    "BEDROCK_MODEL_ID",
-    "RESEND_API_KEY",
+    "app_aWs_REGION",
+    "app_aWs_S3_BUCKET",
+    "app_aWs_DYNAMODB_TABLE",
+    "app_aWs_AUTH_TABLE",
+    "app_aWs_STUDENT_RECORD_TABLE",
+    "app_BEDROCK_MODEL_ID",
+    "app_RESEND_API_KEY",
   ];
 
   for (const key of requiredKeys) {
@@ -32,8 +32,8 @@ export function validateProductionEnv(): void {
     }
   }
 
-  if (!process.env.AUTH_SECRET && !process.env.JWT_SECRET) {
-    missing.push("AUTH_SECRET (or JWT_SECRET)");
+  if (!process.env.app_AUTH_SECRET && !process.env.app_JWT_SECRET && !process.env.AUTH_SECRET && !process.env.JWT_SECRET) {
+    missing.push("app_AUTH_SECRET (or app_JWT_SECRET)");
   }
 
   if (missing.length > 0) {

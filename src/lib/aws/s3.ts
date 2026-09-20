@@ -5,9 +5,9 @@ import {
 } from "@aws-sdk/client-s3";
 import type { Article, Mindmap } from "@/types/content";
 
-const BUCKET = process.env.aWs_S3_BUCKET ?? "";
-const client = process.env.aWs_REGION
-  ? new S3Client({ region: process.env.aWs_REGION })
+const BUCKET = process.env.app_aWs_S3_BUCKET || process.env.aWs_S3_BUCKET || "";
+const client = process.env.app_aWs_REGION || process.env.aWs_REGION
+  ? new S3Client({ region: process.env.app_aWs_REGION || process.env.aWs_REGION })
   : null;
 
 async function s3Get<T>(key: string): Promise<T | null> {

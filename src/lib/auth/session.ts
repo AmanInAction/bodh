@@ -3,11 +3,16 @@ import { SignJWT } from "jose/jwt/sign";
 
 export const sessionCookie = "bodh_session";
 export function getAuthSecret(): Uint8Array {
-  const secretKey = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  const secretKey =
+    process.env.app_AUTH_SECRET ||
+    process.env.app_JWT_SECRET ||
+    process.env.AUTH_SECRET ||
+    process.env.JWT_SECRET;
+
   if (!secretKey) {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "CRITICAL: AUTH_SECRET or JWT_SECRET must be set in production.",
+        "CRITICAL: app_AUTH_SECRET or app_JWT_SECRET must be set in production.",
       );
     }
     return new TextEncoder().encode("local-development-secret-change-me");
@@ -65,7 +70,9 @@ export async function getSessionOrDemo(token: string | undefined): Promise<Sessi
   if (session) return session;
 
   const allowDemo =
-    process.env.ALLOW_DEMO === "true" || process.env.NODE_ENV !== "production";
+    process.env.app_ALLOW_DEMO === "true" ||
+    process.env.ALLOW_DEMO === "true" ||
+    process.env.NODE_ENV !== "production";
 
   if (!allowDemo) {
     throw new Error("Authentication required. Demo session is disabled in production.");
