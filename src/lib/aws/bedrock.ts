@@ -12,7 +12,7 @@ function hasExplicitCredentials() {
   return Boolean(
     process.env.app_aWs_ACCESS_KEY_ID ||
     process.env.app_aWs_SECRET_ACCESS_KEY ||
-    process.env.aWs_ACCESS_KEY_ID && process.env.aWs_SECRET_ACCESS_KEY,
+    (process.env.aWs_ACCESS_KEY_ID && process.env.aWs_SECRET_ACCESS_KEY),
   );
 }
 

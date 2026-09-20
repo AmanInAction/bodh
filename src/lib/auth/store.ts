@@ -35,7 +35,9 @@ function hashCode(email: string, code: string) {
 
   if (!secretKey) {
     if (process.env.NODE_ENV === "production") {
-      throw new Error("app_AUTH_SECRET or app_JWT_SECRET must be set in production.");
+      throw new Error(
+        "app_AUTH_SECRET or app_JWT_SECRET must be set in production.",
+      );
     }
     return createHash("sha256")
       .update(`${email}:${code}:local-development`)

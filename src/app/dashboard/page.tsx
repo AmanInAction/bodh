@@ -7,7 +7,12 @@ import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { TopicProgress } from "@/components/dashboard/TopicProgress";
 import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
 import { getRecommendations } from "@/lib/learning/recommendation";
-import { readSession, DEMO_SESSION, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
+import {
+  readSession,
+  DEMO_SESSION,
+  sessionCookie,
+  DEMO_STUDENT_ID,
+} from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { LogoutButton } from "@/components/ui/LogoutButton";
@@ -115,7 +120,9 @@ export default async function DashboardPage({
       <section className="dashboard-header">
         <div>
           <span className="eyebrow">{strings.dashboardPage.spaceEyebrow}</span>
-          <h1>{greeting}, {session.name}.</h1>
+          <h1>
+            {greeting}, {session.name}.
+          </h1>
           <p>{strings.dashboardPage.keepGoing}</p>
         </div>
 
@@ -124,7 +131,9 @@ export default async function DashboardPage({
           <span>
             {strings.dashboardPage.session}
             <br />
-            {loginStreak === 1 ? strings.dashboardPage.start : strings.dashboardPage.streak}
+            {loginStreak === 1
+              ? strings.dashboardPage.start
+              : strings.dashboardPage.streak}
           </span>
         </div>
       </section>
@@ -137,13 +146,21 @@ export default async function DashboardPage({
         />
         <ScoreCard
           label={strings.dashboardPage.timeLearning}
-          value={isHindi ? `${Math.round(lessonsCompleted * 0.13 * 10) / 10} घंटे` : `${Math.round(lessonsCompleted * 0.13 * 10) / 10}h`}
+          value={
+            isHindi
+              ? `${Math.round(lessonsCompleted * 0.13 * 10) / 10} घंटे`
+              : `${Math.round(lessonsCompleted * 0.13 * 10) / 10}h`
+          }
           detail={strings.dashboardPage.estimated}
         />
         <ScoreCard
           label={strings.dashboardPage.averageMastery}
           value={`${averageMastery}%`}
-          detail={attempted.length > 0 ? strings.dashboardPage.acrossTopics(attempted.length) : strings.dashboardPage.noQuizzes}
+          detail={
+            attempted.length > 0
+              ? strings.dashboardPage.acrossTopics(attempted.length)
+              : strings.dashboardPage.noQuizzes
+          }
         />
       </div>
 
@@ -173,7 +190,9 @@ export default async function DashboardPage({
               <p>
                 {topicScoreMap.get(weakestSlug!) === 0
                   ? strings.dashboardPage.notAttemptedDesc
-                  : strings.dashboardPage.inProgressDesc(topicScoreMap.get(weakestSlug!)!)}
+                  : strings.dashboardPage.inProgressDesc(
+                      topicScoreMap.get(weakestSlug!)!,
+                    )}
               </p>
               <Link
                 className="button button-primary"
@@ -208,7 +227,3 @@ export default async function DashboardPage({
     </main>
   );
 }
-
-
-
-

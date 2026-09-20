@@ -1,11 +1,7 @@
 import { invokeBedrockText } from "@/lib/aws/bedrock";
 import { PROMPTS } from "@/lib/ai/prompts";
 
-export type TeachingStyle =
-  | "simple"
-  | "socratic"
-  | "visual"
-  | "interview";
+export type TeachingStyle = "simple" | "socratic" | "visual" | "interview";
 
 export type TeachingResult = {
   provider: "agentcore" | "bedrock" | "local";
@@ -167,7 +163,8 @@ async function tryAgentCore(
   style: TeachingStyle,
   language: "en" | "hi",
 ): Promise<TeachingResult | null> {
-  const url = process.env.app_AGENTCORE_RUNTIME_URL || process.env.AGENTCORE_RUNTIME_URL;
+  const url =
+    process.env.app_AGENTCORE_RUNTIME_URL || process.env.AGENTCORE_RUNTIME_URL;
   if (!url) return null;
 
   try {
@@ -198,8 +195,7 @@ async function tryAgentCore(
         data.recommendedStyle === "interview"
           ? data.recommendedStyle
           : style,
-      confidence:
-        typeof data.confidence === "number" ? data.confidence : 70,
+      confidence: typeof data.confidence === "number" ? data.confidence : 70,
     };
   } catch {
     return null;

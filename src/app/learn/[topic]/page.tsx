@@ -61,7 +61,9 @@ export default async function TopicPage({
         <Link className="brand" href={`/?language=${language}`}>
           bodh<span>.</span>
         </Link>
-        <Link href={`/learn?language=${language}`}>{strings.nav.allTopics}</Link>
+        <Link href={`/learn?language=${language}`}>
+          {strings.nav.allTopics}
+        </Link>
       </nav>
 
       {/* ── Topic Hero ─────────────────────────────────────────────── */}

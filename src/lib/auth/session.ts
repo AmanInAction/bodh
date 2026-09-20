@@ -44,10 +44,7 @@ export async function readSession(token: string | undefined) {
   try {
     const { payload } = await jwtVerify(token, getAuthSecret());
 
-    if (
-      typeof payload.email !== "string" ||
-      typeof payload.name !== "string"
-    ) {
+    if (typeof payload.email !== "string" || typeof payload.name !== "string") {
       return null;
     }
 
@@ -65,7 +62,9 @@ export async function readSession(token: string | undefined) {
  * In development (or when ALLOW_DEMO=true), falls back to DEMO_SESSION.
  * In production without ALLOW_DEMO=true, throws an error to prevent unauthorized access.
  */
-export async function getSessionOrDemo(token: string | undefined): Promise<Session> {
+export async function getSessionOrDemo(
+  token: string | undefined,
+): Promise<Session> {
   const session = await readSession(token);
   if (session) return session;
 
@@ -75,7 +74,9 @@ export async function getSessionOrDemo(token: string | undefined): Promise<Sessi
     process.env.NODE_ENV !== "production";
 
   if (!allowDemo) {
-    throw new Error("Authentication required. Demo session is disabled in production.");
+    throw new Error(
+      "Authentication required. Demo session is disabled in production.",
+    );
   }
 
   return DEMO_SESSION;

@@ -32,7 +32,12 @@ export function validateProductionEnv(): void {
     }
   }
 
-  if (!process.env.app_AUTH_SECRET && !process.env.app_JWT_SECRET && !process.env.AUTH_SECRET && !process.env.JWT_SECRET) {
+  if (
+    !process.env.app_AUTH_SECRET &&
+    !process.env.app_JWT_SECRET &&
+    !process.env.AUTH_SECRET &&
+    !process.env.JWT_SECRET
+  ) {
     missing.push("app_AUTH_SECRET (or app_JWT_SECRET)");
   }
 
