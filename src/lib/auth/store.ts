@@ -49,7 +49,11 @@ function hashCode(email: string, code: string) {
 }
 
 export function createVerificationCode(email: string) {
-  const code = randomInt(100000, 1000000).toString();
+  const code =
+    process.env.NODE_ENV === "production"
+      ? randomInt(100000, 1000000).toString()
+      : "12345";
+  // Hackathon default: use 12345 locally instead of generating an OTP.
   return {
     code,
     record: {
