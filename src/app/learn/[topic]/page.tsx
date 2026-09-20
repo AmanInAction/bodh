@@ -6,15 +6,16 @@ import { notFound } from "next/navigation";
 import { getTopic } from "@/lib/learning/topics";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ExplainDifferently } from "@/components/learning/ExplainDifferently";
-
-const TOPIC_TITLE_HI: Record<string, string> = {
-  arrays: "ऐरे",
-  "linked-list": "लिंक्ड लिस्ट",
-  stacks: "स्टैक",
-  queues: "क्यू",
-  "binary-search": "बाइनरी सर्च",
-  recursion: "रिकर्शन",
-};
+import {
+  LANGUAGE_COOKIE,
+  resolveLanguage,
+  getTopicTitle,
+  getTopicDescription,
+  getLevelLabel,
+  formatLessons,
+  formatMastery,
+  UI_STRINGS,
+} from "@/lib/i18n";
 
 export default async function TopicPage({
   params,
@@ -24,32 +25,42 @@ export default async function TopicPage({
   searchParams: Promise<{ language?: string }>;
 }) {
   const { topic: slug } = await params;
-  const { language = "en" } = await searchParams;
+  const resolvedSearchParams = await searchParams;
+  const cookieStore = await cookies();
+  const language = resolveLanguage(
+    resolvedSearchParams.language,
+    cookieStore.get(LANGUAGE_COOKIE)?.value,
+  );
   const topic = getTopic(slug);
   if (!topic) notFound();
-  const session = await getSessionOrDemo((await cookies()).get(sessionCookie)?.value);
+
+  const session = await getSessionOrDemo(cookieStore.get(sessionCookie)?.value);
   const mastery = (await getTopicScores(session))[slug] ?? 0;
 
-  const isHindi = language === "hi";
-  const topicTitleHi = TOPIC_TITLE_HI[slug] ?? topic.title;
+  const strings = UI_STRINGS[language];
+  const title = getTopicTitle(slug, language);
+  const description = getTopicDescription(slug, language);
+  const level = getLevelLabel(topic.level, language);
 
   return (
     <main className="site-shell">
       <nav className="nav">
-        <Link className="brand" href="/">
+        <Link className="brand" href={`/?language=${language}`}>
           bodh<span>.</span>
         </Link>
-        <Link href={`/learn?language=${language}`}>All topics</Link>
+        <Link href={`/learn?language=${language}`}>{strings.nav.allTopics}</Link>
       </nav>
 
       {/* ── Topic Hero ─────────────────────────────────────────────── */}
       <section className={`topic-hero topic-${topic.color}`}>
-        <span className="eyebrow">{topic.level} path</span>
-        <h1>{isHindi ? topicTitleHi : topic.title}</h1>
-        <p>{topic.description}</p>
+        <span className="eyebrow">
+          {level} {strings.topicPage.pathSuffix}
+        </span>
+        <h1>{title}</h1>
+        <p>{description}</p>
         <div className="topic-summary">
-          <span>{topic.lessons} lessons</span>
-          <span>{mastery}% mastered</span>
+          <span>{formatLessons(topic.lessons, language)}</span>
+          <span>{formatMastery(mastery, language)}</span>
         </div>
         <ProgressBar value={mastery} />
       </section>
@@ -58,8 +69,8 @@ export default async function TopicPage({
       <section className="section" style={{ paddingTop: "32px" }}>
         <div className="section-heading">
           <div>
-            <span className="eyebrow">{isHindi ? "आज क्या करना है?" : "What would you like to do?"}</span>
-            <h2>{isHindi ? "अपना रास्ता चुनें" : "Choose your path"}</h2>
+            <span className="eyebrow">{strings.topicPage.actionEyebrow}</span>
+            <h2>{strings.topicPage.actionHeading}</h2>
           </div>
         </div>
         <div className="topic-actions-grid">
@@ -68,31 +79,31 @@ export default async function TopicPage({
             href={`/learn/${slug}/article?language=${language}`}
           >
             <span className="topic-action-icon">📖</span>
-            <strong>{isHindi ? "पढ़ें" : "Learn"}</strong>
-            <p>{isHindi ? "लेख और AI व्याख्या पढ़ें" : "Read the article & AI explanation"}</p>
+            <strong>{strings.topicPage.learnTitle}</strong>
+            <p>{strings.topicPage.learnDesc}</p>
           </Link>
           <Link
             className="topic-action-card"
             href={`/learn/${slug}/mindmap?language=${language}`}
           >
             <span className="topic-action-icon">🧠</span>
-            <strong>{isHindi ? "माइंड मैप" : "Mind Map"}</strong>
-            <p>{isHindi ? "अवधारणा को दृश्य रूप में देखें" : "See the concept visually"}</p>
+            <strong>{strings.topicPage.mindmapTitle}</strong>
+            <p>{strings.topicPage.mindmapDesc}</p>
           </Link>
           <Link
             className="topic-action-card"
             href={`/learn/${slug}/quiz?language=${language}`}
           >
             <span className="topic-action-icon">📝</span>
-            <strong>{isHindi ? "अभ्यास करें" : "Practice"}</strong>
-            <p>{isHindi ? "5-प्रश्न क्विज़ लें" : "Take a 5-question quiz"}</p>
+            <strong>{strings.topicPage.quizTitle}</strong>
+            <p>{strings.topicPage.quizDesc}</p>
           </Link>
         </div>
       </section>
 
       {/* ── Explain Differently ───────────────────────────────────── */}
       <section className="section" style={{ paddingTop: "8px" }}>
-        <ExplainDifferently topic={topic.title} language={language} />
+        <ExplainDifferently topic={title} language={language} />
       </section>
     </main>
   );

@@ -67,6 +67,28 @@ a {
   opacity: 0.5;
   cursor: not-allowed;
 }
+.lang-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  border: 1.5px solid var(--line);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font: 600 12px Arial, sans-serif;
+  color: var(--ink);
+  background: transparent;
+  cursor: pointer;
+  transition: border-color 0.15s, color 0.15s, background 0.15s;
+}
+.lang-toggle-btn:hover {
+  border-color: var(--green);
+  color: var(--green);
+  background: #eef6f3;
+}
+.lang-toggle-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
 .brand {
   font:
     700 28px Georgia,

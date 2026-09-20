@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import type { QuizQuestion } from "@/types/quiz";
 import type { TeachingStyle } from "@/lib/agentcore/teaching";
+import { getTopicTitle } from "@/lib/i18n";
 
 type Assessment = {
   score: number;
@@ -343,7 +344,9 @@ export function QuizSession({
           className="button button-primary qs-cta"
           href={`/learn/${nextTopic.slug}?language=${language}`}
         >
-          {hindi ? `${nextTopic.title} पर आगे बढ़ें` : `Continue to ${nextTopic.title}`}{" "}
+          {hindi
+            ? `${getTopicTitle(nextTopic.slug, "hi")} पर आगे बढ़ें`
+            : `Continue to ${getTopicTitle(nextTopic.slug, "en")}`}{" "}
           <span>→</span>
         </Link>
       </div>

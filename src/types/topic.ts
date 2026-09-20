@@ -1,7 +1,9 @@
 export type Topic = {
   slug: string;
   title: string;
+  titleHi?: string;
   description: string;
+  descriptionHi?: string;
   level: "Beginner" | "Intermediate";
   color: string;
   lessons: number;
