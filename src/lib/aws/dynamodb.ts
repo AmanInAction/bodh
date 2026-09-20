@@ -1,4 +1,4 @@
-﻿import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import {
   DynamoDBDocumentClient,
   GetCommand,
@@ -23,30 +23,80 @@ const db = rawClient ? DynamoDBDocumentClient.from(rawClient) : null;
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function dbGet<T>(table: string, pk: string): Promise<T | null> {
-  if (!db || !table) return null;
+  if (!db || !table) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        `[dynamodb] DynamoDB client or table is not configured (table: ${table || "undefined"}).`,
+      );
+    }
+    return null;
+  }
   try {
     const res = await db.send(
       new GetCommand({ TableName: table, Key: { pk } }),
     );
     return res.Item ? (res.Item as T) : null;
-  } catch {
+  } catch (error) {
+    console.error(
+      `[dynamodb] Error in dbGet on ${table} for key ${pk}:`,
+      error,
+    );
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
     return null;
   }
 }
 
-async function dbPut(table: string, item: Record<string, unknown>): Promise<void> {
-  if (!db || !table) return;
-  await db.send(new PutCommand({ TableName: table, Item: item }));
+async function dbPut(
+  table: string,
+  item: Record<string, unknown>,
+): Promise<void> {
+  if (!db || !table) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        `[dynamodb] DynamoDB client or table is not configured (table: ${table || "undefined"}).`,
+      );
+    }
+    return;
+  }
+  try {
+    await db.send(new PutCommand({ TableName: table, Item: item }));
+  } catch (error) {
+    console.error(`[dynamodb] Error in dbPut on ${table}:`, error);
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+  }
 }
 
 async function dbDelete(table: string, pk: string): Promise<void> {
-  if (!db || !table) return;
-  await db.send(new DeleteCommand({ TableName: table, Key: { pk } }));
+  if (!db || !table) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        `[dynamodb] DynamoDB client or table is not configured (table: ${table || "undefined"}).`,
+      );
+    }
+    return;
+  }
+  try {
+    await db.send(new DeleteCommand({ TableName: table, Key: { pk } }));
+  } catch (error) {
+    console.error(
+      `[dynamodb] Error in dbDelete on ${table} for key ${pk}:`,
+      error,
+    );
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+  }
 }
 
 // ── Student Profile ───────────────────────────────────────────────────────────
 
-export async function getStudentProfile(email: string): Promise<Student | null> {
+export async function getStudentProfile(
+  email: string,
+): Promise<Student | null> {
   const row = await dbGet<{ pk: string; profile: Student }>(
     STUDENT_TABLE,
     `student:${email}`,
@@ -141,23 +191,44 @@ export function computeWeakTopics(
  * Prefer `updateTopicScore` for incremental score updates.
  */
 export async function putStudentRecord(record: StudentRecord): Promise<void> {
-  if (!db || !STUDENT_RECORD_TABLE) return;
-  await db.send(
-    new PutCommand({
-      TableName: STUDENT_RECORD_TABLE,
-      Item: { ...record, updatedAt: Date.now() },
-    }),
-  );
+  if (!db || !STUDENT_RECORD_TABLE) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
+      );
+    }
+    return;
+  }
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: STUDENT_RECORD_TABLE,
+        Item: { ...record, updatedAt: Date.now() },
+      }),
+    );
+  } catch (error) {
+    console.error("[dynamodb] Error in putStudentRecord:", error);
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+  }
 }
 
 /**
  * Fetch a student's full record by studentId.
- * Returns null when the table is unconfigured or the item doesn't exist.
+ * Returns null when the item doesn't exist.
  */
 export async function getStudentRecord(
   studentId: string,
 ): Promise<StudentRecord | null> {
-  if (!db || !STUDENT_RECORD_TABLE) return null;
+  if (!db || !STUDENT_RECORD_TABLE) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
+      );
+    }
+    return null;
+  }
   try {
     const res = await db.send(
       new GetCommand({
@@ -166,7 +237,14 @@ export async function getStudentRecord(
       }),
     );
     return res.Item ? (res.Item as StudentRecord) : null;
-  } catch {
+  } catch (error) {
+    console.error(
+      `[dynamodb] Error in getStudentRecord for ${studentId}:`,
+      error,
+    );
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
     return null;
   }
 }
@@ -192,7 +270,14 @@ export async function updateTopicScore({
   topicSlug: string;
   score: number;
 }): Promise<StudentRecord | null> {
-  if (!db || !STUDENT_RECORD_TABLE) return null;
+  if (!db || !STUDENT_RECORD_TABLE) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
+      );
+    }
+    return null;
+  }
 
   // ── Phase 1: Ensure the item and top-level topics map exist ──────────────
   // DynamoDB cannot write to topics.slug.score when topics map doesn't exist.
@@ -207,16 +292,16 @@ export async function updateTopicScore({
         "    #updatedAt  = :now",
       ].join(", "),
       ExpressionAttributeNames: {
-        "#lang"      : "language",
-        "#topics"    : "topics",
+        "#lang": "language",
+        "#topics": "topics",
         "#weakTopics": "weakTopics",
-        "#updatedAt" : "updatedAt",
+        "#updatedAt": "updatedAt",
       },
       ExpressionAttributeValues: {
-        ":lang"     : language,
-        ":emptyMap" : {},
+        ":lang": language,
+        ":emptyMap": {},
         ":emptyList": [],
-        ":now"      : Date.now(),
+        ":now": Date.now(),
       },
     }),
   );
@@ -227,7 +312,8 @@ export async function updateTopicScore({
     new UpdateCommand({
       TableName: STUDENT_RECORD_TABLE,
       Key: { studentId },
-      UpdateExpression: "SET #topics.#slug = if_not_exists(#topics.#slug, :emptyTopic)",
+      UpdateExpression:
+        "SET #topics.#slug = if_not_exists(#topics.#slug, :emptyTopic)",
       ExpressionAttributeNames: { "#topics": "topics", "#slug": topicSlug },
       ExpressionAttributeValues: { ":emptyTopic": { score: 0, attempts: 0 } },
     }),
@@ -247,17 +333,17 @@ export async function updateTopicScore({
         ConditionExpression:
           "attribute_not_exists(#topics.#slug.#score) OR #topics.#slug.#score < :score",
         ExpressionAttributeNames: {
-          "#topics"   : "topics",
-          "#slug"     : topicSlug,
-          "#attempts" : "attempts",
-          "#score"    : "score",
+          "#topics": "topics",
+          "#slug": topicSlug,
+          "#attempts": "attempts",
+          "#score": "score",
           "#updatedAt": "updatedAt",
         },
         ExpressionAttributeValues: {
           ":score": score,
-          ":zero" : 0,
-          ":one"  : 1,
-          ":now"  : Date.now(),
+          ":zero": 0,
+          ":one": 1,
+          ":now": Date.now(),
         },
       }),
     );
@@ -272,12 +358,16 @@ export async function updateTopicScore({
           UpdateExpression:
             "SET #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one, #updatedAt = :now",
           ExpressionAttributeNames: {
-            "#topics"   : "topics",
-            "#slug"     : topicSlug,
-            "#attempts" : "attempts",
+            "#topics": "topics",
+            "#slug": topicSlug,
+            "#attempts": "attempts",
             "#updatedAt": "updatedAt",
           },
-          ExpressionAttributeValues: { ":zero": 0, ":one": 1, ":now": Date.now() },
+          ExpressionAttributeValues: {
+            ":zero": 0,
+            ":one": 1,
+            ":now": Date.now(),
+          },
         }),
       );
     } else {
@@ -317,38 +407,51 @@ export async function recordLogin({
   studentId: string;
   language: "en" | "hi";
 }): Promise<void> {
-  if (!db || !STUDENT_RECORD_TABLE) return;
+  if (!db || !STUDENT_RECORD_TABLE) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
+      );
+    }
+    return;
+  }
 
-  await db.send(
-    new UpdateCommand({
-      TableName: STUDENT_RECORD_TABLE,
-      Key: { studentId },
-      UpdateExpression: [
-        "SET #lang        = if_not_exists(#lang,       :lang)",
-        "    #topics      = if_not_exists(#topics,     :emptyMap)",
-        "    #weakTopics  = if_not_exists(#weakTopics, :emptyList)",
-        "    #lastLoginAt = :now",
-        "    #updatedAt   = :ts",
-        "    #loginCount  = if_not_exists(#loginCount, :zero) + :one",
-      ].join(", "),
-      ExpressionAttributeNames: {
-        "#lang"       : "language",
-        "#topics"     : "topics",
-        "#weakTopics" : "weakTopics",
-        "#lastLoginAt": "lastLoginAt",
-        "#updatedAt"  : "updatedAt",
-        "#loginCount" : "loginCount",
-      },
-      ExpressionAttributeValues: {
-        ":lang"     : language,
-        ":emptyMap" : {},
-        ":emptyList": [],
-        ":now"      : new Date().toISOString(),
-        ":ts"       : Date.now(),
-        ":zero"     : 0,
-        ":one"      : 1,
-      },
-    }),
-  );
+  try {
+    await db.send(
+      new UpdateCommand({
+        TableName: STUDENT_RECORD_TABLE,
+        Key: { studentId },
+        UpdateExpression: [
+          "SET #lang        = if_not_exists(#lang,       :lang)",
+          "    #topics      = if_not_exists(#topics,     :emptyMap)",
+          "    #weakTopics  = if_not_exists(#weakTopics, :emptyList)",
+          "    #lastLoginAt = :now",
+          "    #updatedAt   = :ts",
+          "    #loginCount  = if_not_exists(#loginCount, :zero) + :one",
+        ].join(", "),
+        ExpressionAttributeNames: {
+          "#lang": "language",
+          "#topics": "topics",
+          "#weakTopics": "weakTopics",
+          "#lastLoginAt": "lastLoginAt",
+          "#updatedAt": "updatedAt",
+          "#loginCount": "loginCount",
+        },
+        ExpressionAttributeValues: {
+          ":lang": language,
+          ":emptyMap": {},
+          ":emptyList": [],
+          ":now": new Date().toISOString(),
+          ":ts": Date.now(),
+          ":zero": 0,
+          ":one": 1,
+        },
+      }),
+    );
+  } catch (error) {
+    console.error(`[dynamodb] Error in recordLogin for ${studentId}:`, error);
+    if (process.env.NODE_ENV === "production") {
+      throw error;
+    }
+  }
 }
-

@@ -91,8 +91,11 @@ export async function getOrGenerateMindmap(slug: string): Promise<Mindmap> {
     mindmap = JSON.parse(jsonStr) as Mindmap;
     mindmap.topicSlug = slug; // ensure correct slug
     // 3. Cache to S3 asynchronously (don't block render)
-    putMindmap(mindmap).catch(() => {});
-  } catch {
+    putMindmap(mindmap).catch((err) => {
+      console.warn("[content] Failed to cache mindmap to S3:", err);
+    });
+  } catch (error) {
+    console.error("[content] Bedrock mindmap generation failed, using fallback:", error);
     // Minimal fallback mindmap
     mindmap = {
       topicSlug: slug,

@@ -173,7 +173,8 @@ export async function generateQuiz(
       }));
     }
     return localFallbackQuiz(topic, language);
-  } catch {
+  } catch (error) {
+    console.error("[quiz] Bedrock quiz generation failed, using fallback:", error);
     return localFallbackQuiz(topic, language);
   }
 }

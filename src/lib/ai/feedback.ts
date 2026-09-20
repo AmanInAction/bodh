@@ -40,7 +40,8 @@ export async function generateFeedback(
     const parsed = JSON.parse(jsonStr) as QuizFeedback;
     if (parsed.nextStep && Array.isArray(parsed.strengths)) return parsed;
     return localFeedback(score, missedConcepts);
-  } catch {
+  } catch (error) {
+    console.error("[feedback] Failed to generate AI feedback via Bedrock, using fallback:", error);
     return localFeedback(score, missedConcepts);
   }
 }

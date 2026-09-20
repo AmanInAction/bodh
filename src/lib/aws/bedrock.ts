@@ -1,4 +1,4 @@
-﻿import {
+import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
@@ -7,8 +7,7 @@ const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? "amazon.nova-lite-v1:0";
 
 function hasExplicitCredentials() {
   return Boolean(
-    process.env.aWs_ACCESS_KEY_ID &&
-    process.env.aWs_SECRET_ACCESS_KEY,
+    process.env.aWs_ACCESS_KEY_ID && process.env.aWs_SECRET_ACCESS_KEY,
   );
 }
 
@@ -16,13 +15,11 @@ export function isBedrockConfigured() {
   return Boolean(
     process.env.aWs_REGION &&
     process.env.BEDROCK_MODEL_ID &&
-    (
-      hasExplicitCredentials() ||
+    (hasExplicitCredentials() ||
       process.env.aWs_EXECUTION_ENV ||
       process.env.aWs_LAMBDA_FUNCTION_NAME ||
       process.env.aWs_CONTAINER_CREDENTIALS_RELATIVE_URI ||
-      process.env.aWs_CONTAINER_CREDENTIALS_FULL_URI
-    ),
+      process.env.aWs_CONTAINER_CREDENTIALS_FULL_URI),
   );
 }
 
@@ -45,6 +42,15 @@ export async function invokeBedrockText(
   const client = getClient();
 
   if (!client) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[bedrock] AWS Bedrock is not configured. Required environment variables (AWS_REGION, BEDROCK_MODEL_ID, and AWS credentials) are missing in production.",
+      );
+    }
+    console.warn(
+      "[bedrock] AWS Bedrock is not configured. Falling back to local placeholder for prompt:",
+      userPrompt.slice(0, 80),
+    );
     return `[local] ${userPrompt.slice(0, 160)}`;
   }
 

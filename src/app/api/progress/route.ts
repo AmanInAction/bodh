@@ -5,9 +5,14 @@ import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { getRoadmap } from "@/lib/learning/roadmap";
 
 export async function GET() {
-  const session = await getSessionOrDemo(
-    (await cookies()).get(sessionCookie)?.value,
-  );
+  let session;
+  try {
+    session = await getSessionOrDemo(
+      (await cookies()).get(sessionCookie)?.value,
+    );
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const isDemoUser = session.email === "student_001@bodh.demo";
   const studentId = isDemoUser ? DEMO_STUDENT_ID : session.email;

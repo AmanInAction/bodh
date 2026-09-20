@@ -1369,7 +1369,14 @@ input {
 }
 .score-ring-wrap {
   position: relative;
+  width: 148px;
+  height: 148px;
   flex-shrink: 0;
+}
+.score-ring-wrap svg {
+  display: block;
+  width: 148px;
+  height: 148px;
 }
 .score-ring-label {
   position: absolute;
@@ -1378,28 +1385,38 @@ input {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 2px;
+  gap: 4px;
+  pointer-events: none;
 }
 .score-ring-label strong {
-  font-size: 28px;
-  font-weight: 700;
+  font-size: 32px;
+  font-weight: 800;
   line-height: 1;
-  font-family: Arial, sans-serif;
+  font-family: inherit;
+  letter-spacing: -0.5px;
 }
-.score-ring-label span {
-  font: 10px Arial,sans-serif;
-  color: rgba(255,255,255,0.5);
+.score-ring-label span.score-text {
+  font: 11px Arial, sans-serif;
+  color: rgba(255, 255, 255, 0.55);
   text-transform: uppercase;
-  letter-spacing: 1px;
+  letter-spacing: 1.5px;
 }
 
 .qs-result-header-text .eyebrow { color: #5a7c6e; }
 .qs-result-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
   font-size: 36px;
   font-weight: 400;
   margin: 6px 0 4px;
   color: #f0faf6;
   letter-spacing: -1px;
+}
+.qs-result-emoji {
+  font-size: 32px;
+  line-height: 1;
+  display: inline-block;
 }
 .qs-result-sub { font: 13px Arial,sans-serif; color: #6b8f7e; margin: 0; }
 

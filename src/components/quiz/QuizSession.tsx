@@ -54,8 +54,6 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
     score >= 80 ? "#34d399" : score >= 50 ? "#a78bfa" : "#f472b6";
   const trackColor =
     score >= 80 ? "rgba(52,211,153,0.12)" : score >= 50 ? "rgba(167,139,250,0.12)" : "rgba(244,114,182,0.12)";
-  const emoji = score >= 80 ? "🎉" : score >= 50 ? "👏" : "💪";
-
   return (
     <div className="score-ring-wrap" aria-label={`Score: ${score}%`}>
       <svg width="148" height="148" viewBox="0 0 148 148" aria-hidden="true">
@@ -74,14 +72,10 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
           strokeDashoffset={circ / 4}
           style={{ filter: `drop-shadow(0 0 6px ${color}88)` }}
         />
-        {/* Emoji cap dot */}
-        {animatedScore === score && (
-          <text x="74" y="78" textAnchor="middle" fontSize="20">{emoji}</text>
-        )}
       </svg>
       <div className="score-ring-label">
         <strong style={{ color }}>{animatedScore}%</strong>
-        <span>{hindi ? "स्कोर" : "score"}</span>
+        <span className="score-text">{hindi ? "स्कोर" : "score"}</span>
       </div>
     </div>
   );
@@ -253,6 +247,9 @@ export function QuizSession({
           <div className="qs-result-header-text">
             <span className="eyebrow">{hindi ? "आपका परिणाम" : "Your result"}</span>
             <h1 className="qs-result-title">
+              <span className="qs-result-emoji" aria-hidden="true">
+                {score >= 80 ? "🎉" : score >= 50 ? "👏" : "💪"}
+              </span>{" "}
               {score >= 80
                 ? hindi ? "शानदार!" : "Excellent!"
                 : score >= 50
