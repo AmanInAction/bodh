@@ -8,30 +8,30 @@ bodh. is a bilingual, AI-powered learning app for students aged 15–20 who want
 
 ## Features
 
-| Feature | Description |
-|---|---|
-| 📖 **Bilingual lessons** | Every topic has a full article in English and Hindi |
-| 🗺️ **Visual mindmaps** | AI-generated concept maps for each topic |
-| 🧠 **Adaptive quizzes** | Five questions per topic, generated via Amazon Bedrock |
-| 🤖 **Teaching team** | Teacher, Evaluator, and Assessor agents collaborate via `/api/teach` |
-| 📊 **Progress dashboard** | Mastery scores, roadmap recommendations, and next-topic suggestions |
-| 🔐 **Magic-link auth** | Passwordless sign-in via email verification codes |
-| 🌐 **Offline-first fallback** | Seed content loads without AWS — the UI never breaks |
+| Feature                       | Description                                                          |
+| ----------------------------- | -------------------------------------------------------------------- |
+| 📖 **Bilingual lessons**      | Every topic has a full article in English and Hindi                  |
+| 🗺️ **Visual mindmaps**        | AI-generated concept maps for each topic                             |
+| 🧠 **Adaptive quizzes**       | Five questions per topic, generated via Amazon Bedrock               |
+| 🤖 **Teaching team**          | Teacher, Evaluator, and Assessor agents collaborate via `/api/teach` |
+| 📊 **Progress dashboard**     | Mastery scores, roadmap recommendations, and next-topic suggestions  |
+| 🔐 **Magic-link auth**        | Passwordless sign-in via email verification codes                    |
+| 🌐 **Offline-first fallback** | Seed content loads without AWS — the UI never breaks                 |
 
 ---
 
 ## Tech stack
 
-| Layer | Technology |
-|---|---|
-| Framework | Next.js 15 (App Router) |
-| Language | TypeScript 5 |
-| Styling | Vanilla CSS (custom design system) |
-| AI / LLM | Amazon Bedrock (`amazon.nova-lite-v1:0`) |
-| Agent runtime | AWS AgentCore (optional, falls back to Bedrock) |
-| Content storage | Amazon S3 |
-| Data persistence | Amazon DynamoDB |
-| Email delivery | Resend |
+| Layer            | Technology                                      |
+| ---------------- | ----------------------------------------------- |
+| Framework        | Next.js 15 (App Router)                         |
+| Language         | TypeScript 5                                    |
+| Styling          | Vanilla CSS (custom design system)              |
+| AI / LLM         | Amazon Bedrock (`amazon.nova-lite-v1:0`)        |
+| Agent runtime    | AWS AgentCore (optional, falls back to Bedrock) |
+| Content storage  | Amazon S3                                       |
+| Data persistence | Amazon DynamoDB                                 |
+| Email delivery   | Resend                                          |
 
 ---
 
@@ -64,18 +64,18 @@ The app runs fully in local mode without AWS credentials. AI features return a l
 
 ### Key routes
 
-| Route | Purpose |
-|---|---|
-| `/` | Product home page |
-| `/onboarding` | Choose a learning starting point |
-| `/onboarding/language` | Choose English or Hindi |
-| `/learn` | Browse the topic library |
-| `/learn/[topic]` | Topic overview and lesson path |
-| `/learn/[topic]/article` | Read the bilingual lesson article |
-| `/learn/[topic]/mindmap` | Explore the topic visually |
-| `/learn/[topic]/quiz` | Take a five-question practice quiz |
-| `/dashboard` | Progress overview and recommendations |
-| `/auth` | Request and verify a magic-link code |
+| Route                    | Purpose                               |
+| ------------------------ | ------------------------------------- |
+| `/`                      | Product home page                     |
+| `/onboarding`            | Choose a learning starting point      |
+| `/onboarding/language`   | Choose English or Hindi               |
+| `/learn`                 | Browse the topic library              |
+| `/learn/[topic]`         | Topic overview and lesson path        |
+| `/learn/[topic]/article` | Read the bilingual lesson article     |
+| `/learn/[topic]/mindmap` | Explore the topic visually            |
+| `/learn/[topic]/quiz`    | Take a five-question practice quiz    |
+| `/dashboard`             | Progress overview and recommendations |
+| `/auth`                  | Request and verify a magic-link code  |
 
 **Typical learning flow:** sign in → choose language → pick a topic → read the article → take the quiz → get AI feedback → follow the recommended next topic.
 
@@ -120,6 +120,7 @@ chmod +x scripts/setup-aws.sh
 ```
 
 This creates:
+
 - **S3 bucket** — versioned, private, with a 30-day lifecycle on old versions
 - **DynamoDB `bodh-students`** — student profiles and roadmaps (`pk` hash key, PAY_PER_REQUEST)
 - **DynamoDB `bodh-auth`** — magic-link codes with TTL auto-expiry
@@ -142,6 +143,7 @@ AWS_REGION=ap-south-1 AWS_S3_BUCKET=bodh-content-prod npx tsx scripts/seed-s3.ts
 Add `SEED_DRY_RUN=true` to preview what would be uploaded without touching S3. Already-uploaded objects are skipped on re-runs.
 
 The script uploads:
+
 - `articles/<topic>/<lang>.json` — one per topic per language (12 total)
 - `mindmaps/<topic>.json` — one per topic (6 total), built from the English article
 
@@ -185,19 +187,19 @@ src/
 
 ## API routes
 
-| Endpoint | Method | Purpose |
-|---|---|---|
-| `/api/learn` | GET | Fetch a lesson article |
-| `/api/topics` | GET | List all topics with metadata |
-| `/api/quiz/generate` | POST | Generate five questions via Bedrock |
-| `/api/quiz/submit` | POST | Score answers and store progress |
-| `/api/teach` | POST | Teaching team multi-agent session |
-| `/api/progress` | GET / POST | Read or update topic progress |
-| `/api/recommendation` | GET | Suggest next topic |
-| `/api/student` | GET / POST | Student profile management |
-| `/api/auth/request-code` | POST | Send magic-link email |
-| `/api/auth/verify` | POST | Verify code, issue JWT |
-| `/api/auth/me` | GET | Return current session info |
+| Endpoint                 | Method     | Purpose                             |
+| ------------------------ | ---------- | ----------------------------------- |
+| `/api/learn`             | GET        | Fetch a lesson article              |
+| `/api/topics`            | GET        | List all topics with metadata       |
+| `/api/quiz/generate`     | POST       | Generate five questions via Bedrock |
+| `/api/quiz/submit`       | POST       | Score answers and store progress    |
+| `/api/teach`             | POST       | Teaching team multi-agent session   |
+| `/api/progress`          | GET / POST | Read or update topic progress       |
+| `/api/recommendation`    | GET        | Suggest next topic                  |
+| `/api/student`           | GET / POST | Student profile management          |
+| `/api/auth/request-code` | POST       | Send magic-link email               |
+| `/api/auth/verify`       | POST       | Verify code, issue JWT              |
+| `/api/auth/me`           | GET        | Return current session info         |
 
 ---
 
@@ -209,3 +211,5 @@ npm run build    # Create a production build
 npm run start    # Serve the production build
 npm run lint     # Run ESLint
 ```
+
+................................
