@@ -5,6 +5,7 @@ import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
+  UpdateCommand,
 } from "@aws-sdk/lib-dynamodb";
 
 export type VerificationCode = {
@@ -16,8 +17,9 @@ export type VerificationCode = {
 
 const memoryCodes = new Map<string, VerificationCode>();
 const tableName = process.env.AWS_AUTH_TABLE;
-const documentClient = process.env.AWS_REGION
-  ? DynamoDBDocumentClient.from(new DynamoDBClient({}))
+const REGION = process.env.AWS_REGION;
+const documentClient = REGION
+  ? DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }))
   : null;
 
 function key(email: string) {
@@ -25,10 +27,17 @@ function key(email: string) {
 }
 
 function hashCode(email: string, code: string) {
+  const secretKey = process.env.AUTH_SECRET || process.env.JWT_SECRET;
+  if (!secretKey) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error("AUTH_SECRET or JWT_SECRET must be set in production.");
+    }
+    return createHash("sha256")
+      .update(`${email}:${code}:local-development`)
+      .digest("hex");
+  }
   return createHash("sha256")
-    .update(
-      `${email}:${code}:${process.env.AUTH_SECRET ?? "local-development"}`,
-    )
+    .update(`${email}:${code}:${secretKey}`)
     .digest("hex");
 }
 
@@ -50,19 +59,34 @@ export async function saveVerificationCode(record: VerificationCode) {
     await documentClient.send(
       new PutCommand({
         TableName: tableName,
-        Item: { pk: key(record.email), ...record },
-        ...{
-          ConditionExpression: "attribute_not_exists(pk) OR expiresAt < :now",
-          ExpressionAttributeValues: { ":now": Date.now() },
+        Item: {
+          pk: key(record.email),
+          ...record,
+          ttl: Math.floor(record.expiresAt / 1000), // DynamoDB TTL in seconds
         },
+        ConditionExpression: "attribute_not_exists(pk) OR expiresAt < :now",
+        ExpressionAttributeValues: { ":now": Date.now() },
       }),
     );
     return;
   }
+
+  if (process.env.NODE_ENV === "production") {
+    throw new Error(
+      "[auth] AWS_AUTH_TABLE and DynamoDB configuration are required in production for verification codes.",
+    );
+  }
+
   memoryCodes.set(record.email, record);
 }
 
 export async function consumeVerificationCode(email: string, code: string) {
+  if (process.env.NODE_ENV === "production" && (!documentClient || !tableName)) {
+    throw new Error(
+      "[auth] AWS_AUTH_TABLE and DynamoDB configuration are required in production for verification codes.",
+    );
+  }
+
   const record =
     documentClient && tableName
       ? ((
@@ -81,6 +105,16 @@ export async function consumeVerificationCode(email: string, code: string) {
     if (valid) {
       await documentClient.send(
         new DeleteCommand({ TableName: tableName, Key: { pk: key(email) } }),
+      );
+    } else {
+      await documentClient.send(
+        new UpdateCommand({
+          TableName: tableName,
+          Key: { pk: key(email) },
+          UpdateExpression:
+            "SET attempts = if_not_exists(attempts, :zero) + :one",
+          ExpressionAttributeValues: { ":zero": 0, ":one": 1 },
+        }),
       );
     }
   } else if (valid) {
