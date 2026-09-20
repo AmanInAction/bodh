@@ -1,13 +1,18 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { getSessionOrDemo, sessionCookie } from "@/lib/auth/session";
 import { getStudentProfile, putStudentProfile } from "@/lib/aws/dynamodb";
 import type { Student } from "@/types/student";
 
 export async function GET() {
-  const session = await getSessionOrDemo(
-    (await cookies()).get(sessionCookie)?.value,
-  );
+  let session;
+  try {
+    session = await getSessionOrDemo(
+      (await cookies()).get(sessionCookie)?.value,
+    );
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const profile = await getStudentProfile(session.email);
 
@@ -30,9 +35,14 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
-  const session = await getSessionOrDemo(
-    (await cookies()).get(sessionCookie)?.value,
-  );
+  let session;
+  try {
+    session = await getSessionOrDemo(
+      (await cookies()).get(sessionCookie)?.value,
+    );
+  } catch {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
 
   const updates = (await request.json()) as Partial<Student>;
   const existing = await getStudentProfile(session.email);

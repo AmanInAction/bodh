@@ -1,4 +1,4 @@
-﻿import { NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import {
   DEMO_STUDENT_ID,
@@ -88,7 +88,7 @@ export async function POST(request: Request) {
     try {
       await updateTopicScore({ studentId, language, topicSlug, score });
     } catch (err) {
-      console.warn("[quiz/submit] updateTopicScore failed (non-fatal):", err);
+      console.error("[quiz/submit] updateTopicScore failed:", err);
     }
     let roadmap: Awaited<ReturnType<typeof recordAssessment>> | undefined;
     try {
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
         teaching.recommendedStyle,
       );
     } catch (err) {
-      console.warn("[quiz/submit] recordAssessment failed (non-fatal):", err);
+      console.error("[quiz/submit] recordAssessment failed:", err);
     }
 
     const nextTopic = getNextTopic(topicSlug);
@@ -128,6 +128,9 @@ export async function POST(request: Request) {
       roadmap,
     });
   } catch (error) {
+    if (error instanceof Error && error.message.includes("Authentication required")) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
     console.error("[quiz/submit]", error);
     return NextResponse.json(
       { error: "Unable to evaluate the quiz right now." },

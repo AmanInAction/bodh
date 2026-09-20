@@ -1,8 +1,8 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getSessionOrDemo, sessionCookie } from "@/lib/auth/session";
+import { redirect, notFound } from "next/navigation";
+import { readSession, DEMO_SESSION, sessionCookie } from "@/lib/auth/session";
 import { getTopicScores } from "@/lib/learning/scores";
-import { notFound } from "next/navigation";
 import { getTopic } from "@/lib/learning/topics";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ExplainDifferently } from "@/components/learning/ExplainDifferently";
@@ -34,7 +34,18 @@ export default async function TopicPage({
   const topic = getTopic(slug);
   if (!topic) notFound();
 
-  const session = await getSessionOrDemo(cookieStore.get(sessionCookie)?.value);
+  const token = cookieStore.get(sessionCookie)?.value;
+  const userSession = await readSession(token);
+
+  if (!userSession) {
+    const allowDemo =
+      process.env.ALLOW_DEMO === "true" || process.env.NODE_ENV !== "production";
+    if (!allowDemo) {
+      redirect("/auth");
+    }
+  }
+
+  const session = userSession ?? DEMO_SESSION;
   const mastery = (await getTopicScores(session))[slug] ?? 0;
 
   const strings = UI_STRINGS[language];

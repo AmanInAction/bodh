@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { sessionCookie } from "@/lib/auth/session";
+import { jwtVerify } from "jose/jwt/verify";
+import { sessionCookie, getAuthSecret } from "@/lib/auth/session";
+import { validateProductionEnv } from "@/config/env";
+
+let envValidated = false;
 
 /** Routes that require a session. */
 const PROTECTED = ["/dashboard", "/learn", "/onboarding"];
@@ -8,28 +12,25 @@ const PROTECTED = ["/dashboard", "/learn", "/onboarding"];
 const AUTH_ONLY = ["/auth", "/"];
 
 /**
- * Lightweight JWT payload decoder for middleware use only.
- * Does NOT verify the signature — that is done in every API route via readSession.
- * Used solely to determine routing intent (present vs absent cookie).
+ * Verifies JWT signature and returns payload if valid and unexpired.
  */
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
+async function verifyJwtPayload(token: string): Promise<Record<string, unknown> | null> {
   try {
-    const parts = token.split(".");
-    if (parts.length !== 3) return null;
-    const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-    const json = atob(payload);
-    const parsed = JSON.parse(json) as Record<string, unknown>;
-    // Check expiry
-    if (typeof parsed.exp === "number" && parsed.exp * 1000 < Date.now()) return null;
-    return parsed;
+    const { payload } = await jwtVerify(token, getAuthSecret());
+    return payload as Record<string, unknown>;
   } catch {
     return null;
   }
 }
 
-export function middleware(req: NextRequest) {
+export async function middleware(req: NextRequest) {
+  if (!envValidated && process.env.NODE_ENV === "production") {
+    validateProductionEnv();
+    envValidated = true;
+  }
+
   const token = req.cookies.get(sessionCookie)?.value;
-  const payload = token ? decodeJwtPayload(token) : null;
+  const payload = token ? await verifyJwtPayload(token) : null;
   const isLoggedIn = !!payload?.email;
 
   const { pathname } = req.nextUrl;

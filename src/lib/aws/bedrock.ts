@@ -1,4 +1,4 @@
-﻿import {
+import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
@@ -45,6 +45,15 @@ export async function invokeBedrockText(
   const client = getClient();
 
   if (!client) {
+    if (process.env.NODE_ENV === "production") {
+      throw new Error(
+        "[bedrock] AWS Bedrock is not configured. Required environment variables (AWS_REGION, BEDROCK_MODEL_ID, and AWS credentials) are missing in production.",
+      );
+    }
+    console.warn(
+      "[bedrock] AWS Bedrock is not configured. Falling back to local placeholder for prompt:",
+      userPrompt.slice(0, 80),
+    );
     return `[local] ${userPrompt.slice(0, 160)}`;
   }
 

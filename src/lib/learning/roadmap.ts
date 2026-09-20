@@ -48,8 +48,19 @@ export async function recordAssessment(
     if (style) item.teachingStyle = style;
   }
 
-  try { await putRoadmapToDB(email, roadmap); } catch { /* not configured */ }
-  try { await putLocalRoadmap(email, roadmap); } catch { /* read-only filesystem */ }
+  try {
+    await putRoadmapToDB(email, roadmap);
+  } catch (error) {
+    if (process.env.NODE_ENV === "production") {
+      console.error("[roadmap] Failed to persist roadmap to DynamoDB:", error);
+      throw error;
+    }
+  }
+  try {
+    await putLocalRoadmap(email, roadmap);
+  } catch {
+    /* read-only filesystem */
+  }
 
   return roadmap;
 }

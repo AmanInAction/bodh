@@ -1,12 +1,13 @@
 import Link from "next/link";
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 
 import { topics } from "@/config/topics";
 import { ScoreCard } from "@/components/dashboard/ScoreCard";
 import { TopicProgress } from "@/components/dashboard/TopicProgress";
 import { RecommendationCard } from "@/components/dashboard/RecommendationCard";
 import { getRecommendations } from "@/lib/learning/recommendation";
-import { getSessionOrDemo, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
+import { readSession, DEMO_SESSION, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { LogoutButton } from "@/components/ui/LogoutButton";
@@ -26,9 +27,18 @@ export default async function DashboardPage({
 }) {
   const resolvedSearchParams = searchParams ? await searchParams : {};
   const cookieStore = await cookies();
-  const session = await getSessionOrDemo(
-    cookieStore.get(sessionCookie)?.value,
-  );
+  const token = cookieStore.get(sessionCookie)?.value;
+  const userSession = await readSession(token);
+
+  if (!userSession) {
+    const allowDemo =
+      process.env.ALLOW_DEMO === "true" || process.env.NODE_ENV !== "production";
+    if (!allowDemo) {
+      redirect("/auth");
+    }
+  }
+
+  const session = userSession ?? DEMO_SESSION;
 
   const isDemoUser = session.email === "student_001@bodh.demo";
   const studentId = isDemoUser ? DEMO_STUDENT_ID : session.email;
