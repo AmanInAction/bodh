@@ -10,19 +10,23 @@ frontend:
       commands:
         - |
           env | grep -e app_aWs_REGION \
+                 -e app_aWs_ACCESS_KEY_ID \
+                 -e app_aWs_SECRET_ACCESS_KEY \
                  -e app_aWs_S3_BUCKET \
                  -e app_aWs_DYNAMODB_TABLE \
                  -e app_aWs_AUTH_TABLE \
                  -e app_aWs_STUDENT_RECORD_TABLE \
+                 -e app_JWT_SECRET \
                  -e app_BEDROCK_MODEL_ID \
+                 -e app_AUTH_SECRET \
                  -e app_RESEND_API_KEY \
-                 -e app_AUTH_SECRET >> .env.production
+                 -e app_RESEND_FROM_EMAIL >> .env.production
         - npm run build
 
   artifacts:
     baseDirectory: .next
     files:
-      - '**/*'
+      - "**/*"
 
   cache:
     paths:
