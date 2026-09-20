@@ -7,21 +7,21 @@ const MODEL_ID = process.env.BEDROCK_MODEL_ID ?? "amazon.nova-lite-v1:0";
 
 function hasExplicitCredentials() {
   return Boolean(
-    process.env.AWS_ACCESS_KEY_ID &&
-    process.env.AWS_SECRET_ACCESS_KEY,
+    process.env.aWs_ACCESS_KEY_ID &&
+    process.env.aWs_SECRET_ACCESS_KEY,
   );
 }
 
 export function isBedrockConfigured() {
   return Boolean(
-    process.env.AWS_REGION &&
+    process.env.aWs_REGION &&
     process.env.BEDROCK_MODEL_ID &&
     (
       hasExplicitCredentials() ||
-      process.env.AWS_EXECUTION_ENV ||
-      process.env.AWS_LAMBDA_FUNCTION_NAME ||
-      process.env.AWS_CONTAINER_CREDENTIALS_RELATIVE_URI ||
-      process.env.AWS_CONTAINER_CREDENTIALS_FULL_URI
+      process.env.aWs_EXECUTION_ENV ||
+      process.env.aWs_LAMBDA_FUNCTION_NAME ||
+      process.env.aWs_CONTAINER_CREDENTIALS_RELATIVE_URI ||
+      process.env.aWs_CONTAINER_CREDENTIALS_FULL_URI
     ),
   );
 }
@@ -30,7 +30,7 @@ function getClient() {
   if (!isBedrockConfigured()) return null;
 
   return new BedrockRuntimeClient({
-    region: process.env.AWS_REGION,
+    region: process.env.aWs_REGION,
   });
 }
 

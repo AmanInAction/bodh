@@ -26,15 +26,15 @@ import type { Article, Mindmap, MindmapNode, MindmapEdge } from "../src/types/co
 
 // ── Config ────────────────────────────────────────────────────────────────────
 
-const REGION = process.env.AWS_REGION?.trim();
-const BUCKET = process.env.AWS_S3_BUCKET?.trim();
+const REGION = process.env.aWs_REGION?.trim();
+const BUCKET = process.env.aWs_S3_BUCKET?.trim();
 const DRY_RUN = process.env.SEED_DRY_RUN?.trim() === "true";
 
 if (!REGION || !BUCKET) {
   console.error(
-    "❌  AWS_REGION and AWS_S3_BUCKET must be set.\n" +
+    "❌  aWs_REGION and aWs_S3_BUCKET must be set.\n" +
       "    Example:\n" +
-      "      AWS_REGION=ap-south-1 AWS_S3_BUCKET=bodh-content-prod npx tsx scripts/seed-s3.ts"
+      "      aWs_REGION=ap-south-1 aWs_S3_BUCKET=bodh-content-prod npx tsx scripts/seed-s3.ts"
   );
   process.exit(1);
 }

@@ -66,7 +66,7 @@ export async function POST(request: Request) {
 
   // ── Always write login event to DynamoDB (new + returning) ──────────────────
   // This upserts: lastLoginAt, loginCount, updatedAt — and initialises the
-  // row for new users if AWS_STUDENT_RECORD_TABLE is set.
+  // row for new users if aWs_STUDENT_RECORD_TABLE is set.
   await recordLogin({ studentId, language });
 
   // ── Issue session JWT ────────────────────────────────────────────────────────

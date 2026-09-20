@@ -15,8 +15,8 @@ export type VerificationCode = {
 };
 
 const memoryCodes = new Map<string, VerificationCode>();
-const tableName = process.env.AWS_AUTH_TABLE;
-const documentClient = process.env.AWS_REGION
+const tableName = process.env.aWs_AUTH_TABLE;
+const documentClient = process.env.aWs_REGION
   ? DynamoDBDocumentClient.from(new DynamoDBClient({}))
   : null;
 

@@ -23,10 +23,10 @@ set -euo pipefail
 
 # ── Defaults (override with env vars) ─────────────────────────────────────────
 
-REGION="${AWS_REGION:-ap-south-1}"
-S3_BUCKET="${S3_BUCKET:-bodh-content-prod}"
-DYNAMO_STUDENT_TABLE="${DYNAMO_STUDENT_TABLE:-bodh-students}"
-DYNAMO_AUTH_TABLE="${DYNAMO_AUTH_TABLE:-bodh-auth}"
+REGION="${aWs_REGION:-ap-south-1}"
+S3_BUCKET="${aWs_S3_BUCKET:-bodh-content-prod}"
+DYNAMO_STUDENT_TABLE="${aWs_DYNAMODB_TABLE:-bodh-students}"
+DYNAMO_AUTH_TABLE="${aWs_AUTH_TABLE:-bodh-auth}"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -217,15 +217,15 @@ echo "╔═══════════════════════�
 echo "║        Add these to your .env.local file         ║"
 echo "╠══════════════════════════════════════════════════╣"
 echo "║"                                                 ║
-echo "║  AWS_REGION=${REGION}"                           ║
-echo "║  AWS_S3_BUCKET=${S3_BUCKET}"                     ║
-echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
-echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
+echo "║  aWs_REGION=${REGION}"                           ║
+echo "║  aWs_S3_BUCKET=${S3_BUCKET}"                     ║
+echo "║  aWs_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
+echo "║  aWs_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
 echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"         ║
 echo "║"                                                 ║
-echo "║  # JWT secret — generate with:"                  ║
+echo "║  # Auth secret — generate with:"                 ║
 echo "║  #   openssl rand -base64 32"                    ║
-echo "║  JWT_SECRET=<your-secret-here>"                  ║
+echo "║  AUTH_SECRET=<your-secret-here>"                 ║
 echo "║"                                                 ║
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
