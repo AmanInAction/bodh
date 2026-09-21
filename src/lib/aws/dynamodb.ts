@@ -12,12 +12,22 @@ import type { StudentRecord, TopicPerformance } from "@/types/student-record";
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 
-const REGION = process.env.app_aWs_REGION || process.env.aWs_REGION;
+const REGION =
+  process.env.AWS_REGION ||
+  process.env.app_aWs_REGION ||
+  process.env.aWs_REGION;
 const STUDENT_TABLE =
-  process.env.app_aWs_DYNAMODB_TABLE || process.env.aWs_DYNAMODB_TABLE || "";
+  process.env.AWS_DYNAMODB_TABLE ||
+  process.env.app_aWs_DYNAMODB_TABLE ||
+  process.env.aWs_DYNAMODB_TABLE ||
+  "";
 const AUTH_TABLE =
-  process.env.app_aWs_AUTH_TABLE || process.env.aWs_AUTH_TABLE || "";
+  process.env.AWS_AUTH_TABLE ||
+  process.env.app_aWs_AUTH_TABLE ||
+  process.env.aWs_AUTH_TABLE ||
+  "";
 const STUDENT_RECORD_TABLE =
+  process.env.AWS_STUDENT_RECORD_TABLE ||
   process.env.app_aWs_STUDENT_RECORD_TABLE ||
   process.env.aWs_STUDENT_RECORD_TABLE ||
   "";

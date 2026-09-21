@@ -4,8 +4,8 @@ import {
 } from "@aws-sdk/client-bedrock-runtime";
 
 const MODEL_ID =
-  process.env.app_BEDROCK_MODEL_ID ||
   process.env.BEDROCK_MODEL_ID ||
+  process.env.app_BEDROCK_MODEL_ID ||
   "amazon.nova-lite-v1:0";
 
 function hasExplicitCredentials() {
@@ -18,7 +18,9 @@ function hasExplicitCredentials() {
 
 export function isBedrockConfigured() {
   return Boolean(
-    (process.env.app_aWs_REGION || process.env.aWs_REGION) &&
+    (process.env.AWS_REGION ||
+      process.env.app_aWs_REGION ||
+      process.env.aWs_REGION) &&
     (process.env.app_BEDROCK_MODEL_ID || process.env.BEDROCK_MODEL_ID) &&
     (hasExplicitCredentials() ||
       process.env.app_aWs_EXECUTION_ENV ||
@@ -36,7 +38,10 @@ function getClient() {
   if (!isBedrockConfigured()) return null;
 
   return new BedrockRuntimeClient({
-    region: process.env.app_aWs_REGION || process.env.aWs_REGION,
+    region:
+      process.env.AWS_REGION ||
+      process.env.app_aWs_REGION ||
+      process.env.aWs_REGION,
   });
 }
 

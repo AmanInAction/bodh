@@ -16,8 +16,14 @@ export type VerificationCode = {
 };
 
 const memoryCodes = new Map<string, VerificationCode>();
-const tableName = process.env.app_aWs_AUTH_TABLE || process.env.AWS_AUTH_TABLE;
-const REGION = process.env.app_aWs_REGION || process.env.AWS_REGION;
+const tableName =
+  process.env.AWS_AUTH_TABLE ||
+  process.env.app_aWs_AUTH_TABLE ||
+  process.env.aWs_AUTH_TABLE;
+const REGION =
+  process.env.AWS_REGION ||
+  process.env.app_aWs_REGION ||
+  process.env.aWs_REGION;
 const documentClient = REGION
   ? DynamoDBDocumentClient.from(new DynamoDBClient({ region: REGION }))
   : null;
@@ -27,11 +33,7 @@ function key(email: string) {
 }
 
 function hashCode(email: string, code: string) {
-  const secretKey =
-    process.env.app_AUTH_SECRET ||
-    process.env.app_JWT_SECRET ||
-    process.env.AUTH_SECRET ||
-    process.env.JWT_SECRET;
+  const secretKey = process.env.AUTH_SECRET || process.env.JWT_SECRET;
 
   if (!secretKey) {
     if (process.env.NODE_ENV === "production") {
@@ -52,8 +54,8 @@ export function createVerificationCode(email: string) {
   const code =
     process.env.NODE_ENV === "production"
       ? randomInt(100000, 1000000).toString()
-      : "12345";
-  // Hackathon default: use 12345 locally instead of generating an OTP.
+      : "123456";
+  // Hackathon default: use 123456 locally instead of generating an OTP.
   return {
     code,
     record: {
@@ -84,7 +86,7 @@ export async function saveVerificationCode(record: VerificationCode) {
 
   if (process.env.NODE_ENV === "production") {
     throw new Error(
-      "[auth] app_aWs_AUTH_TABLE and DynamoDB configuration are required in production for verification codes.",
+      "[auth] AWS_AUTH_TABLE and AWS_REGION are required in production for verification codes.",
     );
   }
 
@@ -97,7 +99,7 @@ export async function consumeVerificationCode(email: string, code: string) {
     (!documentClient || !tableName)
   ) {
     throw new Error(
-      "[auth] AWS_AUTH_TABLE and DynamoDB configuration are required in production for verification codes.",
+      "[auth] AWS_AUTH_TABLE and AWS_REGION are required in production for verification codes.",
     );
   }
 

@@ -14,19 +14,21 @@
 #
 # Environment variables (override defaults):
 #   AWS_REGION            default: ap-south-1
-#   S3_BUCKET             default: bodh-content-prod
-#   DYNAMO_STUDENT_TABLE  default: bodh-students
-#   DYNAMO_AUTH_TABLE     default: bodh-auth
+#   AWS_S3_BUCKET         default: bodh-content-prod
+#   AWS_DYNAMODB_TABLE    default: bodh-students
+#   AWS_AUTH_TABLE        default: bodh-auth
+#   AWS_STUDENT_RECORD_TABLE default: bodh-student-records
 # =============================================================================
 
 set -euo pipefail
 
 # ── Defaults (override with env vars) ─────────────────────────────────────────
 
-REGION="${app_aWs_REGION:-ap-southeast-2}"
-S3_BUCKET="${app_aWs_S3_BUCKET:-regional-dsa-learning}"
-DYNAMO_STUDENT_TABLE="${app_aWs_DYNAMODB_TABLE:-bodh-students}"
-DYNAMO_AUTH_TABLE="${app_aWs_AUTH_TABLE:-bodh-auth}"
+REGION="${AWS_REGION:-ap-south-1}"
+S3_BUCKET="${AWS_S3_BUCKET:-bodh-content-prod}"
+DYNAMO_STUDENT_TABLE="${AWS_DYNAMODB_TABLE:-bodh-students}"
+DYNAMO_AUTH_TABLE="${AWS_AUTH_TABLE:-bodh-auth}"
+DYNAMO_STUDENT_RECORD_TABLE="${AWS_STUDENT_RECORD_TABLE:-bodh-student-records}"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -50,6 +52,7 @@ echo "╠═══════════════════════�
 echo "║  Region         : ${REGION}"                     ║ 
 echo "║  S3 Bucket      : ${S3_BUCKET}"                  ║
 echo "║  Student Table  : ${DYNAMO_STUDENT_TABLE}"       ║
+echo "║  Record Table   : ${DYNAMO_STUDENT_RECORD_TABLE}"║
 echo "║  Auth Table     : ${DYNAMO_AUTH_TABLE}"          ║
 echo "╚══════════════════════════════════════════════════╝"
 echo ""
@@ -161,7 +164,29 @@ fi
 echo ""
 
 # =============================================================================
-# 3. DynamoDB — Auth Table (magic-link codes with TTL)
+# 3. DynamoDB — Student Record Table (scores and topic performance)
+# =============================================================================
+
+log "Creating DynamoDB table: ${DYNAMO_STUDENT_RECORD_TABLE}"
+
+if aws dynamodb describe-table --table-name "$DYNAMO_STUDENT_RECORD_TABLE" --region "$REGION" &>/dev/null; then
+  ok "Table already exists: ${DYNAMO_STUDENT_RECORD_TABLE}"
+else
+  aws dynamodb create-table \
+    --table-name "$DYNAMO_STUDENT_RECORD_TABLE" \
+    --attribute-definitions AttributeName=pk,AttributeType=S \
+    --key-schema AttributeName=pk,KeyType=HASH \
+    --billing-mode PAY_PER_REQUEST \
+    --region "$REGION"
+
+  log "Waiting for table to become active..."
+  aws dynamodb wait table-exists --table-name "$DYNAMO_STUDENT_RECORD_TABLE" --region "$REGION"
+  ok "Table created: ${DYNAMO_STUDENT_RECORD_TABLE}"
+fi
+echo ""
+
+# =============================================================================
+# 4. DynamoDB — Auth Table (magic-link codes with TTL)
 # =============================================================================
 
 log "Creating DynamoDB table: ${DYNAMO_AUTH_TABLE}"
@@ -189,7 +214,7 @@ fi
 echo ""
 
 # =============================================================================
-# 4. Bedrock Model Access (informational)
+# 5. Bedrock Model Access (informational)
 # =============================================================================
 
 log "Checking Bedrock model access for amazon.nova-lite-v1:0..."
@@ -210,17 +235,18 @@ fi
 echo ""
 
 # =============================================================================
-# 5. Print .env.local template
+# 6. Print .env.local template
 # =============================================================================
 
 echo "╔══════════════════════════════════════════════════╗"
 echo "║        Add these to your .env.local file         ║"
 echo "╠══════════════════════════════════════════════════╣"
 echo "║"                                                 ║
-echo "║  aWs_REGION=${REGION}"                           ║
-echo "║  aWs_S3_BUCKET=${S3_BUCKET}"                     ║
-echo "║  aWs_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
-echo "║  aWs_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
+echo "║  AWS_REGION=${REGION}"                           ║
+echo "║  AWS_S3_BUCKET=${S3_BUCKET}"                     ║
+echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
+echo "║  AWS_STUDENT_RECORD_TABLE=${DYNAMO_STUDENT_RECORD_TABLE}" ║
+echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
 echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"         ║
 echo "║"                                                 ║
 echo "║  # Auth secret — generate with:"                 ║

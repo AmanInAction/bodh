@@ -1,317 +1,83 @@
-# Production Problems and Loopholes Report
+# Current Problems and Production Readiness
 
-## 1. Build is currently failing
+Last reviewed: 2026-09-21
 
-### Issue
+This report reflects the current codebase after the README, AWS configuration, and authentication configuration updates.
 
-The application does not currently build successfully in production mode.
+## Validation status
 
-### Evidence
-
-Running:
+The production build currently succeeds:
 
 ```bash
-cd c:/Users/Asus/bodh-ai/my-app; npm run build
+npm run build
 ```
 
-produced exit code 1 and reported:
+TypeScript diagnostics report no errors. ESLint completes with one warning in `scripts/seed-s3.ts`, and Next.js reports that the `middleware` convention is deprecated in favor of `proxy`.
 
-- `Invalid next.config.ts options detected`
-- `experimental.reactCompiler` has been moved to `reactCompiler`
-- `TS5103: Invalid value for '--ignoreDeprecations'`
+## Resolved issues
 
-### Why this matters
+### 1. Production build configuration
 
-A production build must succeed before deployment. This failing build means the app is not production-ready as-is.
+`next.config.ts` uses the supported top-level `reactCompiler` option, and the previous invalid TypeScript configuration no longer blocks the build.
 
----
+### 2. JWT verification in middleware
 
-## 2. Invalid Next.js config option
+`src/middleware.ts` now verifies the session JWT with `jose` and `getAuthSecret()` instead of trusting a decoded payload. Modified tokens are therefore rejected by middleware.
 
-### File
+### 3. Production environment validation
 
-- `next.config.ts`
+`src/config/env.ts` validates required production variables, including AWS resources, Bedrock, Resend, and the auth secret. Missing production configuration fails clearly instead of silently selecting local behavior.
 
-### Problem
+### 4. Environment naming and AWS setup drift
 
-The config uses:
+Standard variables such as `AWS_REGION`, `AWS_S3_BUCKET`, `AWS_DYNAMODB_TABLE`, `AWS_AUTH_TABLE`, `AWS_STUDENT_RECORD_TABLE`, `BEDROCK_MODEL_ID`, and `AUTH_SECRET` are now canonical. Legacy aliases remain supported for compatibility. `scripts/setup-aws.sh` provisions the student, student-record, and auth tables with the documented defaults.
 
-```ts
-experimental: {
-  reactCompiler: true,
-}
-```
+### 5. TypeScript path aliases
 
-In the current Next.js version, this key is no longer valid under `experimental` and should be moved to the top-level config as `reactCompiler`.
+The `@/*` path alias is working in the current build and is no longer a known build blocker.
 
-### Why this matters
+## Remaining problems
 
-Using deprecated or invalid config keys can cause unexpected behavior and configuration drift between local and production environments.
+### 1. Demo authentication remains available in development
 
----
+**File:** `src/lib/auth/session.ts`
 
-## 3. TypeScript deprecation config is invalid
+When `NODE_ENV` is not `production`, an invalid or missing session falls back to `DEMO_SESSION`. Production can also enable this with `ALLOW_DEMO=true`.
 
-### File
+This is useful for local development, but it must not be enabled in a public production deployment because requests could operate as the demo student.
 
-- `tsconfig.json`
+### 2. Local verification codes are intentionally predictable
 
-### Problem
+**File:** `src/lib/auth/store.ts`
 
-The TypeScript config is resulting in:
+Non-production sign-in uses the fixed code `123456` and an in-memory `Map` when DynamoDB is unavailable. This is acceptable for local development but is not suitable for shared, multi-instance, or production environments. Production correctly throws when the auth table is unavailable.
 
-```text
-TS5103: Invalid value for '--ignoreDeprecations'
-```
+### 3. Development fallbacks can hide missing integrations
 
-This typically means the project is configured with a deprecated TypeScript setting or value that the current TypeScript version rejects.
+**Files:** `src/lib/aws/bedrock.ts`, `src/lib/aws/s3.ts`, `src/lib/aws/dynamodb.ts`, `src/lib/ai/`, `src/lib/learning/`
 
-### Why this matters
+Local mode intentionally falls back to seed content, placeholder AI responses, and local persistence when AWS is unavailable. Staging should exercise real AWS resources so degraded behavior is detected before release.
 
-Type checking fails during build, which blocks production deployment and may hide true runtime issues until later.
+### 4. AWS and AI failures need operational observability
 
----
+Production paths throw or log many service errors, but the project does not yet provide centralized alerting, structured logs, request correlation, or service health checks. Operators may still discover Bedrock, S3, DynamoDB, or Resend failures through user reports.
 
-## 4. Auth secret falls back to a default hardcoded value
+### 5. Middleware migration warning
 
-### File
+Next.js 16 reports that the `middleware` file convention is deprecated and recommends migrating to `proxy`. The current build succeeds, but this should be scheduled before a future Next.js version removes support.
 
-- `src/lib/auth/session.ts`
+### 6. ESLint warning in the S3 seed script
 
-### Problem
+`npm run lint` reports one `@typescript-eslint/no-unused-expressions` warning at `scripts/seed-s3.ts:97`. It does not currently fail lint or the build, but the stray expression should be removed or corrected.
 
-```ts
-process.env.AUTH_SECRET ?? "local-development-secret-change-me";
-```
+### 7. Automated test coverage is limited
 
-If the environment variable is missing in production, the app silently uses a fixed local secret.
+The repository contains focused tests for auth validation and roadmap logic, but `package.json` does not expose a test script and there is no documented integration or end-to-end test command. Auth flows, AWS failure paths, API contracts, and the main learning flow need automated coverage before production deployment.
 
-### Why this matters
+## Recommended next priorities
 
-This creates a serious authentication weakness. Anyone who knows the default value can forge JWTs and impersonate users.
-
----
-
-## 5. Middleware validates route access without verifying the JWT signature
-
-### File
-
-- `src/middleware.ts`
-
-### Problem
-
-The middleware parses the JWT payload using base64 decoding, but it does not verify the signature.
-
-```ts
-function decodeJwtPayload(token: string): Record<string, unknown> | null {
-  const parts = token.split(".");
-  const payload = parts[1].replace(/-/g, "+").replace(/_/g, "/");
-  const json = atob(payload);
-  const parsed = JSON.parse(json) as Record<string, unknown>;
-```
-
-### Why this matters
-
-This allows manipulated or tampered tokens to look valid to the middleware and can lead to incorrect access control decisions.
-
----
-
-## 6. Demo session fallback bypasses real authentication
-
-### File
-
-- `src/lib/auth/session.ts`
-
-### Problem
-
-```ts
-export async function getSessionOrDemo(
-  token: string | undefined,
-): Promise<Session> {
-  return (await readSession(token)) ?? DEMO_SESSION;
-}
-```
-
-When no valid session is found, the app silently falls back to a predefined demo user.
-
-### Why this matters
-
-This can cause the app to behave as a different user without an explicit sign-in. In production, that creates confusing user identity behavior and data leakage risk.
-
----
-
-## 7. AWS services silently degrade to local behavior instead of failing fast
-
-### Files
-
-- `src/lib/aws/bedrock.ts`
-- `src/lib/aws/dynamodb.ts`
-- `src/lib/aws/s3.ts`
-- `src/lib/auth/store.ts`
-
-### Problem
-
-The code contains many silent fallbacks such as:
-
-```ts
-if (!db || !table) return null;
-```
-
-and:
-
-```ts
-if (!client) {
-  return `[local] ${userPrompt.slice(0, 160)}`;
-}
-```
-
-### Why this matters
-
-If AWS credentials, region, or tables are misconfigured, the app keeps running but in a degraded mode that looks normal. This leads to unexpected production behavior and makes outages hard to detect.
-
----
-
-## 8. In-memory verification code storage is not production-safe
-
-### File
-
-- `src/lib/auth/store.ts`
-
-### Problem
-
-```ts
-const memoryCodes = new Map<string, VerificationCode>();
-```
-
-This stores verification codes in process memory only.
-
-### Why this matters
-
-In a multi-instance production deployment, this state is not shared across servers. A code created on one instance may not be valid on another, causing abrupt login failures or inconsistent auth behavior.
-
----
-
-## 9. Critical environment configuration is not validated at startup
-
-### Files
-
-- `src/lib/aws/bedrock.ts`
-- `src/lib/aws/dynamodb.ts`
-- `src/lib/auth/email.ts`
-
-### Problem
-
-The app assumes required environment variables exist but does not clearly fail fast when they are missing.
-
-### Why this matters
-
-Production misconfiguration becomes runtime instability rather than a clear startup error. This is a common source of abrupt behavior changes after deployment.
-
----
-
-## 10. Auth and user data may be inconsistent across sessions
-
-### Files
-
-- `src/lib/auth/session.ts`
-- `src/lib/aws/dynamodb.ts`
-- `src/middleware.ts`
-
-### Problem
-
-The app mixes cookie-based session checks with stored demo settings and AWS-backed profile data, but the logic does not consistently enforce a strict authenticated state.
-
-### Why this matters
-
-This can result in a user being treated as logged in, logged out, or demo-mode depending on cookie state and config, leading to inconsistent access and data changes in production.
-
----
-
-## 11. The app may behave differently in local vs production without obvious notifications
-
-### Problem
-
-Several modules intentionally degrade to "local" behavior when external services are unavailable.
-
-### Why this matters
-
-This can create an application that works locally but behaves unpredictably in production when AWS or auth services are unavailable or misconfigured.
-
----
-
-## 12. Security and reliability gaps in AI-backed features
-
-### Files
-
-- `src/lib/agentcore/teaching.ts`
-- `src/lib/ai/feedback.ts`
-- `src/lib/ai/quiz.ts`
-- `src/lib/learning/content.ts`
-- `src/lib/learning/recommendation.ts`
-
-### Problem
-
-The app relies on AWS Bedrock and generated content, but many paths fallback to local or mock outputs when Bedrock is unavailable.
-
-### Why this matters
-
-In production, users may suddenly get less accurate or inconsistent generated content, recommendations, and explanations without any explicit error handling to notify operators.
-
----
-
-## 13. Alias path config may be broken without `baseUrl`
-
-### File
-
-- `tsconfig.json`
-
-### Problem
-
-The config includes:
-
-```json
-"paths": {
-  "@/*": ["./src/*"]
-}
-```
-
-but it is missing:
-
-```json
-"baseUrl": "."
-```
-
-### Why this matters
-
-This commonly breaks `@/` imports in TypeScript and can lead to compilation issues, runtime import errors, or inconsistent app behavior depending on tooling.
-
----
-
-## 14. Possible silent data corruption risk in DynamoDB updates
-
-### File
-
-- `src/lib/aws/dynamodb.ts`
-
-### Problem
-
-The project updates nested topic data and recomputes weak topics, but there are multiple conditional logic branches and silent catches that can mask underlying data issues.
-
-### Why this matters
-
-When AWS data conditions are not perfect, user progress and recommendation calculations may become inconsistent or partially updated without meaningful error reporting.
-
----
-
-## Summary
-
-The project has multiple critical production risks:
-
-- failing build configuration,
-- insecure JWT handling,
-- silent fallback to demo or local mode,
-- non-shared auth code storage,
-- AWS misconfiguration masking,
-- and unpredictable behavior across environments.
-
-These issues can cause abrupt changes in production, including broken login, wrong user identity, inaccessible routes, degraded AI features, and missing data or personalization.
+1. Remove the S3 seed-script lint warning.
+2. Add a `test` script and CI checks for unit, API, and authentication flows.
+3. Add health checks and structured error reporting for AWS and Resend dependencies.
+4. Confirm `ALLOW_DEMO` is unset in production environments.
+5. Migrate `middleware.ts` to the Next.js `proxy` convention.

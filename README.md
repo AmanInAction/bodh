@@ -24,7 +24,7 @@ bodh. is a bilingual, AI-powered learning app for students aged 15–20 who want
 
 | Layer            | Technology                                      |
 | ---------------- | ----------------------------------------------- |
-| Framework        | Next.js 15 (App Router)                         |
+| Framework        | Next.js 16 (App Router)                         |
 | Language         | TypeScript 5                                    |
 | Styling          | Vanilla CSS (custom design system)              |
 | AI / LLM         | Amazon Bedrock (`amazon.nova-lite-v1:0`)        |
@@ -53,14 +53,14 @@ Each topic has seed content in `content/seed/<topic>/en.json` and `hi.json` that
 ### Install and run locally
 
 ```bash
-# From the project root (bodh/)
+# From the project root (my-app/)
 npm install
 npm run dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000).
 
-The app runs fully in local mode without AWS credentials. AI features return a local placeholder; seed content is loaded directly from disk.
+The app runs in local mode without AWS credentials. Seed content is loaded from disk. AI, persistence, and email features use local fallbacks during development, while production validates its required configuration at startup.
 
 ### Key routes
 
@@ -91,12 +91,13 @@ AWS_REGION=ap-south-1
 AWS_S3_BUCKET=bodh-content-prod
 AWS_DYNAMODB_TABLE=bodh-students
 AWS_AUTH_TABLE=bodh-auth
+AWS_STUDENT_RECORD_TABLE=bodh-student-records
 
 # Amazon Bedrock
 BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
 
 # Auth (required in production)
-JWT_SECRET=<generate with: openssl rand -base64 32>
+AUTH_SECRET=<generate with: openssl rand -base64 32>
 
 # Email delivery via Resend (dev prints codes to console without this)
 RESEND_API_KEY=re_...
@@ -119,10 +120,16 @@ chmod +x scripts/setup-aws.sh
 ./scripts/setup-aws.sh
 ```
 
+Run this script from Git Bash, WSL, or another Bash-compatible shell. It reads
+`AWS_REGION`, `AWS_S3_BUCKET`, `AWS_DYNAMODB_TABLE`, and `AWS_AUTH_TABLE`, with
+defaults matching the example above. Configure AWS credentials through an IAM
+role, AWS SSO, or the AWS CLI before running it.
+
 This creates:
 
 - **S3 bucket** — versioned, private, with a 30-day lifecycle on old versions
 - **DynamoDB `bodh-students`** — student profiles and roadmaps (`pk` hash key, PAY_PER_REQUEST)
+- **DynamoDB `bodh-student-records`** — quiz scores and topic performance (`pk` hash key, PAY_PER_REQUEST)
 - **DynamoDB `bodh-auth`** — magic-link codes with TTL auto-expiry
 - Checks Bedrock model access and prints a console link if activation is needed
 
@@ -169,9 +176,9 @@ src/
     onboarding/       Language and starting-point selection
   components/
     dashboard/        Progress cards and roadmap UI
-    learn/            Article reader, mindmap canvas, topic cards
+    learning/         Article reader, mindmap canvas, topic cards
     quiz/             Quiz session and feedback components
-    shared/           Navigation, layout, and reusable atoms
+    ui/               Buttons, cards, progress, language, and auth controls
   config/
     topics.ts         Topic slugs, titles, levels, and colors
     languages.ts      Supported language codes (en, hi)
@@ -187,19 +194,22 @@ src/
 
 ## API routes
 
-| Endpoint                 | Method     | Purpose                             |
-| ------------------------ | ---------- | ----------------------------------- |
-| `/api/learn`             | GET        | Fetch a lesson article              |
-| `/api/topics`            | GET        | List all topics with metadata       |
-| `/api/quiz/generate`     | POST       | Generate five questions via Bedrock |
-| `/api/quiz/submit`       | POST       | Score answers and store progress    |
-| `/api/teach`             | POST       | Teaching team multi-agent session   |
-| `/api/progress`          | GET / POST | Read or update topic progress       |
-| `/api/recommendation`    | GET        | Suggest next topic                  |
-| `/api/student`           | GET / POST | Student profile management          |
-| `/api/auth/request-code` | POST       | Send magic-link email               |
-| `/api/auth/verify`       | POST       | Verify code, issue JWT              |
-| `/api/auth/me`           | GET        | Return current session info         |
+| Endpoint                           | Method     | Purpose                             |
+| ---------------------------------- | ---------- | ----------------------------------- |
+| `/api/learn`                       | GET        | Fetch a lesson article              |
+| `/api/topics`                      | GET        | List all topics with metadata       |
+| `/api/quiz/generate`               | POST       | Generate five questions via Bedrock |
+| `/api/quiz/submit`                 | POST       | Score answers and store progress    |
+| `/api/teach`                       | POST       | Teaching team multi-agent session   |
+| `/api/progress`                    | GET / POST | Read or update topic progress       |
+| `/api/recommendation`              | GET        | Suggest next topic                  |
+| `/api/student`                     | GET / POST | Student profile management          |
+| `/api/student/[id]/progress`       | GET / POST | Student-specific progress           |
+| `/api/student/[id]/recommendation` | GET        | Student-specific recommendation     |
+| `/api/auth/request-code`           | POST       | Send magic-link email               |
+| `/api/auth/verify`                 | POST       | Verify code, issue JWT              |
+| `/api/auth/me`                     | GET        | Return current session info         |
+| `/api/auth/logout`                 | POST       | Clear the current session           |
 
 ---
 
@@ -211,5 +221,12 @@ npm run build    # Create a production build
 npm run start    # Serve the production build
 npm run lint     # Run ESLint
 ```
+
+## Production notes
+
+- Set `AUTH_SECRET` and all required AWS, Bedrock, and Resend variables before starting production.
+- Production requests fail clearly when required infrastructure is unavailable; local development keeps its fallback behavior.
+- The demo session is intended for guest or development mode. Set `ALLOW_DEMO=true` only when that behavior is explicitly desired.
+- Do not commit `.env.local` or long-lived AWS access keys.
 
 ...............................................................................
