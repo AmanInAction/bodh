@@ -2,7 +2,7 @@
 
 Last reviewed: 2026-09-21
 
-This report reflects the current codebase after the README, AWS configuration, and authentication configuration updates.
+This report reflects the current codebase after the AWS configuration, and authentication configuration updates.
 
 ## Validation status
 
@@ -74,7 +74,7 @@ Next.js 16 reports that the `middleware` file convention is deprecated and recom
 
 The repository contains focused tests for auth validation and roadmap logic, but `package.json` does not expose a test script and there is no documented integration or end-to-end test command. Auth flows, AWS failure paths, API contracts, and the main learning flow need automated coverage before production deployment.
 
-## Recommended next priorities
+## Next priorities
 
 1. Remove the S3 seed-script lint warning.
 2. Add a `test` script and CI checks for unit, API, and authentication flows.
