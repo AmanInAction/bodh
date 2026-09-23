@@ -17,6 +17,7 @@ import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { LogoutButton } from "@/components/ui/LogoutButton";
 import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { getEnv } from "@/config/env";
 import {
   LANGUAGE_COOKIE,
   resolveLanguage,
@@ -37,9 +38,7 @@ export default async function DashboardPage({
 
   if (!userSession) {
     const allowDemo =
-      process.env.app_ALLOW_DEMO === "true" ||
-      process.env.ALLOW_DEMO === "true" ||
-      process.env.NODE_ENV !== "production";
+      getEnv("ALLOW_DEMO") === "true" || process.env.NODE_ENV !== "production";
     if (!allowDemo) {
       redirect("/auth");
     }

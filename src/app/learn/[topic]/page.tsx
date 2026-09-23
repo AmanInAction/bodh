@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
 import { readSession, DEMO_SESSION, sessionCookie } from "@/lib/auth/session";
 import { getTopicScores } from "@/lib/learning/scores";
+import { getEnv } from "@/config/env";
 import { getTopic } from "@/lib/learning/topics";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { ExplainDifferently } from "@/components/learning/ExplainDifferently";
@@ -39,9 +40,7 @@ export default async function TopicPage({
 
   if (!userSession) {
     const allowDemo =
-      process.env.app_ALLOW_DEMO === "true" ||
-      process.env.ALLOW_DEMO === "true" ||
-      process.env.NODE_ENV !== "production";
+      getEnv("ALLOW_DEMO") === "true" || process.env.NODE_ENV !== "production";
     if (!allowDemo) {
       redirect("/auth");
     }

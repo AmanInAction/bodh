@@ -163,8 +163,8 @@ async function tryAgentCore(
   style: TeachingStyle,
   language: "en" | "hi",
 ): Promise<TeachingResult | null> {
-  const url =
-    process.env.app_AGENTCORE_RUNTIME_URL || process.env.AGENTCORE_RUNTIME_URL;
+  const { getEnv } = await import("@/config/env");
+  const url = getEnv("AGENTCORE_RUNTIME_URL");
   if (!url) return null;
 
   try {

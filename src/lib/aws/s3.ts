@@ -4,17 +4,13 @@ import {
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
 import type { Article, Mindmap } from "@/types/content";
+import { getAwsCredentials, getEnv } from "@/config/env";
 
-const BUCKET =
-  process.env.AWS_S3_BUCKET ||
-  process.env.app_aWs_S3_BUCKET ||
-  process.env.aWs_S3_BUCKET ||
-  "";
-const REGION =
-  process.env.AWS_REGION ||
-  process.env.app_aWs_REGION ||
-  process.env.aWs_REGION;
-const client = REGION ? new S3Client({ region: REGION }) : null;
+const BUCKET = getEnv("AWS_S3_BUCKET") || "";
+const REGION = getEnv("AWS_REGION");
+const client = REGION
+  ? new S3Client({ region: REGION, credentials: getAwsCredentials() })
+  : null;
 
 async function s3Get<T>(key: string): Promise<T | null> {
   if (!client || !BUCKET) {

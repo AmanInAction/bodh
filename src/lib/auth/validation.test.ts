@@ -1,3 +1,6 @@
+// Vitest is provided by the test runner; suppress the editor error when its
+// type declarations are unavailable in the current TypeScript project.
+// @ts-ignore Cannot find module 'vitest' or its corresponding type declarations.
 import { describe, it, expect } from "vitest";
 import { validateEmailFormat } from "./email-format";
 import { verifyDomainMailExchange, validateEmail } from "./validation";

@@ -9,30 +9,18 @@ import {
 import type { Student } from "@/types/student";
 import type { TopicProgress } from "@/types/progress";
 import type { StudentRecord, TopicPerformance } from "@/types/student-record";
+import { getAwsCredentials, getEnv } from "@/config/env";
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 
-const REGION =
-  process.env.AWS_REGION ||
-  process.env.app_aWs_REGION ||
-  process.env.aWs_REGION;
-const STUDENT_TABLE =
-  process.env.AWS_DYNAMODB_TABLE ||
-  process.env.app_aWs_DYNAMODB_TABLE ||
-  process.env.aWs_DYNAMODB_TABLE ||
-  "";
-const AUTH_TABLE =
-  process.env.AWS_AUTH_TABLE ||
-  process.env.app_aWs_AUTH_TABLE ||
-  process.env.aWs_AUTH_TABLE ||
-  "";
-const STUDENT_RECORD_TABLE =
-  process.env.AWS_STUDENT_RECORD_TABLE ||
-  process.env.app_aWs_STUDENT_RECORD_TABLE ||
-  process.env.aWs_STUDENT_RECORD_TABLE ||
-  "";
+const REGION = getEnv("AWS_REGION");
+const STUDENT_TABLE = getEnv("AWS_DYNAMODB_TABLE") || "";
+const AUTH_TABLE = getEnv("AWS_AUTH_TABLE") || "";
+const STUDENT_RECORD_TABLE = getEnv("AWS_STUDENT_RECORD_TABLE") || "";
 
-const rawClient = REGION ? new DynamoDBClient({ region: REGION }) : null;
+const rawClient = REGION
+  ? new DynamoDBClient({ region: REGION, credentials: getAwsCredentials() })
+  : null;
 const db = rawClient ? DynamoDBDocumentClient.from(rawClient) : null;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────

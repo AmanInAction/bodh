@@ -2,35 +2,23 @@ import {
   BedrockRuntimeClient,
   ConverseCommand,
 } from "@aws-sdk/client-bedrock-runtime";
+import { getAwsCredentials, getEnv } from "@/config/env";
 
-const MODEL_ID =
-  process.env.BEDROCK_MODEL_ID ||
-  process.env.app_BEDROCK_MODEL_ID ||
-  "amazon.nova-lite-v1:0";
+const MODEL_ID = getEnv("BEDROCK_MODEL_ID") || "amazon.nova-lite-v1:0";
 
 function hasExplicitCredentials() {
-  return Boolean(
-    process.env.app_aWs_ACCESS_KEY_ID ||
-    process.env.app_aWs_SECRET_ACCESS_KEY ||
-    (process.env.aWs_ACCESS_KEY_ID && process.env.aWs_SECRET_ACCESS_KEY),
-  );
+  return Boolean(getAwsCredentials());
 }
 
 export function isBedrockConfigured() {
   return Boolean(
-    (process.env.AWS_REGION ||
-      process.env.app_aWs_REGION ||
-      process.env.aWs_REGION) &&
-    (process.env.app_BEDROCK_MODEL_ID || process.env.BEDROCK_MODEL_ID) &&
+    getEnv("AWS_REGION") &&
+    getEnv("BEDROCK_MODEL_ID") &&
     (hasExplicitCredentials() ||
-      process.env.app_aWs_EXECUTION_ENV ||
-      process.env.aWs_EXECUTION_ENV ||
-      process.env.app_aWs_LAMBDA_FUNCTION_NAME ||
-      process.env.aWs_LAMBDA_FUNCTION_NAME ||
-      process.env.app_aWs_CONTAINER_CREDENTIALS_RELATIVE_URI ||
-      process.env.aWs_CONTAINER_CREDENTIALS_RELATIVE_URI ||
-      process.env.app_aWs_CONTAINER_CREDENTIALS_FULL_URI ||
-      process.env.aWs_CONTAINER_CREDENTIALS_FULL_URI),
+      getEnv("EXECUTION_ENV") ||
+      getEnv("LAMBDA_FUNCTION_NAME") ||
+      getEnv("CONTAINER_CREDENTIALS_RELATIVE_URI") ||
+      getEnv("CONTAINER_CREDENTIALS_FULL_URI")),
   );
 }
 
@@ -38,10 +26,8 @@ function getClient() {
   if (!isBedrockConfigured()) return null;
 
   return new BedrockRuntimeClient({
-    region:
-      process.env.AWS_REGION ||
-      process.env.app_aWs_REGION ||
-      process.env.aWs_REGION,
+    region: getEnv("AWS_REGION"),
+    credentials: getAwsCredentials(),
   });
 }
 
@@ -58,7 +44,7 @@ export async function invokeBedrockText(
   if (!client) {
     if (process.env.NODE_ENV === "production") {
       throw new Error(
-        "[bedrock] AWS Bedrock is not configured. Required environment variables (app_aWs_REGION, app_BEDROCK_MODEL_ID, and AWS credentials) are missing in production.",
+        "[bedrock] AWS Bedrock is not configured. Required environment variables (APP_AWS_REGION, APP_BEDROCK_MODEL_ID, and AWS credentials) are missing in production.",
       );
     }
     console.warn(

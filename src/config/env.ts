@@ -27,12 +27,12 @@ export function validateProductionEnv(): void {
   ];
 
   for (const key of requiredKeys) {
-    if (!process.env[key]) {
+    if (!getEnv(key)) {
       missing.push(key);
     }
   }
 
-  if (!process.env.AUTH_SECRET && !process.env.JWT_SECRET) {
+  if (!getEnv("AUTH_SECRET") && !getEnv("JWT_SECRET")) {
     missing.push("AUTH_SECRET (or JWT_SECRET)");
   }
 
@@ -52,4 +52,16 @@ export function validateProductionEnv(): void {
       `Missing required production environment variables: ${missing.join(", ")}`,
     );
   }
+}
+
+export function getEnv(key: string): string | undefined {
+  return process.env[`APP_${key}`];
+}
+
+export function getAwsCredentials() {
+  const accessKeyId = getEnv("AWS_ACCESS_KEY_ID");
+  const secretAccessKey = getEnv("AWS_SECRET_ACCESS_KEY");
+  return accessKeyId && secretAccessKey
+    ? { accessKeyId, secretAccessKey }
+    : undefined;
 }

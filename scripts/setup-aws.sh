@@ -25,10 +25,10 @@ set -euo pipefail
 # ── Defaults (override with env vars) ─────────────────────────────────────────
 
 REGION="${AWS_REGION:-ap-south-1}"
-S3_BUCKET="${AWS_S3_BUCKET:-bodh-content-prod}"
-DYNAMO_STUDENT_TABLE="${AWS_DYNAMODB_TABLE:-bodh-students}"
+S3_BUCKET="${AWS_S3_BUCKET:-regional-dsa-bucket}"
+DYNAMO_STUDENT_TABLE="${AWS_DYNAMODB_TABLE:-students}"
 DYNAMO_AUTH_TABLE="${AWS_AUTH_TABLE:-bodh-auth}"
-DYNAMO_STUDENT_RECORD_TABLE="${AWS_STUDENT_RECORD_TABLE:-bodh-student-records}"
+DYNAMO_STUDENT_RECORD_TABLE="${AWS_STUDENT_RECORD_TABLE:-students-records}"
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -73,10 +73,22 @@ echo ""
 
 log "Creating S3 bucket: ${S3_BUCKET}  (${REGION})"
 
-BUCKET_EXISTS=$(aws s3api head-bucket --bucket "$S3_BUCKET" --region "$REGION" 2>&1 || true)
+BUCKET_EXISTS=$(aws s3api head-bucket \
+  --bucket "$S3_BUCKET" \
+  --region "$REGION" 2>&1 || true)
 
-if echo "$BUCKET_EXISTS" | grep -q "200\|NoSuchBucket" || [ -z "$BUCKET_EXISTS" ]; then
-  # Bucket does not exist — create it
+# Check whether bucket exists
+if aws s3api head-bucket \
+  --bucket "$S3_BUCKET" \
+  --region "$REGION" \
+  >/dev/null 2>&1; then
+
+  ok "Bucket already exists: s3://${S3_BUCKET}"
+
+else
+
+  log "Bucket does not exist. Creating it..."
+
   if [ "$REGION" = "us-east-1" ]; then
     aws s3api create-bucket \
       --bucket "$S3_BUCKET" \
@@ -87,9 +99,8 @@ if echo "$BUCKET_EXISTS" | grep -q "200\|NoSuchBucket" || [ -z "$BUCKET_EXISTS" 
       --region "$REGION" \
       --create-bucket-configuration LocationConstraint="$REGION"
   fi
+
   ok "Bucket created: s3://${S3_BUCKET}"
-else
-  ok "Bucket already exists: s3://${S3_BUCKET}"
 fi
 
 # Block all public access
@@ -238,22 +249,22 @@ echo ""
 # 6. Print .env.local template
 # =============================================================================
 
-echo "╔══════════════════════════════════════════════════╗"
-echo "║        Add these to your .env.local file         ║"
-echo "╠══════════════════════════════════════════════════╣"
-echo "║"                                                 ║
-echo "║  AWS_REGION=${REGION}"                           ║
-echo "║  AWS_S3_BUCKET=${S3_BUCKET}"                     ║
-echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"     ║
+echo "╔═══════════════════════════════════════════════════════════╗"
+echo "║        Add these to your .env.local file                  ║"       
+echo "╠═══════════════════════════════════════════════════════════╣"
+echo "║"                                                          ║
+echo "║  AWS_REGION=${REGION}"                                    ║
+echo "║  AWS_S3_BUCKET=${S3_BUCKET}"                              ║
+echo "║  AWS_DYNAMODB_TABLE=${DYNAMO_STUDENT_TABLE}"              ║
 echo "║  AWS_STUDENT_RECORD_TABLE=${DYNAMO_STUDENT_RECORD_TABLE}" ║
-echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"            ║
-echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"         ║
-echo "║"                                                 ║
-echo "║  # Auth secret — generate with:"                 ║
-echo "║  #   openssl rand -base64 32"                    ║
-echo "║  AUTH_SECRET=<your-secret-here>"                 ║
-echo "║"                                                 ║
-echo "╚══════════════════════════════════════════════════╝"
+echo "║  AWS_AUTH_TABLE=${DYNAMO_AUTH_TABLE}"                     ║
+echo "║  BEDROCK_MODEL_ID=amazon.nova-lite-v1:0"                  ║
+echo "║"                                                          ║
+echo "║  # Auth secret — generate with:"                          ║
+echo "║  #   openssl rand -base64 32"                             ║
+echo "║  AUTH_SECRET=<your-secret-here>"                          ║
+echo "║"                                                          ║
+echo "╚═══════════════════════════════════════════════════════════╝"
 echo ""
 echo "Next step — upload seed content to S3:"
 echo "  npx tsx scripts/seed-s3.ts"

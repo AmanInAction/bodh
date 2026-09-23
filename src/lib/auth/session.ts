@@ -1,13 +1,10 @@
 import { jwtVerify } from "jose/jwt/verify";
 import { SignJWT } from "jose/jwt/sign";
+import { getEnv } from "@/config/env";
 
 export const sessionCookie = "bodh_session";
 export function getAuthSecret(): Uint8Array {
-  const secretKey =
-    process.env.AUTH_SECRET ||
-    process.env.JWT_SECRET ||
-    process.env.app_AUTH_SECRET ||
-    process.env.app_JWT_SECRET;
+  const secretKey = getEnv("AUTH_SECRET") || getEnv("JWT_SECRET");
 
   if (!secretKey) {
     if (process.env.NODE_ENV === "production") {
@@ -69,9 +66,7 @@ export async function getSessionOrDemo(
   if (session) return session;
 
   const allowDemo =
-    process.env.app_ALLOW_DEMO === "true" ||
-    process.env.ALLOW_DEMO === "true" ||
-    process.env.NODE_ENV !== "production";
+    getEnv("ALLOW_DEMO") === "true" || process.env.NODE_ENV !== "production";
 
   if (!allowDemo) {
     throw new Error(
