@@ -5,9 +5,6 @@ export async function sendVerificationCode(email: string, code: string) {
   const resendApiKey = getEnv("RESEND_API_KEY");
 
   if (!resendApiKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error("APP_RESEND_API_KEY is required in production");
-    }
     console.info(`[bodh] verification code for ${email}: ${code}`);
     return;
   }

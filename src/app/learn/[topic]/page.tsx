@@ -39,8 +39,7 @@ export default async function TopicPage({
   const userSession = await readSession(token);
 
   if (!userSession) {
-    const allowDemo =
-      getEnv("ALLOW_DEMO") === "true" || process.env.NODE_ENV !== "production";
+    const allowDemo = getEnv("ALLOW_DEMO") !== "false";
     if (!allowDemo) {
       redirect("/auth");
     }

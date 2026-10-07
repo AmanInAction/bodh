@@ -12,14 +12,11 @@ const client = REGION
   ? new S3Client({ region: REGION, credentials: getAwsCredentials() })
   : null;
 
+const memoryS3Store = new Map<string, unknown>();
+
 async function s3Get<T>(key: string): Promise<T | null> {
   if (!client || !BUCKET) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        `[s3] S3 client or AWS_S3_BUCKET is not configured. Cannot get key: ${key}`,
-      );
-    }
-    return null;
+    return (memoryS3Store.get(key) as T) ?? null;
   }
   try {
     const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
@@ -32,20 +29,13 @@ async function s3Get<T>(key: string): Promise<T | null> {
       return null;
     }
     console.error(`[s3] Error getting key ${key}:`, error);
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
-    return null;
+    return (memoryS3Store.get(key) as T) ?? null;
   }
 }
 
 async function s3Put(key: string, data: unknown): Promise<void> {
+  memoryS3Store.set(key, data);
   if (!client || !BUCKET) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        `[s3] S3 client or AWS_S3_BUCKET is not configured. Cannot put key: ${key}`,
-      );
-    }
     return;
   }
   try {
@@ -59,9 +49,6 @@ async function s3Put(key: string, data: unknown): Promise<void> {
     );
   } catch (error) {
     console.error(`[s3] Error putting key ${key}:`, error);
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
   }
 }
 

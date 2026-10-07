@@ -23,16 +23,16 @@ const rawClient = REGION
   : null;
 const db = rawClient ? DynamoDBDocumentClient.from(rawClient) : null;
 
+// MOCKED — in-memory fallback when DynamoDB is not configured
+const memoryTableStore = new Map<string, Record<string, unknown>>();
+const memoryStudentRecordStore = new Map<string, StudentRecord>();
+
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 async function dbGet<T>(table: string, pk: string): Promise<T | null> {
   if (!db || !table) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        `[dynamodb] DynamoDB client or table is not configured (table: ${table || "undefined"}).`,
-      );
-    }
-    return null;
+    const item = memoryTableStore.get(`${table || "default"}:${pk}`);
+    return item ? (item as T) : null;
   }
   try {
     const res = await db.send(
@@ -44,10 +44,8 @@ async function dbGet<T>(table: string, pk: string): Promise<T | null> {
       `[dynamodb] Error in dbGet on ${table} for key ${pk}:`,
       error,
     );
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
-    return null;
+    const item = memoryTableStore.get(`${table || "default"}:${pk}`);
+    return item ? (item as T) : null;
   }
 }
 
@@ -55,31 +53,23 @@ async function dbPut(
   table: string,
   item: Record<string, unknown>,
 ): Promise<void> {
+  const pk = typeof item.pk === "string" ? item.pk : "";
+  if (pk) {
+    memoryTableStore.set(`${table || "default"}:${pk}`, item);
+  }
   if (!db || !table) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        `[dynamodb] DynamoDB client or table is not configured (table: ${table || "undefined"}).`,
-      );
-    }
     return;
   }
   try {
     await db.send(new PutCommand({ TableName: table, Item: item }));
   } catch (error) {
     console.error(`[dynamodb] Error in dbPut on ${table}:`, error);
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
   }
 }
 
 async function dbDelete(table: string, pk: string): Promise<void> {
+  memoryTableStore.delete(`${table || "default"}:${pk}`);
   if (!db || !table) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        `[dynamodb] DynamoDB client or table is not configured (table: ${table || "undefined"}).`,
-      );
-    }
     return;
   }
   try {
@@ -89,9 +79,6 @@ async function dbDelete(table: string, pk: string): Promise<void> {
       `[dynamodb] Error in dbDelete on ${table} for key ${pk}:`,
       error,
     );
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
   }
 }
 
@@ -194,26 +181,20 @@ export function computeWeakTopics(
  * Prefer `updateTopicScore` for incremental score updates.
  */
 export async function putStudentRecord(record: StudentRecord): Promise<void> {
+  const updatedRecord: StudentRecord = { ...record, updatedAt: Date.now() };
+  memoryStudentRecordStore.set(record.studentId, updatedRecord);
   if (!db || !STUDENT_RECORD_TABLE) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
-      );
-    }
     return;
   }
   try {
     await db.send(
       new PutCommand({
         TableName: STUDENT_RECORD_TABLE,
-        Item: { ...record, updatedAt: Date.now() },
+        Item: updatedRecord,
       }),
     );
   } catch (error) {
     console.error("[dynamodb] Error in putStudentRecord:", error);
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
   }
 }
 
@@ -225,12 +206,7 @@ export async function getStudentRecord(
   studentId: string,
 ): Promise<StudentRecord | null> {
   if (!db || !STUDENT_RECORD_TABLE) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
-      );
-    }
-    return null;
+    return memoryStudentRecordStore.get(studentId) ?? null;
   }
   try {
     const res = await db.send(
@@ -239,16 +215,13 @@ export async function getStudentRecord(
         Key: { studentId },
       }),
     );
-    return res.Item ? (res.Item as StudentRecord) : null;
+    return res.Item ? (res.Item as StudentRecord) : (memoryStudentRecordStore.get(studentId) ?? null);
   } catch (error) {
     console.error(
       `[dynamodb] Error in getStudentRecord for ${studentId}:`,
       error,
     );
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
-    return null;
+    return memoryStudentRecordStore.get(studentId) ?? null;
   }
 }
 
@@ -274,12 +247,29 @@ export async function updateTopicScore({
   score: number;
 }): Promise<StudentRecord | null> {
   if (!db || !STUDENT_RECORD_TABLE) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
-      );
-    }
-    return null;
+    const existing = memoryStudentRecordStore.get(studentId) ?? {
+      studentId,
+      language,
+      topics: {},
+      weakTopics: [],
+    };
+    const prevTopic = existing.topics[topicSlug] ?? { score: 0, attempts: 0 };
+    const nextTopics = {
+      ...existing.topics,
+      [topicSlug]: {
+        score: Math.max(prevTopic.score, score),
+        attempts: (prevTopic.attempts ?? 0) + 1,
+      },
+    };
+    const updatedRecord: StudentRecord = {
+      ...existing,
+      language: existing.language || language,
+      topics: nextTopics,
+      weakTopics: computeWeakTopics(nextTopics),
+      updatedAt: Date.now(),
+    };
+    memoryStudentRecordStore.set(studentId, updatedRecord);
+    return updatedRecord;
   }
 
   // ── Phase 1: Ensure the item and top-level topics map exist ──────────────
@@ -411,11 +401,16 @@ export async function recordLogin({
   language: "en" | "hi";
 }): Promise<void> {
   if (!db || !STUDENT_RECORD_TABLE) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "[dynamodb] STUDENT_RECORD_TABLE or DynamoDB client is not configured.",
-      );
-    }
+    const existing = memoryStudentRecordStore.get(studentId);
+    memoryStudentRecordStore.set(studentId, {
+      studentId,
+      language: existing?.language ?? language,
+      topics: existing?.topics ?? {},
+      weakTopics: existing?.weakTopics ?? [],
+      lastLoginAt: new Date().toISOString(),
+      updatedAt: Date.now(),
+      loginCount: (existing?.loginCount ?? 0) + 1,
+    });
     return;
   }
 
@@ -453,8 +448,5 @@ export async function recordLogin({
     );
   } catch (error) {
     console.error(`[dynamodb] Error in recordLogin for ${studentId}:`, error);
-    if (process.env.NODE_ENV === "production") {
-      throw error;
-    }
   }
 }

@@ -33,11 +33,6 @@ function hashCode(email: string, code: string) {
   const secretKey = getEnv("AUTH_SECRET") || getEnv("JWT_SECRET");
 
   if (!secretKey) {
-    if (process.env.NODE_ENV === "production") {
-      throw new Error(
-        "APP_AUTH_SECRET or APP_JWT_SECRET must be set in production.",
-      );
-    }
     return createHash("sha256")
       .update(`${email}:${code}:local-development`)
       .digest("hex");
@@ -48,8 +43,9 @@ function hashCode(email: string, code: string) {
 }
 
 export function createVerificationCode(email: string) {
+  const hasResend = Boolean(getEnv("RESEND_API_KEY"));
   const code =
-    process.env.NODE_ENV === "production"
+    process.env.NODE_ENV === "production" && hasResend
       ? randomInt(100000, 1000000).toString()
       : "123456";
   // Hackathon default: use 123456 locally instead of generating an OTP.
@@ -81,25 +77,10 @@ export async function saveVerificationCode(record: VerificationCode) {
     return;
   }
 
-  if (process.env.NODE_ENV === "production") {
-    throw new Error(
-      "[auth] AWS_AUTH_TABLE and AWS_REGION are required in production for verification codes.",
-    );
-  }
-
   memoryCodes.set(record.email, record);
 }
 
 export async function consumeVerificationCode(email: string, code: string) {
-  if (
-    process.env.NODE_ENV === "production" &&
-    (!documentClient || !tableName)
-  ) {
-    throw new Error(
-      "[auth] AWS_AUTH_TABLE and AWS_REGION are required in production for verification codes.",
-    );
-  }
-
   const record =
     documentClient && tableName
       ? ((

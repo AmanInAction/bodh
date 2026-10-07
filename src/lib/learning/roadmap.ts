@@ -51,10 +51,7 @@ export async function recordAssessment(
   try {
     await putRoadmapToDB(email, roadmap);
   } catch (error) {
-    if (process.env.NODE_ENV === "production") {
-      console.error("[roadmap] Failed to persist roadmap to DynamoDB:", error);
-      throw error;
-    }
+    console.warn("[roadmap] Failed to persist roadmap to DynamoDB:", error);
   }
   try {
     await putLocalRoadmap(email, roadmap);

@@ -15,6 +15,10 @@ const geistMono = Geist_Mono({
 export const metadata: Metadata = {
   title: "bodh. | Make difficult ideas easy to grasp",
   description: "A calmer way to learn computer science.",
+  openGraph: {
+    title: "bodh. | Make difficult ideas easy to grasp",
+    description: "A calmer way to learn computer science.",
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
