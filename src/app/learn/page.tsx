@@ -10,23 +10,7 @@ import {
   formatLessons,
   UI_STRINGS,
 } from "@/lib/i18n";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
-
-// Status indicators matching spec §4.3
-const STATUS_ICONS: Record<string, string> = {
-  arrays: "🟢",
-  "linked-list": "🟢",
-  stacks: "🟡",
-  queues: "🟡",
-  "binary-search": "🟡",
-  recursion: "🔒",
-};
-
-const LEVEL_COLORS: Record<string, string> = {
-  Beginner: "#34d399",
-  Intermediate: "#a78bfa",
-  Advanced: "#f472b6",
-};
+import { Navbar } from "@/components/ui/Navbar";
 
 export default async function LearnPage({
   searchParams,
@@ -43,45 +27,49 @@ export default async function LearnPage({
 
   return (
     <main className="site-shell">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${language}`}>
-          bodh<span>.</span>
-        </Link>
-        <div>
-          <Link href={`/dashboard?language=${language}`}>
-            {strings.nav.dashboard}
-          </Link>
-          <LanguageToggle currentLanguage={language} />
-        </div>
-      </nav>
+      <Navbar
+        language={language}
+        links={[
+          {
+            href: `/dashboard?language=${language}`,
+            label: strings.nav.dashboard,
+            activeMatch: "/dashboard",
+          },
+          {
+            href: `/learn?language=${language}`,
+            label: strings.nav.learn,
+            activeMatch: "/learn",
+          },
+          {
+            href: `/about?language=${language}`,
+            label: strings.nav.about,
+            activeMatch: "/about",
+          },
+        ]}
+      />
 
       <section className="library-header">
-        <span className="eyebrow">
-          {strings.learnPage.eyebrow}
-        </span>
-        <h1>
-          {strings.learnPage.title}
-        </h1>
-        <p>
-          {strings.learnPage.subtitle}
-        </p>
+        <span className="eyebrow">{strings.learnPage.eyebrow}</span>
+        <h1>{strings.learnPage.title}</h1>
+        <p>{strings.learnPage.subtitle}</p>
       </section>
 
       {/* ── Roadmap Journey ─────────────────────────────────────────── */}
-      <section className="section">
+      <section className="section" style={{ paddingTop: 0 }}>
         <div className="roadmap-list">
           {topics.map((topic, index) => {
-            const icon = STATUS_ICONS[topic.slug] ?? "🔒";
-            const levelColor = LEVEL_COLORS[topic.level] ?? "#a78bfa";
             const title = getTopicTitle(topic.slug, language);
             const description = getTopicDescription(topic.slug, language);
             const level = getLevelLabel(topic.level, language);
             const lessonsCount = formatLessons(topic.lessons, language);
+            const stepNumber = String(index + 1).padStart(2, "0");
 
             return (
               <div key={topic.slug} className="roadmap-item">
                 <div className="roadmap-track">
-                  <span className="roadmap-icon">{icon}</span>
+                  <span className="roadmap-step-num" aria-hidden="true">
+                    {stepNumber}
+                  </span>
                   {index < topics.length - 1 && (
                     <div className="roadmap-connector" />
                   )}
@@ -91,21 +79,19 @@ export default async function LearnPage({
                   href={`/learn/${topic.slug}?language=${language}`}
                 >
                   <div className="roadmap-card-header">
-                    <span
-                      className="roadmap-level-badge"
-                      style={{ background: `${levelColor}22`, color: levelColor }}
-                    >
-                      {level}
-                    </span>
-                    <span className="roadmap-lessons">
-                      {lessonsCount}
-                    </span>
+                    <div className="roadmap-meta">
+                      <span className="eyebrow">{level}</span>
+                      <span aria-hidden="true">·</span>
+                      <span>{lessonsCount}</span>
+                    </div>
                   </div>
                   <strong className="roadmap-title">{title}</strong>
                   <p className="roadmap-desc">{description}</p>
                   <div className="roadmap-actions">
                     <span>{strings.learnPage.learnCard}</span>
+                    <span aria-hidden="true">·</span>
                     <span>{strings.learnPage.mindmapCard}</span>
+                    <span aria-hidden="true">·</span>
                     <span>{strings.learnPage.quizCard}</span>
                   </div>
                 </Link>

@@ -22,11 +22,14 @@ async function s3Get<T>(key: string): Promise<T | null> {
     const cmd = new GetObjectCommand({ Bucket: BUCKET, Key: key });
     const res = await client.send(cmd);
     const body = await res.Body?.transformToString();
-    return body ? (JSON.parse(body) as T) : null;
+    if (!body) return null;
+    const parsed = JSON.parse(body) as T;
+    memoryS3Store.set(key, parsed);
+    return parsed;
   } catch (error: unknown) {
     const s3Error = error as { name?: string };
     if (s3Error?.name === "NoSuchKey" || s3Error?.name === "NotFound") {
-      return null;
+      return (memoryS3Store.get(key) as T) ?? null;
     }
     console.error(`[s3] Error getting key ${key}:`, error);
     return (memoryS3Store.get(key) as T) ?? null;
@@ -68,12 +71,22 @@ export async function putArticle(article: Article): Promise<void> {
   );
 }
 
-// ── Mindmaps ──────────────────────────────────────────────────────────────────
+// ── Mindmaps (Language-Keyed: mindmaps/<topic>/<language>.json) ───────────────
 
-export async function getMindmap(topicSlug: string): Promise<Mindmap | null> {
-  return s3Get<Mindmap>(`mindmaps/${topicSlug}.json`);
+export async function getMindmap(
+  topicSlug: string,
+  language: "en" | "hi" = "en",
+): Promise<Mindmap | null> {
+  return s3Get<Mindmap>(`mindmaps/${topicSlug}/${language}.json`);
 }
 
-export async function putMindmap(mindmap: Mindmap): Promise<void> {
-  await s3Put(`mindmaps/${mindmap.topicSlug}.json`, mindmap);
+export async function putMindmap(
+  mindmap: Mindmap,
+  language?: "en" | "hi",
+): Promise<void> {
+  const resolvedLang = language ?? mindmap.language ?? "en";
+  await s3Put(`mindmaps/${mindmap.topicSlug}/${resolvedLang}.json`, {
+    ...mindmap,
+    language: resolvedLang,
+  });
 }

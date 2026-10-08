@@ -1,7 +1,8 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { ArticleViewer } from "@/components/learning/ArticleViewer";
 import { MindMap } from "@/components/learning/MindMap";
+import { Navbar } from "@/components/ui/Navbar";
+import { ButtonLink } from "@/components/ui/Button";
 import { getLessonContent, getOrGenerateMindmap } from "@/lib/learning/content";
 import type { LanguageCode } from "@/config/languages";
 import { LANGUAGE_COOKIE, resolveLanguage, UI_STRINGS } from "@/lib/i18n";
@@ -29,14 +30,11 @@ export default async function ArticlePage({
 
   return (
     <main className="site-shell">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${selectedLanguage}`}>
-          bodh<span>.</span>
-        </Link>
-        <Link href={`/learn/${topic}?language=${selectedLanguage}`}>
-          {strings.articlePage.backToPath}
-        </Link>
-      </nav>
+      <Navbar
+        language={selectedLanguage}
+        backHref={`/learn/${topic}?language=${selectedLanguage}`}
+        backLabel={strings.articlePage.backToPath}
+      />
       <div className="article-layout">
         <ArticleViewer
           title={content.title}
@@ -46,14 +44,16 @@ export default async function ArticlePage({
           practiceHref={`/learn/${topic}/quiz?language=${selectedLanguage}`}
           language={selectedLanguage}
         />
-        <aside>
+        <aside className="article-sidebar">
           <MindMap mindmap={mindmap} language={selectedLanguage} />
-          <Link
-            className="button button-primary full-button"
+          <ButtonLink
+            variant="primary"
+            size="lg"
+            fullWidth
             href={`/learn/${topic}/quiz?language=${selectedLanguage}`}
           >
             {strings.articlePage.checkUnderstanding}
-          </Link>
+          </ButtonLink>
         </aside>
       </div>
     </main>

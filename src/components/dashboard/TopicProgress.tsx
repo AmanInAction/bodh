@@ -1,4 +1,5 @@
 import { ProgressBar } from "@/components/ui/ProgressBar";
+
 export function TopicProgress({
   title,
   value,
@@ -8,11 +9,11 @@ export function TopicProgress({
 }) {
   return (
     <div className="topic-progress">
-      <div>
+      <div className="topic-progress-head">
         <strong>{title}</strong>
-        <span>{value}%</span>
+        <span className="tabular-nums">{value}%</span>
       </div>
-      <ProgressBar value={value} />
+      <ProgressBar value={value} label={title} />
     </div>
   );
 }

@@ -15,8 +15,8 @@ import {
 } from "@/lib/auth/session";
 import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
-import { LogoutButton } from "@/components/ui/LogoutButton";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { Navbar } from "@/components/ui/Navbar";
+import { ButtonLink } from "@/components/ui/Button";
 import { getEnv } from "@/config/env";
 import {
   LANGUAGE_COOKIE,
@@ -48,7 +48,6 @@ export default async function DashboardPage({
   const isDemoUser = session.email === "student_001@bodh.demo";
   const studentId = isDemoUser ? DEMO_STUDENT_ID : session.email;
 
-  // Prefer the fine-grained StudentRecord for per-topic scores
   const record = await getStudentRecord(studentId);
   const roadmap = await getRoadmap(session.email);
 
@@ -102,18 +101,23 @@ export default async function DashboardPage({
 
   return (
     <main className="site-shell">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${language}`}>
-          bodh<span>.</span>
-        </Link>
-
-        <div>
-          <Link href={`/learn?language=${language}`}>{strings.nav.learn}</Link>
-          <LanguageToggle currentLanguage={language} />
-          <span className="avatar">{session.name[0].toUpperCase()}</span>
-          <LogoutButton language={language} />
-        </div>
-      </nav>
+      <Navbar
+        language={language}
+        links={[
+          {
+            href: `/dashboard?language=${language}`,
+            label: strings.nav.dashboard,
+            activeMatch: "/dashboard",
+          },
+          {
+            href: `/learn?language=${language}`,
+            label: strings.nav.learn,
+            activeMatch: "/learn",
+          },
+        ]}
+        userName={session.name}
+        showLogout={Boolean(userSession)}
+      />
 
       <section className="dashboard-header">
         <div>
@@ -125,7 +129,7 @@ export default async function DashboardPage({
         </div>
 
         <div className="streak">
-          <strong>{loginStreak}</strong>
+          <strong className="tabular-nums">{loginStreak}</strong>
           <span>
             {strings.dashboardPage.session}
             <br />
@@ -192,12 +196,12 @@ export default async function DashboardPage({
                       topicScoreMap.get(weakestSlug!)!,
                     )}
               </p>
-              <Link
-                className="button button-primary"
+              <ButtonLink
+                variant="primary"
                 href={`/learn/${weakestTopic.slug}?language=${language}`}
               >
                 {strings.dashboardPage.startLesson}
-              </Link>
+              </ButtonLink>
             </div>
           )}
           {!weakestTopic && (
@@ -205,12 +209,12 @@ export default async function DashboardPage({
               <span className="eyebrow">{strings.dashboardPage.focusArea}</span>
               <h3>{getTopicTitle("arrays", language)}</h3>
               <p>{strings.dashboardPage.welcomeCardDesc}</p>
-              <Link
-                className="button button-primary"
-                href={`/learn/arrays/quiz?language=${language}`}
+              <ButtonLink
+                variant="primary"
+                href={`/learn/arrays?language=${language}`}
               >
                 {strings.dashboardPage.startLesson}
-              </Link>
+              </ButtonLink>
             </div>
           )}
           {recommendations.map((recommendation) => (

@@ -1,340 +1,129 @@
-# Phase 0 — Design System & UX Foundation
+## Phase 1 — Bilingual Product Experience
 
-You are working on the **bodh.** project.
+Implement **Phase 1 only**.
 
-Before making any changes, read and understand these three project documents:
-
+### 1. Read first
+Before changing code, read and use:
 - `development_phases.md`
 - `docs/project_audit.md`
 - `docs/source_of_truth.md`
 
-They are the source of truth for the project's roadmap, current implementation, architecture, and constraints.
-
-## Objective
-
-Implement **Phase 0 — Product Design System & UX Foundation**.
-
-The goal is to establish a consistent, calm, modern and student-friendly visual system for bodh.
-
-The primary user is a **Class 10–12 student learning programming and DSA**.
-
-The product should feel:
-
-- Calm
-- Clear
-- Educational
-- Modern
-- Premium
-- Approachable
-
-It should **not** feel like a developer dashboard, terminal, hacker tool, or AI engineering interface.
-
----
-
-## 1. Inspect Before Coding
-
-First inspect the existing implementation and identify:
-
-- Existing design tokens/theme
-- Global styles
-- Reusable UI components
-- Navigation
-- Buttons
-- Cards
-- Forms/inputs
-- Dialogs
-- Tabs
-- Badges
-- Progress UI
-- Loading/empty/error states
-- Responsive behavior
-- Core learner-facing pages
-
-Also compare the current implementation with the audit and source-of-truth documents.
-
-Do **not** rebuild existing functionality from scratch.
-
-Reuse and improve existing components wherever possible.
-
----
-
-## 2. Establish the Design System
-
-Create or consolidate a reusable design system covering:
-
-### Typography
-Define a consistent hierarchy for:
-
-- Page headings
-- Section headings
-- Card headings
-- Body text
-- Secondary text
-- Labels
-- Buttons
-- Navigation
-- Code
-
-Prioritize readability and make sure the system works with both English and Hindi/Hinglish text.
-
-### Colors
-Establish semantic tokens for:
-
-- Background
-- Surface
-- Primary
-- Secondary
-- Text
-- Muted text
-- Border
-- Success
-- Warning
-- Error
-- Info
-- Focus
-
-Preserve the existing brand identity where appropriate rather than replacing it with a generic template.
-
-### Spacing & Layout
-Standardize:
-
-- Page/container widths
-- Padding
-- Section spacing
-- Card spacing
-- Grid gaps
-- Border radius
-- Shadows/elevation
-- Responsive breakpoints
-
-Avoid page-specific spacing systems wherever reusable tokens can be used.
-
----
-
-## 3. Standardize Core Components
-
-Create or refactor reusable components for:
-
-- Buttons
-- Inputs/forms
-- Cards
-- Navigation
-- Tabs
-- Dialogs
-- Badges
-- Progress indicators
-- Loading states
-- Empty states
-- Error states
-- Toasts
-- Mobile navigation
-
-Each should have consistent states such as:
-
-- Default
-- Hover
-- Active
-- Focus
-- Disabled
-- Loading
-
-Do not create duplicate versions of components that already exist.
-
----
-
-## 4. Apply the System to the Core Journey
-
-Apply the new design system consistently to the existing learner journey:
-
-```text
-Landing
-  ↓
-Authentication
-  ↓
-Onboarding
-  ↓
-Dashboard
-  ↓
-Roadmap
-  ↓
-Topic
-  ↓
-Learning
-```
-
-The screens should feel like one coherent product rather than independently designed pages.
-
-Do not redesign unrelated features just for the sake of changing them.
-
----
-
-## 5. UX Language
-
-Review learner-facing UI touched during this phase.
-
-Hide unnecessary implementation terminology such as:
-
-- Gemini
-- AgentCore
-- DynamoDB
-- API
-- Assessor
-- Evaluator
-- Pipeline
-- Model
-
-Use simple learner-facing language instead.
-
-For example:
-
-> "Preparing your explanation…"
-
-instead of:
-
-> "Calling Gemini…"
-
-Errors should be human-readable and actionable. Never expose stack traces or backend errors to students.
-
----
-
-## 6. Mobile & Accessibility
-
-The design system must work across:
-
-- Mobile
-- Tablet
-- Desktop
-
-Pay particular attention to:
-
-- Navigation
-- Touch targets
-- Typography
-- Long text
-- Tabs
-- Dialogs
-- Forms
-- Code blocks
-- Horizontal overflow
-
-Establish accessible primitives with:
-
-- Semantic controls
-- Visible keyboard focus
-- Reasonable contrast
-- Proper labels
-- No color-only meaning
-
-Full accessibility work belongs to Phase 6, but Phase 0 must not introduce inaccessible components.
-
----
-
-## 7. Bilingual Compatibility
-
-Phase 1 will implement the complete bilingual experience.
-
-For Phase 0, simply ensure the design system can accommodate:
-
-```text
-English
-Hindi
-Hinglish
-```
-
-without breaking layouts.
-
-Do not assume English-length text.
-
-Do not implement the full bilingual architecture unless required for the design-system work.
-
----
-
-## 8. Strict Scope
-
-This is a **design-system and UX foundation phase**.
-
-Do NOT use this phase to rewrite:
-
-- Authentication
-- Gemini architecture
-- Quiz generation/grading
-- DynamoDB architecture
-- S3 architecture
-- AI teaching logic
-- Recommendation logic
-- Progress persistence
-- Mind-map generation
-
-The audit contains issues in these areas, but they belong to later phases unless a small change is strictly required for Phase 0.
-
-Preserve existing functionality.
-
-Do not introduce unnecessary dependencies or replace the existing technology stack.
-
----
-
-## 9. Implementation Process
-
-Follow:
-
-```text
-Inspect
-  ↓
-Compare with project documents
-  ↓
-Identify reusable components
-  ↓
-Establish design tokens
-  ↓
-Standardize components
-  ↓
-Apply to core screens
-  ↓
-Responsive/accessibility pass
-  ↓
-Regression testing
-```
-
-Prefer modifying/consolidating existing components over creating new parallel systems.
-
----
-
-## 10. Verification
-
-After implementation, run the available project checks:
+Also inspect the current implementation after Phase 0.
+
+Do not assume the architecture. Verify the existing code, routes, language state, student persistence, content loading, and AI flows first.
+
+### 2. Main objective
+Make **English/Hindi a real, persistent, app-wide product experience**, not just translated UI labels.
+
+The canonical student state must follow `StudentRecord` from `docs/source_of_truth.md`.
+
+### 3. Fix language state architecture
+There is currently a split between `students` and `students-records`.
+
+- Identify where both are being used.
+- Make `StudentRecord` / the canonical student record the single source of truth.
+- Remove duplicate/conflicting language persistence.
+- Do not maintain two independent language states.
+- Language changes must update the canonical student state.
+
+### 4. Global language behavior
+The `English | हिंदी` toggle must persist across:
+
+- navigation
+- page refresh
+- authenticated sessions
+- mobile navigation
+- onboarding
+- dashboard
+- roadmap
+- topic pages
+- articles
+- blogs/content where currently implemented
+- mind maps
+- quizzes
+- quiz results
+- AI explanations
+- Explain Differently
+- recommendations
+- loading/empty/error states
+- validation and accessibility labels
+
+A user should be able to switch language and continue through the product without the language silently reverting.
+
+### 5. Mind map language
+Fix the existing language-blind mind map behavior.
+
+Current caching/retrieval must not allow English and Hindi mind maps to overwrite each other.
+
+Make mind map retrieval/generation language-aware, for example:
+
+`mindmaps/<topic>/<language>.json`
+
+Use the existing architecture and storage patterns rather than creating a separate system.
+
+### 6. Content and AI
+When the selected language is Hindi:
+
+- learner-facing content should be Hindi/Hinglish where appropriate
+- technical DSA terminology may remain in English when that is clearer/natural
+- do not perform awkward literal translations
+- AI explanations and Explain Differently responses must respect the selected language
+
+When English is selected, preserve the existing English experience.
+
+Do not migrate the AI SDK/model or redesign the AI architecture in this phase unless a change is directly required to make language selection work.
+
+### 7. Scope boundaries
+Do **not** implement unrelated Phase 2–6 work.
+
+Do not:
+- redesign the UI again
+- rebuild authentication
+- implement the Phase 3 AI architecture migration
+- implement quiz security
+- implement rate limiting/security hardening
+- implement full blog/content-platform architecture
+- optimize DynamoDB queries
+- add unrelated features
+
+Only make supporting changes when they are directly required for Phase 1 language functionality.
+
+### 8. Verification
+Test both languages independently.
+
+Verify at minimum:
+
+1. Select English → navigate through the app → refresh → English remains.
+2. Select Hindi → navigate through the app → refresh → Hindi remains.
+3. Logout/login → selected language remains correctly associated with the student.
+4. Dashboard and learner journey use the selected language.
+5. Articles/content respect language.
+6. Mind maps do not share/overwrite English and Hindi cache entries.
+7. Quiz UI/results respect language.
+8. AI/Explain Differently respects language.
+9. Mobile language toggle works.
+10. No `students` vs `students-records` language inconsistency remains.
+
+Run:
 
 ```bash
 npm run lint
-npm run test
 npm run build
 ```
 
-If a script does not exist, report that rather than inventing one.
+Run the existing test command if one exists. Do not invent a test script if it does not exist.
 
-Also manually verify the core learner journey on desktop and mobile.
+### 9. Final report
+At the end report:
 
-Make sure existing functionality still works.
+- what you inspected
+- what was already correct
+- what you changed
+- important files changed
+- how the language state is now persisted
+- how the `students` / `students-records` split was resolved
+- how mind map language caching was fixed
+- verification results
+- anything genuinely deferred to Phase 2+
 
----
-
-## 11. Final Report
-
-When finished, report:
-
-1. What was already present
-2. What you changed
-3. Files modified
-4. Components added/refactored
-5. Screens updated
-6. Verification results
-7. Issues discovered but intentionally deferred to later phases
-
-Do not claim Phase 0 is complete unless the design system is actually applied consistently to the core learner journey and the project passes the available checks.
-
-### Core principle
-
-> **Make the sophisticated technology disappear behind a simple learning experience.**
-
-Do not rebuild bodh.
-
-**Improve the foundation, preserve the functionality, and prepare the product for Phase 1.**
+Do not mark Phase 1 complete unless the bilingual flow actually works end-to-end.

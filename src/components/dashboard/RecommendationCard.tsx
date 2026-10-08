@@ -1,6 +1,6 @@
 import Link from "next/link";
 import type { Recommendation } from "@/lib/learning/recommendation";
-import { getTopicTitle } from "@/lib/i18n";
+import { getTopicTitle, UI_STRINGS } from "@/lib/i18n";
 
 type RecommendationCardProps = {
   recommendation: Recommendation;
@@ -25,28 +25,20 @@ export function RecommendationCard({
   const reason = isHindi
     ? REASON_HI[recommendation.reason] ?? recommendation.reason
     : recommendation.reason;
+  const strings = UI_STRINGS[language];
 
   return (
     <Link
       href={`/learn/${recommendation.topicSlug}?language=${language}`}
-      className="group block rounded-2xl border border-border bg-card p-5 transition hover:-translate-y-0.5 hover:border-primary/40 hover:shadow-md"
+      className="rec-card"
     >
-      <p className="text-sm font-medium text-primary">
-        {isHindi ? "आगे अनुशंसित" : "Recommended next"}
-      </p>
-
-      <div className="mt-1 flex items-start justify-between gap-4">
+      <span className="eyebrow">{strings.dashboardPage.recommendedNext}</span>
+      <div className="rec-card-body">
         <div>
-          <h3 className="text-lg font-semibold text-foreground">
-            {title}
-          </h3>
-
-          <p className="mt-2 text-sm leading-6 text-muted-foreground">
-            {reason}
-          </p>
+          <h3 className="rec-card-title">{title}</h3>
+          <p className="rec-card-desc">{reason}</p>
         </div>
-
-        <span className="shrink-0 text-lg transition-transform group-hover:translate-x-1">
+        <span className="rec-card-arrow" aria-hidden="true">
           →
         </span>
       </div>

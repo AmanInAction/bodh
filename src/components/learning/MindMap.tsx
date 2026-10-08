@@ -48,15 +48,15 @@ function layoutNodes(
   return positions;
 }
 
-// Palette — vibrant but cohesive
+// Palette — calm, legible educational tones matching bodh. design system
 const LEVEL_COLORS = [
-  ["#0d9488", "#134e4a"], // root: teal
-  ["#7c3aed", "#4c1d95"], // branch: violet
-  ["#2563eb", "#1e3a8a"], // leaf: blue
+  ["#1F5C4B", "#164236"], // root: deep forest green
+  ["#2D6A58", "#1F5C4B"], // branch: botanical teal
+  ["#4A6B60", "#355047"], // leaf: slate sage
 ];
-const ACCENT_COLORS = ["#f59e0b", "#10b981", "#3b82f6", "#f43f5e", "#8b5cf6", "#06b6d4"];
-const NODE_RADIUS = [38, 26, 18];
-const NODE_FONT_SIZE = [14, 11, 9.5];
+const ACCENT_COLORS = ["#1F5C4B", "#C8623E", "#2A6F68", "#8C5A3C", "#3B627E", "#5C6F44"];
+const NODE_RADIUS = [40, 28, 20];
+const NODE_FONT_SIZE = [13.5, 11, 9.5];
 
 function wrapLabel(label: string, maxChars = 10): string[] {
   const words = label.split(" ");
@@ -148,14 +148,47 @@ export function MindMap({
     setPan({ x: 0, y: 0 });
   };
 
+  const zoomIn = () => setZoom((z) => Math.min(2.5, +(z + 0.2).toFixed(2)));
+  const zoomOut = () => setZoom((z) => Math.max(0.5, +(z - 0.2).toFixed(2)));
+  const isHindi = language === "hi";
+
   return (
     <div className="mm-container" ref={containerRef}>
       {/* Header */}
       <div className="mm-header">
-        <span className="eyebrow">{mindmap.topicSlug} · mind map</span>
-        <button className="mm-reset-btn" onClick={resetView} title="Reset view">
-          ⊕
-        </button>
+        <span className="eyebrow">
+          {mindmap.topicSlug.replace(/-/g, " ")} ·{" "}
+          {isHindi ? "विज़ुअल मैप" : "visual map"}
+        </span>
+        <div className="mm-controls" role="group" aria-label={isHindi ? "मैप नियंत्रण" : "Map controls"}>
+          <button
+            type="button"
+            className="mm-reset-btn"
+            onClick={zoomOut}
+            aria-label={isHindi ? "ज़ूम कम करें" : "Zoom out"}
+            title={isHindi ? "ज़ूम कम करें" : "Zoom out"}
+          >
+            −
+          </button>
+          <button
+            type="button"
+            className="mm-reset-btn"
+            onClick={zoomIn}
+            aria-label={isHindi ? "ज़ूम बढ़ाएं" : "Zoom in"}
+            title={isHindi ? "ज़ूम बढ़ाएं" : "Zoom in"}
+          >
+            +
+          </button>
+          <button
+            type="button"
+            className="mm-reset-btn"
+            onClick={resetView}
+            aria-label={isHindi ? "दृश्य रीसेट करें" : "Reset view"}
+            title={isHindi ? "दृश्य रीसेट करें" : "Reset view"}
+          >
+            {isHindi ? "रीसेट" : "Reset"}
+          </button>
+        </div>
       </div>
 
       {/* SVG canvas */}
@@ -171,7 +204,7 @@ export function MindMap({
           <defs>
             {/* Glow filter for root */}
             <filter id="mm-glow" x="-30%" y="-30%" width="160%" height="160%">
-              <feGaussianBlur stdDeviation="5" result="blur" />
+              <feGaussianBlur stdDeviation="4" result="blur" />
               <feMerge>
                 <feMergeNode in="blur" />
                 <feMergeNode in="SourceGraphic" />
@@ -179,7 +212,7 @@ export function MindMap({
             </filter>
             {/* Drop shadow for nodes */}
             <filter id="mm-shadow" x="-20%" y="-20%" width="140%" height="140%">
-              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.25" />
+              <feDropShadow dx="0" dy="2" stdDeviation="3" floodOpacity="0.14" />
             </filter>
             {/* Gradient defs for each level */}
             {LEVEL_COLORS.map(([start, end], li) => (
@@ -192,7 +225,7 @@ export function MindMap({
             {ACCENT_COLORS.map((c, ci) => (
               <radialGradient key={`acc-${ci}`} id={`mm-acc-${ci}`} cx="40%" cy="35%" r="65%">
                 <stop offset="0%" stopColor={c} stopOpacity="0.95" />
-                <stop offset="100%" stopColor={c} stopOpacity="0.7" />
+                <stop offset="100%" stopColor={c} stopOpacity="0.82" />
               </radialGradient>
             ))}
           </defs>
@@ -212,9 +245,9 @@ export function MindMap({
                   key={`${edge.from}-${edge.to}`}
                   d={curvedPath(from, to)}
                   className="mm-edge"
-                  strokeWidth={fromNode?.level === 0 ? 2.5 : 1.5}
-                  stroke={isHighlighted ? "#a78bfa" : "rgba(255,255,255,0.18)"}
-                  opacity={isHighlighted ? 1 : 0.5}
+                  strokeWidth={fromNode?.level === 0 ? 2.5 : 1.75}
+                  stroke={isHighlighted ? "#1F5C4B" : "#9BB0A5"}
+                  opacity={isHighlighted ? 1 : 0.65}
                   fill="none"
                   strokeLinecap="round"
                   style={{ transition: "stroke 0.2s, opacity 0.2s" }}

@@ -1,6 +1,6 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { MindMap } from "@/components/learning/MindMap";
+import { Navbar } from "@/components/ui/Navbar";
 import { getOrGenerateMindmap } from "@/lib/learning/content";
 import { LANGUAGE_COOKIE, resolveLanguage, UI_STRINGS } from "@/lib/i18n";
 
@@ -23,14 +23,11 @@ export default async function MindMapPage({
 
   return (
     <main className="site-shell">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${language}`}>
-          bodh<span>.</span>
-        </Link>
-        <Link href={`/learn/${topic}?language=${language}`}>
-          {strings.mindmapPage.backToTopic}
-        </Link>
-      </nav>
+      <Navbar
+        language={language}
+        backHref={`/learn/${topic}?language=${language}`}
+        backLabel={strings.mindmapPage.backToTopic}
+      />
       <section className="center-page">
         <span className="eyebrow">{strings.mindmapPage.eyebrow}</span>
         <h1>{strings.mindmapPage.title}</h1>

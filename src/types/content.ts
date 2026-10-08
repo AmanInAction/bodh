@@ -25,6 +25,7 @@ export type MindmapEdge = {
 
 export type Mindmap = {
   topicSlug: string;
+  language?: "en" | "hi";
   nodes: MindmapNode[];
   edges: MindmapEdge[];
 };

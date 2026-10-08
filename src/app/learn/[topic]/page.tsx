@@ -6,6 +6,7 @@ import { getTopicScores } from "@/lib/learning/scores";
 import { getEnv } from "@/config/env";
 import { getTopic } from "@/lib/learning/topics";
 import { ProgressBar } from "@/components/ui/ProgressBar";
+import { Navbar } from "@/components/ui/Navbar";
 import { ExplainDifferently } from "@/components/learning/ExplainDifferently";
 import {
   LANGUAGE_COOKIE,
@@ -55,31 +56,29 @@ export default async function TopicPage({
 
   return (
     <main className="site-shell">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${language}`}>
-          bodh<span>.</span>
-        </Link>
-        <Link href={`/learn?language=${language}`}>
-          {strings.nav.allTopics}
-        </Link>
-      </nav>
+      <Navbar
+        language={language}
+        backHref={`/learn?language=${language}`}
+        backLabel={strings.nav.allTopics}
+      />
 
       {/* ── Topic Hero ─────────────────────────────────────────────── */}
       <section className={`topic-hero topic-${topic.color}`}>
         <span className="eyebrow">
-          {level} {strings.topicPage.pathSuffix}
+          {level} · {strings.topicPage.pathSuffix}
         </span>
         <h1>{title}</h1>
         <p>{description}</p>
         <div className="topic-summary">
           <span>{formatLessons(topic.lessons, language)}</span>
-          <span>{formatMastery(mastery, language)}</span>
+          <span aria-hidden="true">·</span>
+          <span className="tabular-nums">{formatMastery(mastery, language)}</span>
         </div>
-        <ProgressBar value={mastery} />
+        <ProgressBar value={mastery} label={title} />
       </section>
 
-      {/* ── 3-Action Buttons (Spec §4.4) ──────────────────────────── */}
-      <section className="section" style={{ paddingTop: "32px" }}>
+      {/* ── 3-Action Study Steps ──────────────────────────────────── */}
+      <section className="section">
         <div className="section-heading">
           <div>
             <span className="eyebrow">{strings.topicPage.actionEyebrow}</span>
@@ -91,7 +90,7 @@ export default async function TopicPage({
             className="topic-action-card"
             href={`/learn/${slug}/article?language=${language}`}
           >
-            <span className="topic-action-icon">📖</span>
+            <span className="topic-action-step">01 · {language === "hi" ? "पढ़ें" : "Read"}</span>
             <strong>{strings.topicPage.learnTitle}</strong>
             <p>{strings.topicPage.learnDesc}</p>
           </Link>
@@ -99,7 +98,7 @@ export default async function TopicPage({
             className="topic-action-card"
             href={`/learn/${slug}/mindmap?language=${language}`}
           >
-            <span className="topic-action-icon">🧠</span>
+            <span className="topic-action-step">02 · {language === "hi" ? "देखें" : "Visualize"}</span>
             <strong>{strings.topicPage.mindmapTitle}</strong>
             <p>{strings.topicPage.mindmapDesc}</p>
           </Link>
@@ -107,7 +106,7 @@ export default async function TopicPage({
             className="topic-action-card"
             href={`/learn/${slug}/quiz?language=${language}`}
           >
-            <span className="topic-action-icon">📝</span>
+            <span className="topic-action-step">03 · {language === "hi" ? "अभ्यास" : "Practice"}</span>
             <strong>{strings.topicPage.quizTitle}</strong>
             <p>{strings.topicPage.quizDesc}</p>
           </Link>
@@ -115,7 +114,7 @@ export default async function TopicPage({
       </section>
 
       {/* ── Explain Differently ───────────────────────────────────── */}
-      <section className="section" style={{ paddingTop: "8px" }}>
+      <section className="section">
         <ExplainDifferently topic={title} language={language} />
       </section>
     </main>

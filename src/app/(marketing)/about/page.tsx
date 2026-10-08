@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
-import { LANGUAGE_COOKIE, resolveLanguage } from "@/lib/i18n";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
+import { LANGUAGE_COOKIE, resolveLanguage, UI_STRINGS } from "@/lib/i18n";
+import { Navbar } from "@/components/ui/Navbar";
+import { ButtonLink } from "@/components/ui/Button";
 
 export default async function AboutPage({
   searchParams,
@@ -15,22 +15,24 @@ export default async function AboutPage({
     cookieStore.get(LANGUAGE_COOKIE)?.value,
   );
   const isHindi = language === "hi";
+  const strings = UI_STRINGS[language];
 
   return (
-    <main className="site-shell narrow">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${language}`}>
-          bodh<span>.</span>
-        </Link>
-        <div>
-          <LanguageToggle currentLanguage={language} />
-          <Link href={`/learn?language=${language}`}>
-            {isHindi ? "पाठ देखें →" : "Explore lessons →"}
-          </Link>
-        </div>
-      </nav>
+    <main className="site-shell">
+      <Navbar
+        language={language}
+        links={[
+          { href: `/learn?language=${language}`, label: strings.nav.learn, activeMatch: "/learn" },
+          { href: `/about?language=${language}`, label: strings.nav.about, activeMatch: "/about" },
+          { href: `/auth?language=${language}`, label: strings.nav.signIn, activeMatch: "/auth" },
+        ]}
+        ctaHref={`/onboarding?language=${language}`}
+        ctaLabel={strings.nav.startLearning}
+      />
       <section className="simple-page">
-        <span className="eyebrow">{isHindi ? "bodh के बारे में" : "About bodh"}</span>
+        <span className="eyebrow">
+          {isHindi ? "bodh. के बारे में" : "About bodh."}
+        </span>
         <h1>
           {isHindi
             ? "ऐसी सीख जो सोचने का अवसर दे।"
@@ -38,17 +40,17 @@ export default async function AboutPage({
         </h1>
         <p className="lead">
           {isHindi
-            ? "bodh कंप्यूटर विज्ञान में अपनी नींव मजबूत करने वाले शिक्षार्थियों के लिए एक केंद्रित साथी है।"
-            : "Bodh is a small, focused learning companion for people building their foundations in computer science."}
+            ? "bodh. कंप्यूटर विज्ञान और प्रोग्रामिंग में अपनी नींव मजबूत करने वाले विद्यार्थियों के लिए एक शांत और स्पष्ट अध्ययन साथी है।"
+            : "bodh. is a calm, focused learning companion for students building their foundations in programming and computer science."}
         </p>
         <p>
           {isHindi
-            ? "हमारा मानना है कि समझ गति से अधिक स्थायी होती है। प्रत्येक पाठ आपको एक उपयोगी मानसिक मॉडल, एक ठोस उदाहरण और अपने शब्दों में अवधारणा को समझाने का अवसर देता है।"
-            : "We believe understanding is more durable than speed. Every lesson gives you a useful mental model, a concrete example, and a chance to explain the idea in your own words."}
+            ? "हमारा मानना है कि समझ गति से अधिक स्थायी होती है। प्रत्येक पाठ आपको एक उपयोगी मानसिक मॉडल, एक ठोस उदाहरण और अपने तरीके से अवधारणा को समझने का अवसर देता है।"
+            : "We believe clear understanding lasts longer than memorization. Every topic gives you an intuitive mental model, a concrete example, and multiple ways to explore the idea until it clicks."}
         </p>
-        <Link className="button button-primary" href={`/onboarding?language=${language}`}>
-          {isHindi ? "किसी विषय से शुरू करें" : "Start with a topic"}
-        </Link>
+        <ButtonLink variant="primary" size="lg" href={`/onboarding?language=${language}`}>
+          {isHindi ? "किसी विषय से शुरू करें →" : "Start with a topic →"}
+        </ButtonLink>
       </section>
     </main>
   );

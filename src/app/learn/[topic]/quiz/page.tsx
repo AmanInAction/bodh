@@ -1,7 +1,7 @@
-import Link from "next/link";
 import { cookies } from "next/headers";
 import { generateQuiz } from "@/lib/ai/quiz";
 import { QuizSession } from "@/components/quiz/QuizSession";
+import { Navbar } from "@/components/ui/Navbar";
 import { LANGUAGE_COOKIE, resolveLanguage, UI_STRINGS } from "@/lib/i18n";
 
 export default async function QuizPage({
@@ -23,14 +23,11 @@ export default async function QuizPage({
 
   return (
     <main className="site-shell quiz-page">
-      <nav className="nav">
-        <Link className="brand" href={`/?language=${selectedLanguage}`}>
-          bodh<span>.</span>
-        </Link>
-        <Link href={`/learn/${topic}?language=${selectedLanguage}`}>
-          {strings.nav.exitPractice}
-        </Link>
-      </nav>
+      <Navbar
+        language={selectedLanguage}
+        backHref={`/learn/${topic}?language=${selectedLanguage}`}
+        backLabel={strings.nav.exitPractice}
+      />
       <div className="quiz-wrap">
         <QuizSession
           topic={topic}

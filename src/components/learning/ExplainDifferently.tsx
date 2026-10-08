@@ -2,51 +2,54 @@
 
 import { useState, useRef, useCallback } from "react";
 import type { TeachingStyle } from "@/lib/agentcore/teaching";
+import { LoadingState, ErrorState } from "@/components/ui/States";
+import { Button } from "@/components/ui/Button";
+import { ProgressBar } from "@/components/ui/ProgressBar";
 
 const STYLES: {
   id: TeachingStyle;
   label: string;
   labelHi: string;
-  icon: string;
+  shortLabel: string;
+  shortLabelHi: string;
   desc: string;
   descHi: string;
-  gradient: string;
 }[] = [
   {
     id: "simple",
-    label: "Simple",
-    labelHi: "सरल",
-    icon: "💡",
-    desc: "Clear, plain language",
-    descHi: "सरल भाषा में",
-    gradient: "linear-gradient(135deg,#34d399,#059669)",
+    label: "Explain simply",
+    labelHi: "सरल भाषा में समझें",
+    shortLabel: "Explain simply",
+    shortLabelHi: "सरल भाषा",
+    desc: "Plain language & everyday analogies",
+    descHi: "रोज़मर्रा के उदाहरण और सीधी बात",
   },
   {
     id: "socratic",
-    label: "Socratic",
-    labelHi: "सवाल-जवाब",
-    icon: "❓",
-    desc: "Guided questions",
-    descHi: "सवालों से सीखें",
-    gradient: "linear-gradient(135deg,#a78bfa,#7c3aed)",
+    label: "Help me figure it out",
+    labelHi: "सवालों से खुद समझें",
+    shortLabel: "Help me figure it out",
+    shortLabelHi: "सवाल-जवाब",
+    desc: "Step-by-step guided questions",
+    descHi: "कदम-दर-कदम सोचने वाले सवाल",
   },
   {
     id: "visual",
-    label: "Visual",
-    labelHi: "दृश्य",
-    icon: "🎨",
-    desc: "Diagrams & analogies",
-    descHi: "चित्र और उदाहरण",
-    gradient: "linear-gradient(135deg,#60a5fa,#2563eb)",
+    label: "Show me visually",
+    labelHi: "चित्र रूप में समझें",
+    shortLabel: "Show me visually",
+    shortLabelHi: "चित्र और मॉडल",
+    desc: "Mental models & box-and-pointer traces",
+    descHi: "मानसिक मॉडल और बॉक्स-पॉइंटर चित्र",
   },
   {
     id: "interview",
-    label: "Interview",
-    labelHi: "इंटरव्यू",
-    icon: "🎤",
-    desc: "Real-world framing",
-    descHi: "व्यावहारिक संदर्भ",
-    gradient: "linear-gradient(135deg,#f472b6,#db2777)",
+    label: "Prepare me for interviews",
+    labelHi: "इंटरव्यू की तैयारी",
+    shortLabel: "Prepare me for interviews",
+    shortLabelHi: "इंटरव्यू तैयारी",
+    desc: "Complexity trade-offs & edge cases",
+    descHi: "टाइम-स्पेस ट्रेड-ऑफ और एज केस",
   },
 ];
 
@@ -57,18 +60,17 @@ function localFallback(topic: string, style: TeachingStyle, hindi: boolean): str
       : `Think about it — what information in ${topic} can be found fastest, and why does index-based access matter?`;
   if (style === "visual")
     return hindi
-      ? `कल्पना करें: ${topic} एक पंक्ति में खड़े लोगों की तरह है जहाँ हर किसी का नंबर होता है।`
-      : `Picture a row of numbered boxes — that's ${topic}. Each box holds one value at a fixed address, giving you O(1) lookup.`;
+      ? `कल्पना करें: ${topic} एक पंक्ति में रखे डिब्बों की तरह है जहाँ हर डिब्बे का अपना नंबर होता है।`
+      : `Picture a row of numbered boxes — that's ${topic}. Each box holds one value at a fixed position, giving you direct lookup.`;
   if (style === "interview")
     return hindi
       ? `इंटरव्यू में पूछा जाए: "${topic} कब उपयोगी है और इसकी सीमाएँ क्या हैं?"`
-      : `An interviewer might ask: "When would you reach for ${topic}, and what are its trade-offs?" Answer: use it for fast indexed reads; avoid when frequent insertions/deletions are needed.`;
+      : `A common question: "When would you choose ${topic}, and what are its trade-offs?" Use it for fast indexed reads; reconsider when frequent middle insertions are needed.`;
   return hindi
-    ? `${topic} जानकारी को एक सुव्यवस्थित तरीके से रखती है ताकि उसे O(1) समय में एक्सेस किया जा सके।`
-    : `${topic} organises information so every element is reachable in constant time using its index — a core building block in computer science.`;
+    ? `${topic} जानकारी को एक सुव्यवस्थित तरीके से रखती है ताकि उसे तुरंत ढूंढा और पढ़ा जा सके।`
+    : `${topic} organises information so every element is reachable in a predictable way — a foundational building block in programming.`;
 }
 
-// Animated typing cursor
 function Cursor() {
   return <span className="ed-cursor" aria-hidden="true">▌</span>;
 }
@@ -88,7 +90,6 @@ export function ExplainDifferently({
   const [recommended, setRecommended] = useState<TeachingStyle | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [provider, setProvider] = useState<"bedrock" | "local" | null>(null);
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchExplanation = useCallback(
@@ -103,7 +104,6 @@ export function ExplainDifferently({
       setFollowUp("");
       setRecommended(null);
       setConfidence(null);
-      setProvider(null);
 
       try {
         const res = await fetch("/api/teach", {
@@ -120,7 +120,6 @@ export function ExplainDifferently({
           signal: controller.signal,
         });
 
-        // Auth fallback — gracefully stream local text
         if (res.status === 401) {
           const words = localFallback(topic, chosenStyle, hindi).split(" ");
           for (const word of words) {
@@ -128,14 +127,15 @@ export function ExplainDifferently({
             await new Promise((r) => setTimeout(r, 35));
             setText((t) => (t ? t + " " + word : word));
           }
-          setProvider("local");
           setStreaming(false);
           return;
         }
 
         if (!res.ok)
           throw new Error(
-            hindi ? "AI कोच अभी उपलब्ध नहीं है।" : "Teaching team unavailable."
+            hindi
+              ? "अभी व्याख्या तैयार नहीं हो सकी। कृपया दोबारा कोशिश करें।"
+              : "We couldn't prepare that explanation right now. Please try again.",
           );
 
         const data = (await res.json()) as {
@@ -143,14 +143,11 @@ export function ExplainDifferently({
           followUp: string;
           recommendedStyle: TeachingStyle;
           confidence?: number;
-          provider?: "bedrock" | "local";
         };
 
-        // Stream the explanation character-by-character for premium feel
         const chars = data.explanation.split("");
         for (const char of chars) {
           if (controller.signal.aborted) return;
-          // Faster for longer texts, slower at start
           const delay = chars.length > 500 ? 4 : 10;
           await new Promise((r) => setTimeout(r, delay));
           setText((t) => t + char);
@@ -159,21 +156,20 @@ export function ExplainDifferently({
         setFollowUp(data.followUp ?? "");
         setRecommended(data.recommendedStyle ?? null);
         setConfidence(data.confidence ?? null);
-        setProvider(data.provider ?? "bedrock");
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
         setError(
           e instanceof Error
             ? e.message
             : hindi
-            ? "कुछ गड़बड़ हो गई।"
-            : "Something went wrong."
+            ? "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।"
+            : "Something went wrong. Please try again.",
         );
       } finally {
         setStreaming(false);
       }
     },
-    [topic, language, hindi]
+    [topic, language, hindi],
   );
 
   const hasContent = text.length > 0;
@@ -181,80 +177,82 @@ export function ExplainDifferently({
 
   return (
     <div className="ed-box">
-      {/* Header */}
       <div className="ed-header">
-        <span className="eyebrow">{hindi ? "AI कोच" : "AI coach"}</span>
+        <span className="eyebrow">
+          {hindi ? "अलग दृष्टिकोण" : "Explain differently"}
+        </span>
         <h3 className="ed-title">
-          {hindi ? "अलग तरीके से समझना है?" : "Need a different angle?"}
+          {hindi
+            ? "इसे किसी और तरीके से समझना चाहते हैं?"
+            : "Want to understand this another way?"}
         </h3>
         <p className="ed-subtitle">
           {hindi
-            ? "वह शैली चुनें जो आपके सोचने के तरीके से मेल खाए।"
-            : "Pick the style that matches how you think."}
+            ? "वह तरीका चुनें जो आपके सीखने के ढंग से सबसे अच्छा मेल खाए।"
+            : "Choose the learning style that fits how you think best."}
         </p>
       </div>
 
       {/* Style selector */}
-      <div className="ed-style-grid">
+      <div
+        className="ed-style-grid"
+        role="group"
+        aria-label={
+          hindi ? "समझने का तरीका चुनें" : "Choose an explanation style"
+        }
+      >
         {STYLES.map((s) => {
-          const isActive = style === s.id;
-          const isPulsing = streaming && isActive;
+          const isActive = style === s.id && (hasContent || streaming);
+          const isPulsing = streaming && style === s.id;
           return (
             <button
               key={s.id}
               id={`explain-style-${s.id}`}
+              type="button"
+              aria-pressed={isActive}
               className={`ed-style-btn${isActive ? " ed-active" : ""}${isPulsing ? " ed-pulsing" : ""}`}
               onClick={() => fetchExplanation(s.id)}
               disabled={streaming}
-              title={hindi ? s.descHi : s.desc}
-              style={isActive ? { background: s.gradient } : undefined}
             >
-              <span className="ed-style-icon">{s.icon}</span>
-              <span className="ed-style-label">{hindi ? s.labelHi : s.label}</span>
-              <span className="ed-style-desc">{hindi ? s.descHi : s.desc}</span>
+              <span className="ed-style-label">
+                {hindi ? s.labelHi : s.label}
+              </span>
+              <span className="ed-style-desc">
+                {hindi ? s.descHi : s.desc}
+              </span>
             </button>
           );
         })}
       </div>
 
-      {/* Loading shimmer */}
+      {/* Loading state */}
       {streaming && !hasContent && (
-        <div className="ed-loading" aria-live="polite">
-          <div className="ed-shimmer-wrap">
-            <div className="ed-shimmer" />
-            <div className="ed-shimmer ed-shimmer-short" />
-            <div className="ed-shimmer ed-shimmer-shorter" />
-          </div>
-          <p className="ed-loading-text">
-            <span className="ed-spinner" />
-            {hindi ? "आपका AI शिक्षक सोच रहा है…" : "Your AI teacher is thinking…"}
-          </p>
-        </div>
+        <LoadingState
+          language={hindi ? "hi" : "en"}
+          label={
+            hindi
+              ? "आपकी व्याख्या तैयार हो रही है…"
+              : "Preparing your explanation…"
+          }
+        />
       )}
 
-      {/* Error */}
+      {/* Error state */}
       {error && !streaming && (
-        <div className="ed-error">
-          <span>⚠</span> {error}
-        </div>
+        <ErrorState
+          language={hindi ? "hi" : "en"}
+          message={error}
+          onRetry={() => fetchExplanation(style)}
+        />
       )}
 
       {/* Result */}
       {hasContent && (
-        <div className="ed-result" style={{ borderColor: activeStyle ? "transparent" : undefined }}>
-          {/* Active style badge */}
-          <div
-            className="ed-result-badge"
-            style={{ background: activeStyle?.gradient }}
-          >
-            <span>{activeStyle?.icon}</span>
+        <div className="ed-result">
+          <div className="ed-result-badge">
             <span>{hindi ? activeStyle?.labelHi : activeStyle?.label}</span>
-            {provider === "local" && (
-              <span className="ed-local-badge">{hindi ? "स्थानीय" : "offline"}</span>
-            )}
           </div>
 
-          {/* Streamed explanation */}
           <div className="ed-explanation">
             <p>
               {text}
@@ -262,59 +260,45 @@ export function ExplainDifferently({
             </p>
           </div>
 
-          {/* Confidence bar (shown when done streaming) */}
           {!streaming && confidence !== null && (
             <div className="ed-confidence">
-              <span className="eyebrow">
-                {hindi ? "AI का विश्वास" : "AI confidence"}
-              </span>
-              <div className="ed-conf-track">
-                <div
-                  className="ed-conf-fill"
-                  style={{
-                    width: `${confidence}%`,
-                    background:
-                      confidence >= 75
-                        ? "linear-gradient(90deg,#34d399,#059669)"
-                        : confidence >= 50
-                        ? "linear-gradient(90deg,#a78bfa,#7c3aed)"
-                        : "linear-gradient(90deg,#f472b6,#db2777)",
-                  }}
-                />
-              </div>
-              <span className="ed-conf-value">{confidence}%</span>
+              <ProgressBar
+                value={confidence}
+                label={hindi ? "स्पष्टता स्तर" : "Clarity match"}
+                showValue
+                size="sm"
+              />
             </div>
           )}
 
-          {/* Follow-up question */}
           {!streaming && followUp && (
             <div className="ed-followup">
               <span className="eyebrow">
-                {hindi ? "सोचें:" : "Think about this:"}
+                {hindi ? "सोचकर देखें:" : "Think about this:"}
               </span>
               <p>{followUp}</p>
             </div>
           )}
 
-          {/* Recommended style chip */}
           {!streaming && recommended && recommended !== style && (
             <div className="ed-recommend">
               {(() => {
                 const rec = STYLES.find((s) => s.id === recommended);
                 return (
                   <>
-                    <span className="ed-rec-icon">💡</span>
                     <span>
                       {hindi
-                        ? `AI सुझाव: "${rec?.labelHi}" शैली आज़माएं`
-                        : `AI suggests trying "${rec?.label}" style next`}
+                        ? `सुझाव: "${rec?.labelHi}" तरीका भी आज़माकर देखें`
+                        : `Next step: Try "${rec?.label}" for another perspective`}
                     </span>
-                    <button
-                      className="ed-rec-btn"
+                    <Button
+                      type="button"
+                      variant="secondary"
+                      size="sm"
                       onClick={() => fetchExplanation(recommended)}
                     >
-                      {hindi ? "आज़माएं" : "Try it"} →
-                    </button>
+                      {hindi ? "आज़माएं →" : "Try this way →"}
+                    </Button>
                   </>
                 );
               })()}

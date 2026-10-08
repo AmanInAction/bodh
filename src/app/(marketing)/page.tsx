@@ -2,52 +2,53 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { topics } from "@/config/topics";
 import { TopicCard } from "@/components/learning/TopicCard";
-import { LanguageToggle } from "@/components/ui/LanguageToggle";
-import { LANGUAGE_COOKIE, resolveLanguage } from "@/lib/i18n";
+import { Navbar } from "@/components/ui/Navbar";
+import { ButtonLink } from "@/components/ui/Button";
+import { LANGUAGE_COOKIE, resolveLanguage, UI_STRINGS } from "@/lib/i18n";
 
 const FEATURES_EN = [
   {
-    icon: "🌐",
-    title: "Regional Languages",
-    body: "Learn in Hindi or English — not a translation, a full bilingual experience.",
+    num: "01",
+    title: "Learn in Hindi or English",
+    body: "Switch languages anytime. Explanations, examples, and practice questions are written for natural comprehension.",
   },
   {
-    icon: "🤖",
-    title: "Adaptive AI Teacher",
-    body: "Four teaching styles: Simple, Socratic, Visual, and Interview-ready.",
+    num: "02",
+    title: "Four Ways to Understand",
+    body: "Stuck on an idea? Choose between simple analogies, guided questions, visual mental models, or interview practice.",
   },
   {
-    icon: "📊",
-    title: "Concept-level Diagnosis",
-    body: "Wrong answers map to specific weak concepts, not just a score.",
+    num: "03",
+    title: "Focus on What Matters",
+    body: "Quick 5-question checks highlight the exact step or concept to review next — not just a raw score.",
   },
   {
-    icon: "🗺️",
-    title: "Visual Mind Maps",
-    body: "See the full structure of each topic at a glance before diving in.",
+    num: "04",
+    title: "Visual Concept Maps",
+    body: "See how every part of a topic connects at a glance before diving into code and problem solving.",
   },
 ];
 
 const FEATURES_HI = [
   {
-    icon: "🌐",
-    title: "क्षेत्रीय भाषाएँ",
-    body: "हिन्दी या अंग्रेजी में सीखें — केवल अनुवाद नहीं, बल्कि एक पूर्ण द्विभाषी अनुभव।",
+    num: "01",
+    title: "हिन्दी या अंग्रेजी में सीखें",
+    body: "किसी भी समय भाषा बदलें। पाठ, उदाहरण और अभ्यास प्रश्न सहज समझ के लिए तैयार किए गए हैं।",
   },
   {
-    icon: "🤖",
-    title: "अनुकूली AI शिक्षक",
-    body: "चार शिक्षण शैलियाँ: सरल, सवाल-जवाब, दृश्य, और इंटरव्यू-तैयार।",
+    num: "02",
+    title: "समझने के चार तरीके",
+    body: "कोई बात कठिन लगे तो सरल उदाहरण, सवाल-जवाब, विज़ुअल मॉडल या इंटरव्यू अभ्यास में से चुनें।",
   },
   {
-    icon: "📊",
-    title: "अवधारणा-स्तरीय निदान",
-    body: "गलत उत्तर केवल एक अंक नहीं, बल्कि विशिष्ट कमजोर अवधारणाओं को पहचानते हैं।",
+    num: "03",
+    title: "सटीक अभ्यास और सुधार",
+    body: "5 छोटे प्रश्नों की जाँच से केवल अंक नहीं, बल्कि यह पता चलता है कि किस हिस्से को दोबारा समझना है।",
   },
   {
-    icon: "🗺️",
-    title: "दृश्य माइंड मैप्स",
-    body: "गहराई में जाने से पहले प्रत्येक विषय की पूरी रूपरेखा एक नज़र में देखें।",
+    num: "04",
+    title: "विज़ुअल कॉन्सेप्ट मैप्स",
+    body: "कोड और सवालों में जाने से पहले पूरे विषय की संरचना एक नज़र में साफ़ देखें।",
   },
 ];
 
@@ -63,85 +64,107 @@ export default async function MarketingPage({
     cookieStore.get(LANGUAGE_COOKIE)?.value,
   );
   const isHindi = language === "hi";
+  const strings = UI_STRINGS[language];
   const features = isHindi ? FEATURES_HI : FEATURES_EN;
 
   return (
     <main className="site-shell">
-      <nav className="nav">
-        <strong className="brand">
-          bodh<span>.</span>
-        </strong>
-        <div>
-          <Link href={`/about?language=${language}`}>
-            {isHindi ? "के बारे में" : "About"}
-          </Link>
-          <Link href={`/auth?language=${language}`}>
-            {isHindi ? "साइन इन" : "Sign in"}
-          </Link>
-          <LanguageToggle currentLanguage={language} />
-          <Link className="nav-cta" href={`/onboarding?language=${language}`}>
-            {isHindi ? "सीखना शुरू करें" : "Start learning"}
-          </Link>
-        </div>
-      </nav>
+      <Navbar
+        language={language}
+        links={[
+          { href: `/learn?language=${language}`, label: strings.nav.learn, activeMatch: "/learn" },
+          { href: `/about?language=${language}`, label: strings.nav.about, activeMatch: "/about" },
+          { href: `/auth?language=${language}`, label: strings.nav.signIn, activeMatch: "/auth" },
+        ]}
+        ctaHref={`/onboarding?language=${language}`}
+        ctaLabel={strings.nav.startLearning}
+      />
 
       {/* ── Hero ─────────────────────────────────────────────────────── */}
       <section className="hero">
         <div>
           <span className="eyebrow">
             {isHindi
-              ? "आपकी भाषा में AI-संचालित DSA शिक्षा"
-              : "AI-powered DSA education in your language"}
+              ? "कक्षा 10–12 के विद्यार्थियों के लिए प्रोग्रामिंग और DSA"
+              : "Programming & DSA for Class 10–12 students"}
           </span>
           <h1>
             {isHindi ? (
               <>
-                अपनी भाषा में <em>DSA सीखें।</em>
+                कठिन विचारों को <em>आसानी से समझें।</em>
               </>
             ) : (
               <>
-                Learn DSA <em>in your language.</em>
+                Make difficult ideas <em>easy to grasp.</em>
               </>
             )}
           </h1>
           <p>
             {isHindi ? (
               <>
-                सीखें &bull; अभ्यास करें &bull; सुधारें — <strong>हिन्दी</strong> या{" "}
-                <strong>English</strong> में। केवल अनुवाद नहीं — ऐसा व्यक्तिगत
-                शिक्षण जो आपके सीखने के तरीके के अनुसार ढलता है।
+                सीखें · अभ्यास करें · समझ पक्की करें — <strong>हिन्दी</strong> या{" "}
+                <strong>English</strong> में। आपकी गति और सीखने की शैली के अनुसार
+                चलने वाला एक शांत अध्ययन साथी।
               </>
             ) : (
               <>
-                Learn &bull; Practice &bull; Improve — in{" "}
-                <strong>Hindi</strong> or <strong>English</strong>. Not just
-                translated content — adaptive teaching that changes based on how
-                you learn.
+                Learn · Practice · Understand — in <strong>English</strong> or{" "}
+                <strong>Hindi</strong>. A calm, step-by-step study companion that
+                adapts to how you think best.
               </>
             )}
           </p>
-          <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-            <Link className="button button-primary" href={`/onboarding?language=${language}`}>
-              {isHindi ? "सीखना शुरू करें →" : "Start Learning →"}
-            </Link>
-            <Link
-              className="button"
-              href="/learn/binary-search/quiz?language=hi"
+          <div className="hero-actions">
+            <ButtonLink
+              variant="primary"
+              size="lg"
+              href={`/onboarding?language=${language}`}
             >
-              {isHindi ? "हिन्दी क्विज़ आज़माएं" : "Try a Hindi quiz"}
-            </Link>
+              {isHindi ? "सीखना शुरू करें →" : "Start learning →"}
+            </ButtonLink>
+            <ButtonLink
+              variant="secondary"
+              size="lg"
+              href={`/learn/binary-search?language=${language}`}
+            >
+              {isHindi ? "एक पाठ देखें" : "Explore a sample topic"}
+            </ButtonLink>
           </div>
         </div>
-        <div className="hero-orbit">
-          <div className="orbit-card orbit-main">
-            सीखें
-            <br />
-            <strong>समझें</strong>
+
+        <div className="hero-showcase" aria-label={isHindi ? "सीखने की झलक" : "Learning preview"}>
+          <div className="hero-showcase-header">
+            <span>{isHindi ? "बाइनरी सर्च · अध्याय 05" : "Binary Search · Topic 05"}</span>
+            <span>{isHindi ? "English | हिंदी" : "English | हिंदी"}</span>
           </div>
-          <div className="orbit-card orbit-small">
-            Learn
-            <br />
-            <strong>Improve</strong>
+          <div className="hero-showcase-step">
+            <span className="eyebrow">
+              {isHindi ? "मुख्य विचार" : "Core intuition"}
+            </span>
+            <strong>
+              {isHindi
+                ? "हर कदम पर खोज का दायरा आधा करें"
+                : "Cut the search space in half at every step"}
+            </strong>
+            <p>
+              {isHindi
+                ? "जब सूची क्रम में हो, तो बीच के तत्व को देखकर तुरंत तय करें कि बाएँ जाना है या दाएँ।"
+                : "When a list is sorted, checking the middle item tells you immediately which half holds the answer."}
+            </p>
+          </div>
+          <div className="hero-showcase-modes">
+            <div className="hero-showcase-mode active">
+              {isHindi ? "सरल भाषा में समझें" : "Explain simply"}
+            </div>
+            <div className="hero-showcase-mode">
+              {isHindi ? "सवालों से खुद समझें" : "Help me figure it out"}
+            </div>
+            <div className="hero-showcase-mode">
+              {isHindi ? "चित्र रूप में समझें" : "Show me visually"}
+            </div>
+            <div className="hero-showcase-mode">
+              {isHindi ? "इंटरव्यू की तैयारी" : "Prepare for interviews"}
+            </div>
           </div>
         </div>
       </section>
@@ -153,17 +176,17 @@ export default async function MarketingPage({
             <span className="eyebrow">{isHindi ? "bodh. क्यों" : "Why bodh."}</span>
             <h2>
               {isHindi
-                ? "केवल एक अनुवाद से कहीं अधिक।"
-                : "More than a translation."}
+                ? "रटने के बजाय समझकर सीखने के लिए।"
+                : "Built for understanding, not memorization."}
             </h2>
           </div>
         </div>
-        <div className="topic-grid">
+        <div className="feature-grid">
           {features.map((f) => (
-            <div key={f.title} className="card">
-              <span style={{ fontSize: "2rem" }}>{f.icon}</span>
-              <h3 style={{ margin: "8px 0 4px" }}>{f.title}</h3>
-              <p style={{ margin: 0, opacity: 0.75, fontSize: "0.9rem" }}>{f.body}</p>
+            <div key={f.title} className="feature-card">
+              <span className="feature-card-num">{f.num}</span>
+              <h3>{f.title}</h3>
+              <p>{f.body}</p>
             </div>
           ))}
         </div>
@@ -173,11 +196,11 @@ export default async function MarketingPage({
       <section className="section">
         <div className="section-heading">
           <div>
-            <span className="eyebrow">{isHindi ? "लाइब्रेरी" : "The library"}</span>
+            <span className="eyebrow">{isHindi ? "अध्ययन पथ" : "Curriculum"}</span>
             <h2>
               {isHindi
-                ? "छह मुख्य डीएसए विषय।"
-                : "Six core DSA topics."}
+                ? "छह बुनियादी DSA विषय।"
+                : "Six foundational DSA topics."}
             </h2>
           </div>
           <Link className="text-link" href={`/learn?language=${language}`}>
@@ -193,22 +216,26 @@ export default async function MarketingPage({
         </div>
       </section>
 
-      {/* ── Demo CTA ──────────────────────────────────────────────────── */}
-      <section className="section" style={{ textAlign: "center", paddingBottom: "80px" }}>
-        <span className="eyebrow">{isHindi ? "डेमो अनुभव" : "Demo flow"}</span>
-        <h2>
-          {isHindi
-            ? "पूरे सीखने के चक्र को देखें।"
-            : "See the full loop in action."}
-        </h2>
-        <p style={{ maxWidth: "520px", margin: "0 auto 24px", opacity: 0.75 }}>
-          {isHindi
-            ? "हिन्दी चुनें → बाइनरी सर्च चुनें → लेख पढ़ें → क्विज़ लें → AI निदान प्राप्त करें → अगला अनुशंसित पाठ देखें।"
-            : "Choose Hindi → Pick Binary Search → Read the article → Take the quiz → Get an AI diagnosis → See your recommended next lesson."}
-        </p>
-        <Link className="button button-primary" href="/learn/binary-search/article?language=hi">
-          {isHindi ? "डेमो चलाएं →" : "Run the demo →"}
-        </Link>
+      {/* ── Guided Tour CTA ───────────────────────────────────────────── */}
+      <section className="section">
+        <div className="card card-tint" style={{ textAlign: "center", padding: "40px 24px" }}>
+          <span className="eyebrow">
+            {isHindi ? "सीखने का चक्र" : "How a session works"}
+          </span>
+          <h2 style={{ margin: "8px auto 12px", maxWidth: "540px", fontSize: "clamp(1.5rem, 2.5vw, 2rem)" }}>
+            {isHindi
+              ? "पढ़ें, नक्शा देखें, अभ्यास करें और आगे बढ़ें।"
+              : "Read, visualize, practice, and improve."}
+          </h2>
+          <p style={{ maxWidth: "540px", margin: "0 auto 24px", color: "var(--text-secondary)" }}>
+            {isHindi
+              ? "अवधारणा पढ़ें → विज़ुअल मैप देखें → 5 प्रश्नों का अभ्यास करें → जानें कि आगे किस हिस्से पर ध्यान देना है।"
+              : "Read a concise note → Explore the visual map → Answer 5 quick questions → See exactly what to review next."}
+          </p>
+          <ButtonLink variant="primary" size="lg" href={`/learn/binary-search/article?language=${language}`}>
+            {isHindi ? "पहला पाठ खोलें →" : "Open a sample lesson →"}
+          </ButtonLink>
+        </div>
       </section>
     </main>
   );

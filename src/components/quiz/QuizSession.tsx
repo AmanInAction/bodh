@@ -51,14 +51,14 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
   }, [score, circ]);
 
   const color =
-    score >= 80 ? "#34d399" : score >= 50 ? "#a78bfa" : "#f472b6";
+    score >= 80 ? "#15803D" : score >= 50 ? "#1F5C4B" : "#D96B43";
   const trackColor =
-    score >= 80 ? "rgba(52,211,153,0.12)" : score >= 50 ? "rgba(167,139,250,0.12)" : "rgba(244,114,182,0.12)";
+    score >= 80 ? "rgba(21,128,61,0.1)" : score >= 50 ? "rgba(31,92,75,0.1)" : "rgba(217,107,67,0.1)";
   return (
     <div className="score-ring-wrap" aria-label={`Score: ${score}%`}>
       <svg width="148" height="148" viewBox="0 0 148 148" aria-hidden="true">
         {/* Background track */}
-        <circle cx="74" cy="74" r={r} fill={trackColor} stroke="rgba(255,255,255,0.06)" strokeWidth="11" />
+        <circle cx="74" cy="74" r={r} fill={trackColor} stroke="rgba(28,43,38,0.08)" strokeWidth="11" />
         {/* Animated fill */}
         <circle
           cx="74"
@@ -70,12 +70,11 @@ function ScoreRing({ score, hindi }: { score: number; hindi: boolean }) {
           strokeLinecap="round"
           strokeDasharray={`${filled} ${circ}`}
           strokeDashoffset={circ / 4}
-          style={{ filter: `drop-shadow(0 0 6px ${color}88)` }}
         />
       </svg>
       <div className="score-ring-label">
-        <strong style={{ color }}>{animatedScore}%</strong>
-        <span className="score-text">{hindi ? "स्कोर" : "score"}</span>
+        <strong className="tabular-nums" style={{ color }}>{animatedScore}%</strong>
+        <span className="score-text">{hindi ? "समझ" : "understanding"}</span>
       </div>
     </div>
   );
@@ -99,41 +98,41 @@ function ConfidenceMeter({
 
   const label =
     confidence >= 75
-      ? hindi ? "उत्कृष्ट समझ" : "Strong understanding"
+      ? hindi ? "मजबूत समझ" : "Strong grasp"
       : confidence >= 50
-      ? hindi ? "अच्छी प्रगति" : "Good progress"
-      : hindi ? "अभ्यास जारी रखें" : "Keep practising";
+      ? hindi ? "अच्छी प्रगति" : "Building steadily"
+      : hindi ? "अभ्यास जारी रखें" : "Needs a quick review";
 
   const fillColor =
     confidence >= 75
-      ? "linear-gradient(90deg,#34d399,#059669)"
+      ? "#15803D"
       : confidence >= 50
-      ? "linear-gradient(90deg,#a78bfa,#7c3aed)"
-      : "linear-gradient(90deg,#f472b6,#db2777)";
+      ? "#1F5C4B"
+      : "#D96B43";
 
   return (
     <div className="qs-confidence">
       <div className="qs-confidence-header">
         <span className="eyebrow">
-          {hindi ? "AI आत्मविश्वास स्तर" : "AI confidence in your understanding"}
+          {hindi ? "आपकी समझ का स्तर" : "How well you know this topic"}
         </span>
         <span className="qs-conf-label">{label}</span>
       </div>
-      <div className="qs-conf-track">
+      <div className="qs-conf-track" role="progressbar" aria-valuenow={confidence} aria-valuemin={0} aria-valuemax={100}>
         <div
           className="qs-conf-fill"
           style={{
             width: `${width}%`,
             background: fillColor,
-            transition: "width 1s cubic-bezier(0.34,1.56,0.64,1)",
+            transition: "width 0.8s cubic-bezier(0.16,1,0.3,1)",
           }}
         />
         <div className="qs-conf-thumb" style={{ left: `${width}%` }} />
       </div>
       <div className="qs-conf-scale">
-        <span>{hindi ? "नौसिखिया" : "Novice"}</span>
-        <span className="qs-conf-pct">{confidence}%</span>
-        <span>{hindi ? "विशेषज्ञ" : "Expert"}</span>
+        <span>{hindi ? "शुरुआत" : "Getting started"}</span>
+        <span className="qs-conf-pct tabular-nums">{confidence}%</span>
+        <span>{hindi ? "आत्मविश्वासपूर्ण" : "Confident"}</span>
       </div>
     </div>
   );
@@ -157,7 +156,7 @@ function ChipRow({
           className={`qs-chip qs-chip-${variant}`}
           style={{ animationDelay: `${i * 60}ms` }}
         >
-          {variant === "green" ? "✓" : "△"} {item}
+          <span aria-hidden="true">{variant === "green" ? "✓" : "△"}</span> {item}
         </span>
       ))}
     </div>
@@ -170,13 +169,11 @@ const STYLES: {
   id: TeachingStyle;
   label: string;
   labelHi: string;
-  icon: string;
-  gradient: string;
 }[] = [
-  { id: "simple",    label: "Simple",    labelHi: "सरल",       icon: "💡", gradient: "linear-gradient(135deg,#34d399,#059669)" },
-  { id: "socratic",  label: "Socratic",  labelHi: "सवाल-जवाब", icon: "❓", gradient: "linear-gradient(135deg,#a78bfa,#7c3aed)" },
-  { id: "visual",    label: "Visual",    labelHi: "दृश्य",      icon: "🎨", gradient: "linear-gradient(135deg,#60a5fa,#2563eb)" },
-  { id: "interview", label: "Interview", labelHi: "इंटरव्यू",   icon: "🎤", gradient: "linear-gradient(135deg,#f472b6,#db2777)" },
+  { id: "simple",    label: "Explain simply",            labelHi: "सरल भाषा में समझें" },
+  { id: "socratic",  label: "Help me figure it out",     labelHi: "सवालों से खुद समझें" },
+  { id: "visual",    label: "Show me visually",          labelHi: "चित्र रूप में समझें" },
+  { id: "interview", label: "Prepare me for interviews", labelHi: "इंटरव्यू की तैयारी" },
 ];
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -245,18 +242,15 @@ export function QuizSession({
         <div className="qs-result-header">
           <ScoreRing score={score} hindi={hindi} />
           <div className="qs-result-header-text">
-            <span className="eyebrow">{hindi ? "आपका परिणाम" : "Your result"}</span>
+            <span className="eyebrow">{hindi ? "आपका परिणाम" : "Practice summary"}</span>
             <h1 className="qs-result-title">
-              <span className="qs-result-emoji" aria-hidden="true">
-                {score >= 80 ? "🎉" : score >= 50 ? "👏" : "💪"}
-              </span>{" "}
               {score >= 80
-                ? hindi ? "शानदार!" : "Excellent!"
+                ? hindi ? "शानदार समझ!" : "Well understood!"
                 : score >= 50
-                ? hindi ? "अच्छा प्रयास!" : "Good effort!"
-                : hindi ? "फिर कोशिश करें!" : "Keep going!"}
+                ? hindi ? "अच्छा प्रयास!" : "Good progress!"
+                : hindi ? "अभ्यास जारी रखें!" : "Keep building!"}
             </h1>
-            <p className="qs-result-sub">
+            <p className="qs-result-sub tabular-nums">
               {correct} / {total} {hindi ? "सही उत्तर" : "correct answers"}
             </p>
           </div>
@@ -269,18 +263,18 @@ export function QuizSession({
 
         {/* Learning snapshot */}
         <section className="qs-feedback-card">
-          <span className="eyebrow">{hindi ? "आपकी झलक" : "Your learning snapshot"}</span>
+          <span className="eyebrow">{hindi ? "आपकी समीक्षा" : "How it went"}</span>
 
           {feedback.strengths?.length > 0 && (
             <>
-              <p className="qs-chip-label">{hindi ? "ताकत" : "Strengths"}</p>
+              <p className="qs-chip-label">{hindi ? "क्या अच्छा रहा" : "What went well"}</p>
               <ChipRow items={feedback.strengths} variant="green" />
             </>
           )}
 
           {feedback.weaknesses?.length > 0 && (
             <>
-              <p className="qs-chip-label">{hindi ? "सुधार की जरूरत" : "Areas to improve"}</p>
+              <p className="qs-chip-label">{hindi ? "किन बातों पर ध्यान दें" : "What you need to work on"}</p>
               <ChipRow items={feedback.weaknesses} variant="amber" />
             </>
           )}
@@ -291,7 +285,7 @@ export function QuizSession({
 
           {feedback.followUp && (
             <div className="qs-followup">
-              <span className="eyebrow">{hindi ? "सोचें:" : "Think about this:"}</span>
+              <span className="eyebrow">{hindi ? "सोचकर देखें:" : "Think about this:"}</span>
               <p>{feedback.followUp}</p>
             </div>
           )}
@@ -303,11 +297,11 @@ export function QuizSession({
 
         {/* Next strategy + style picker */}
         <section className="qs-feedback-card">
-          <span className="eyebrow">{hindi ? "अगली रणनीति" : "Next strategy"}</span>
+          <span className="eyebrow">{hindi ? "आगे क्या करें" : "What to do next"}</span>
           <p className="qs-strategy-text">{nextStrategy}</p>
 
           <p className="qs-style-prompt">
-            {hindi ? "सीखने की शैली चुनें:" : "Choose how you want to learn next:"}
+            {hindi ? "अगले पाठ के लिए तरीका चुनें:" : "Preferred way to learn next:"}
           </p>
           <div className="qs-style-picker">
             {STYLES.map((s) => {
@@ -316,22 +310,22 @@ export function QuizSession({
               return (
                 <button
                   key={s.id}
+                  type="button"
+                  aria-pressed={isSelected}
                   className={`qs-style-btn${isSelected ? " qs-style-selected" : ""}${isRec ? " qs-style-rec" : ""}`}
                   onClick={() => setStyle(s.id)}
-                  style={isSelected ? { background: s.gradient } : undefined}
                 >
-                  <span className="qs-style-icon">{s.icon}</span>
                   <span>{hindi ? s.labelHi : s.label}</span>
-                  {isRec && <span className="qs-rec-star" title={hindi ? "AI सुझाव" : "AI recommended"}>★</span>}
+                  {isRec && <span className="qs-rec-star" title={hindi ? "सुझाया गया" : "Recommended"}>★</span>}
                 </button>
               );
             })}
           </div>
           {recommendedStyle && (
             <p className="qs-rec-note">
-              💡 {hindi
-                ? `AI सुझाव: "${STYLES.find((s) => s.id === recommendedStyle)?.labelHi}" शैली`
-                : `AI recommends: "${STYLES.find((s) => s.id === recommendedStyle)?.label}" style`}
+              {hindi
+                ? `सुझाव: अगली बार "${STYLES.find((s) => s.id === recommendedStyle)?.labelHi}" आज़माएं`
+                : `Suggested next: "${STYLES.find((s) => s.id === recommendedStyle)?.label}"`}
             </p>
           )}
         </section>

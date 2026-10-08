@@ -25,13 +25,26 @@ export function TopicCard({
     <div className={`topic-card topic-${topic.color}`}>
       <div className="topic-card-top">
         <span className="eyebrow">{level}</span>
-        {mastery !== undefined && <span>{mastery}%</span>}
+        {mastery !== undefined ? (
+          <span className="tabular-nums">{mastery}%</span>
+        ) : (
+          <span>{lessons}</span>
+        )}
       </div>
       <h3>{title}</h3>
       <p>{description}</p>
       <div className="topic-card-bottom">
-        {mastery !== undefined && <ProgressBar value={mastery} />}
-        <span>{lessons}</span>
+        {mastery !== undefined ? (
+          <>
+            <ProgressBar value={mastery} size="sm" />
+            <span>{lessons}</span>
+          </>
+        ) : (
+          <>
+            <span>{language === "hi" ? "अवधारणा और अभ्यास" : "Concept & practice"}</span>
+            <span aria-hidden="true">→</span>
+          </>
+        )}
       </div>
     </div>
   );

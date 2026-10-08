@@ -1,16 +1,20 @@
-import type { Article, Mindmap } from "@/types/content";
+import type { Article, Mindmap, MindmapEdge, MindmapNode } from "@/types/content";
 import type { LanguageCode } from "@/config/languages";
-import { getArticle as s3GetArticle, getMindmap as s3GetMindmap, putMindmap } from "@/lib/aws/s3";
+import {
+  getArticle as s3GetArticle,
+  getMindmap as s3GetMindmap,
+  putMindmap,
+} from "@/lib/aws/s3";
 import { invokeBedrockText } from "@/lib/aws/bedrock";
 import { PROMPTS } from "@/lib/ai/prompts";
 
 // ── Topic name map ─────────────────────────────────────────────────────────────
 
 const names: Record<string, { en: string; hi: string }> = {
-  arrays: { en: "Arrays", hi: "ऐरे" },
+  arrays: { en: "Arrays", hi: "ऐरे (Arrays)" },
   "linked-list": { en: "Linked Lists", hi: "लिंक्ड लिस्ट" },
-  stacks: { en: "Stacks", hi: "स्टैक" },
-  queues: { en: "Queues", hi: "क्यू" },
+  stacks: { en: "Stacks", hi: "स्टैक (Stacks)" },
+  queues: { en: "Queues", hi: "क्यू (Queues)" },
   "binary-search": { en: "Binary Search", hi: "बाइनरी सर्च" },
   recursion: { en: "Recursion", hi: "रिकर्शन" },
 };
@@ -20,7 +24,6 @@ export function getTopicName(slug: string, language: LanguageCode = "en") {
 }
 
 // ── Seed content (used when S3 is not configured) ─────────────────────────────
-// Loaded lazily via require() so it's tree-shaken in production.
 
 function loadSeedArticle(slug: string, language: LanguageCode): Article | null {
   try {
@@ -72,45 +75,136 @@ export async function getLessonContent(
   };
 }
 
-// ── Mindmap (S3 first, generate via Bedrock, cache to S3) ─────────────────────
+// ── Bilingual Fallback Mindmap Builder ─────────────────────────────────────────
 
-export async function getOrGenerateMindmap(slug: string): Promise<Mindmap> {
-  // 1. Try S3 cache
-  const cached = await s3GetMindmap(slug);
-  if (cached) return cached;
+const TOPIC_MINDMAP_LEAVES: Record<
+  string,
+  { en: [string, string, string, string]; hi: [string, string, string, string] }
+> = {
+  arrays: {
+    en: ["O(1) Index Lookup", "Contiguous Memory", "O(n) Middle Insert", "Fixed Slot Order"],
+    hi: ["O(1) इंडेक्स एक्सेस", "लगातार मेमोरी", "O(n) बीच में जोड़ना", "निश्चित क्रम"],
+  },
+  "linked-list": {
+    en: ["Node + Next Pointer", "O(1) Head Insert", "O(n) Search Traversal", "Dynamic Memory"],
+    hi: ["नोड + पॉइंटर", "O(1) तेज़ जोड़ना", "O(n) क्रम से खोजना", "लचीली मेमोरी"],
+  },
+  stacks: {
+    en: ["LIFO Order", "O(1) Push & Pop", "Peek Top Item", "Undo & Call Stack"],
+    hi: ["LIFO क्रम", "O(1) Push और Pop", "ऊपरी तत्व देखें", "Undo और Call Stack"],
+  },
+  queues: {
+    en: ["FIFO Order", "Enqueue at Back", "Dequeue from Front", "BFS & Scheduling"],
+    hi: ["FIFO क्रम", "पीछे से Enqueue", "आगे से Dequeue", "BFS और शेड्यूलिंग"],
+  },
+  "binary-search": {
+    en: ["Requires Sorted Data", "Check Middle Element", "Halve Search Space", "O(log n) Time"],
+    hi: ["क्रमबद्ध डेटा ज़रूरी", "बीच का तत्व जाँचें", "आधा क्षेत्र हटाएं", "O(log n) समय"],
+  },
+  recursion: {
+    en: ["Base Case Stops", "Smaller Subproblem", "Call Stack Unwinds", "Tree & Divide Steps"],
+    hi: ["Base Case रोकता है", "छोटा उप-सवाल", "Call Stack वापसी", "कदम-दर-कदम हल"],
+  },
+};
 
-  // 2. Generate via Bedrock
+function buildBilingualFallbackMindmap(
+  slug: string,
+  language: LanguageCode,
+): Mindmap {
+  const seed = loadSeedArticle(slug, language);
+  const rootLabel = getTopicName(slug, language);
+  const leaves =
+    TOPIC_MINDMAP_LEAVES[slug]?.[language] ??
+    (language === "hi"
+      ? ["मुख्य नियम", "तेज़ ऑपरेशन", "समय जटिलता", "व्यावहारिक उपयोग"]
+      : ["Core Rule", "Key Operations", "Time Complexity", "Real Use Cases"]);
+
+  const nodes: MindmapNode[] = [{ id: "root", label: rootLabel, level: 0 }];
+  const edges: MindmapEdge[] = [];
+
+  const section1Heading =
+    seed?.sections?.[0]?.heading ??
+    (language === "hi" ? "मुख्य विचार" : "Core Idea");
+  const section2Heading =
+    seed?.sections?.[1]?.heading ??
+    (language === "hi" ? "उपयोग और नियम" : "Trade-offs & Use");
+  const practiceHeading =
+    language === "hi" ? "अभ्यास (Try This)" : "Practice Step";
+
+  const branches = [
+    { id: "b1", label: section1Heading, leaves: [leaves[0], leaves[1]] },
+    { id: "b2", label: section2Heading, leaves: [leaves[2], leaves[3]] },
+    {
+      id: "b3",
+      label: practiceHeading,
+      leaves: [
+        language === "hi" ? "उदाहरण ट्रेस करें" : "Trace an Example",
+      ],
+    },
+  ];
+
+  branches.forEach((branch) => {
+    nodes.push({ id: branch.id, label: branch.label, level: 1 });
+    edges.push({ from: "root", to: branch.id });
+    branch.leaves.forEach((leafLabel, idx) => {
+      const leafId = `${branch.id}-l${idx}`;
+      nodes.push({ id: leafId, label: leafLabel, level: 2 });
+      edges.push({ from: branch.id, to: leafId });
+    });
+  });
+
+  return {
+    topicSlug: slug,
+    language,
+    nodes,
+    edges,
+  };
+}
+
+// ── Mindmap (Language-Aware S3 Cache → AI Generation → Bilingual Fallback) ─────
+
+export async function getOrGenerateMindmap(
+  slug: string,
+  language: LanguageCode = "en",
+): Promise<Mindmap> {
+  // 1. Try language-specific S3 / memory cache (`mindmaps/<slug>/<language>.json`)
+  const cached = await s3GetMindmap(slug, language);
+  if (cached && Array.isArray(cached.nodes) && cached.nodes.length > 0) {
+    return { ...cached, topicSlug: slug, language };
+  }
+
+  // 2. Generate via AI (when configured)
   let mindmap: Mindmap;
   try {
     const raw = await invokeBedrockText(
-      PROMPTS.mindmapSystem(),
-      PROMPTS.mindmapUser(slug),
+      PROMPTS.mindmapSystem(language),
+      PROMPTS.mindmapUser(slug, language),
       { maxTokens: 600, temperature: 0.4 },
     );
-    const jsonStr = raw.replace(/```json?\n?/gi, "").replace(/```/g, "").trim();
-    mindmap = JSON.parse(jsonStr) as Mindmap;
-    mindmap.topicSlug = slug; // ensure correct slug
-    // 3. Cache to S3 asynchronously (don't block render)
-    putMindmap(mindmap).catch((err) => {
-      console.warn("[content] Failed to cache mindmap to S3:", err);
-    });
+    if (raw && !raw.startsWith("[local]")) {
+      const jsonStr = raw.replace(/```json?\n?/gi, "").replace(/```/g, "").trim();
+      const parsed = JSON.parse(jsonStr) as Mindmap;
+      if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
+        mindmap = {
+          ...parsed,
+          topicSlug: slug,
+          language,
+        };
+      } else {
+        mindmap = buildBilingualFallbackMindmap(slug, language);
+      }
+    } else {
+      mindmap = buildBilingualFallbackMindmap(slug, language);
+    }
   } catch (error) {
-    console.error("[content] Bedrock mindmap generation failed, using fallback:", error);
-    // Minimal fallback mindmap
-    mindmap = {
-      topicSlug: slug,
-      nodes: [
-        { id: "root", label: slug, level: 0 },
-        { id: "ops", label: "Operations", level: 1 },
-        { id: "tc", label: "Time Complexity", level: 1 },
-        { id: "uc", label: "Use Cases", level: 1 },
-      ],
-      edges: [
-        { from: "root", to: "ops" },
-        { from: "root", to: "tc" },
-        { from: "root", to: "uc" },
-      ],
-    };
+    console.error("[content] Mindmap generation fallback used:", error);
+    mindmap = buildBilingualFallbackMindmap(slug, language);
   }
+
+  // 3. Cache under language-specific key `mindmaps/<slug>/<language>.json`
+  putMindmap(mindmap, language).catch((err) => {
+    console.warn("[content] Failed to cache mindmap to S3:", err);
+  });
+
   return mindmap;
 }

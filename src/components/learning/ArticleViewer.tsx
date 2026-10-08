@@ -1,3 +1,5 @@
+import { ButtonLink } from "@/components/ui/Button";
+
 type ArticleViewerProps = {
   title: string;
   lead: string;
@@ -23,7 +25,7 @@ export function ArticleViewer({
       <h1>{title}</h1>
       <p className="lead">{lead}</p>
       {(sections ?? []).map((section) => (
-        <section key={section.heading}>
+        <section key={section.heading} className="article-section">
           <h2>{section.heading}</h2>
           <p>{section.body}</p>
         </section>
@@ -31,9 +33,11 @@ export function ArticleViewer({
       <div className="callout">
         <strong>{isHindi ? "यह आज़माएं:" : "Try this:"}</strong> {tryThis}
       </div>
-      <a className="button button-primary article-practice" href={practiceHref}>
-        {isHindi ? "अपनी समझ परखें" : "Check your understanding"} <span>→</span>
-      </a>
+      <div className="article-practice">
+        <ButtonLink href={practiceHref} variant="primary" size="lg">
+          {isHindi ? "अपनी समझ परखें" : "Check your understanding"} <span aria-hidden="true">→</span>
+        </ButtonLink>
+      </div>
     </article>
   );
 }

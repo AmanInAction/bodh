@@ -1,3 +1,4 @@
+// @ts-expect-error Cannot find module 'vitest' or its corresponding type declarations.
 import { describe, expect, it } from "vitest";
 import { summarizeRoadmap } from "@/lib/learning/roadmap";
 import type { TopicProgress } from "@/types/progress";
