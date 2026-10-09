@@ -1,5 +1,6 @@
 {
   "name": "bodh. | Make difficult ideas easy to grasp",
   "description": "A calmer way to learn computer science.",
-  "requestFramePermissions": []
+  "requestFramePermissions": [],
+  "capabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

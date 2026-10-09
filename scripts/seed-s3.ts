@@ -199,6 +199,41 @@ async function main() {
   for (const topic of topicFolders) {
     console.log(`── ${topic}`);
     const topicDir = join(SEED_ROOT, topic);
+
+    if (topic === "blogs") {
+      const blogEntries = await readdir(topicDir, { withFileTypes: true });
+      const blogFolders = blogEntries
+        .filter((e) => e.isDirectory())
+        .map((e) => e.name);
+
+      for (const blogSlug of blogFolders) {
+        const blogDir = join(topicDir, blogSlug);
+        const blogFiles = await readdir(blogDir);
+        for (const file of blogFiles.filter((f) => f.endsWith(".json"))) {
+          const language = file.replace(".json", "") as "en" | "hi";
+          const blogKey = `blogs/${blogSlug}/${language}.json`;
+          try {
+            const raw = await readFile(join(blogDir, file), "utf-8");
+            const blogData = JSON.parse(raw);
+            const blogExists = await s3Exists(blogKey);
+            if (blogExists) {
+              console.log(`  ⏭  ${blogKey}  (already exists)`);
+              totalSkips++;
+            } else {
+              await s3Put(blogKey, blogData);
+              console.log(`  ✅  ${blogKey}`);
+              totalUploads++;
+            }
+          } catch (err) {
+            const msg = `  ❌  ${blogKey}: ${String(err)}`;
+            console.error(msg);
+            errors.push(msg);
+          }
+        }
+      }
+      continue;
+    }
+
     const files = await readdir(topicDir);
     const jsonFiles = files.filter((f) => f.endsWith(".json"));
 

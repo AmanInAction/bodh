@@ -29,9 +29,9 @@ export async function GET() {
     const lessonsCompleted = entries.reduce((s, t) => s + (t.attempts ?? 0), 0);
 
     return NextResponse.json({
-      streak: record.loginCount ?? 1,
+      streak: record.streakDays ?? (record.loginCount ?? 1),
       lessonsCompleted,
-      minutesLearned: lessonsCompleted * 8, // approx 8 min per lesson
+      minutesLearned: lessonsCompleted * 10,
       averageMastery,
     });
   }
@@ -48,7 +48,7 @@ export async function GET() {
   return NextResponse.json({
     streak: 1,
     lessonsCompleted,
-    minutesLearned: lessonsCompleted * 8,
+    minutesLearned: lessonsCompleted * 10,
     averageMastery,
   });
 }

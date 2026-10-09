@@ -1,0 +1,39 @@
+{
+  "slug": "why-time-complexity-matters",
+  "language": "en",
+  "title": "Why Time Complexity Matters in Class 11–12",
+  "excerpt": "Learn how Big-O notation helps you predict program speed before writing code, without memorizing heavy mathematical formulas.",
+  "lead": "When writing code for assignments or contests, your solution might pass for small inputs but freeze on larger test cases. Time complexity gives you the lens to spot bottlenecks before running a single test.",
+  "category": "Complexity & Analysis",
+  "tags": ["big-o", "time-complexity", "algorithms"],
+  "authorName": "bodh. Team",
+  "authorRole": "Pedagogy & Foundations",
+  "publishedAt": "2026-10-01",
+  "readingTime": 5,
+  "featured": true,
+  "sections": [
+    {
+      "heading": "1. It's Not About Clock Seconds",
+      "body": "A fast gaming PC runs code faster than a school lab computer. Measuring speed in wall-clock seconds depends on CPU frequency, background apps, and memory. Time complexity measures how the number of operations grows as input size (N) grows."
+    },
+    {
+      "heading": "2. Counting the Key Steps",
+      "body": "Instead of timing execution, count how many times your primary loop executes. A single loop iterating from 0 to N takes roughly N steps: O(N). A nested loop iterating N times inside another N times takes N × N steps: O(N²).",
+      "codeSnippet": {
+        "language": "python",
+        "code": "# O(N) — Linear Scan\nfor x in arr:\n    if x == target: return True\n\n# O(N²) — Nested Loop\nfor i in range(len(arr)):\n    for j in range(len(arr)):\n        if arr[i] + arr[j] == target: return (i, j)",
+        "caption": "Comparing single vs nested loops on input size N"
+      }
+    },
+    {
+      "heading": "3. The 10^8 Rule of Thumb",
+      "body": "In most modern platforms and school evaluators, a computer can comfortably perform roughly 100 million (10⁸) basic operations per second. If N = 100,000, an O(N²) solution needs 10¹⁰ operations — over 100 seconds! An O(N log N) solution needs under 2 million operations — done in less than 0.05 seconds.",
+      "callout": "Rule of thumb: Always check the constraints on N in the problem statement before writing code."
+    },
+    {
+      "heading": "4. Common Big-O Ranks to Remember",
+      "body": "From fastest to slowest: O(1) Constant (Array index access) → O(log N) Logarithmic (Binary Search) → O(N) Linear (Single loop) → O(N log N) Linearithmic (Merge Sort) → O(N²) Quadratic (Nested loops) → O(2ⁿ) Exponential."
+    }
+  ],
+  "relatedTopics": ["binary-search", "arrays"]
+}

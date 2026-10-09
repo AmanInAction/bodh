@@ -1,3 +1,4 @@
+@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;500;600;700&family=JetBrains+Mono:wght@400;500;600&family=Noto+Sans+Devanagari:wght@400;500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap");
 @import "tailwindcss";
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -6,6 +7,11 @@
    ═══════════════════════════════════════════════════════════════════════════ */
 
 :root {
+  --font-fraunces: 'Fraunces', Georgia, serif;
+  --font-jakarta: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-devanagari: 'Noto Sans Devanagari', system-ui, -apple-system, sans-serif;
+  --font-jetbrains: 'JetBrains Mono', ui-monospace, monospace;
+
   /* Typography */
   --font-display: var(--font-fraunces), var(--font-devanagari), Georgia, serif;
   --font-sans: var(--font-jakarta), var(--font-devanagari), system-ui, -apple-system, sans-serif;

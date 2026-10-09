@@ -20,10 +20,12 @@ function clearSessionCookie(response: NextResponse) {
 export async function POST(req: NextRequest) {
   const accept = req.headers.get("accept") ?? "";
   const isHtml = accept.includes("text/html");
+  const lang = req.cookies.get("bodh_lang")?.value;
+  const redirectUrl = lang ? `/?language=${lang}` : "/";
 
   const response = isHtml
-    ? NextResponse.redirect(new URL("/", req.url), 303)
-    : NextResponse.json({ ok: true, redirect: "/" });
+    ? NextResponse.redirect(new URL(redirectUrl, req.url), 303)
+    : NextResponse.json({ ok: true, redirect: redirectUrl });
 
   return clearSessionCookie(response);
 }
@@ -33,6 +35,8 @@ export async function POST(req: NextRequest) {
  * Direct navigation fallback: clears session cookie and redirects to the home page.
  */
 export async function GET(req: NextRequest) {
-  const response = NextResponse.redirect(new URL("/", req.url), 303);
+  const lang = req.cookies.get("bodh_lang")?.value;
+  const redirectUrl = lang ? `/?language=${lang}` : "/";
+  const response = NextResponse.redirect(new URL(redirectUrl, req.url), 303);
   return clearSessionCookie(response);
 }

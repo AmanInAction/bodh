@@ -2,23 +2,34 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { languages } from "@/config/languages";
 import { resolveLanguage, setClientLanguage } from "@/lib/i18n";
 import { Navbar } from "@/components/ui/Navbar";
 
 function LanguageSelectionContent() {
+  const router = useRouter();
   const searchParams = useSearchParams();
   const currentLang = resolveLanguage(searchParams.get("language"));
   const isHindi = currentLang === "hi";
 
-  function handleSelect(code: string) {
+  async function handleSelect(code: string, e: React.MouseEvent) {
+    e.preventDefault();
     setClientLanguage(code);
-    fetch("/api/student", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ language: code }),
-    }).catch(() => {});
+    const goal = searchParams.get("goal") || undefined;
+    try {
+      await fetch("/api/student", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ language: code, goal }),
+      });
+    } catch {
+      // Continue even if network fails
+    }
+    const targetUrl = goal
+      ? `/learn?language=${code}&goal=${goal}`
+      : `/learn?language=${code}`;
+    router.push(targetUrl);
   }
 
   return (
@@ -47,7 +58,7 @@ function LanguageSelectionContent() {
             <Link
               key={language.code}
               href={`/learn?language=${language.code}`}
-              onClick={() => handleSelect(language.code)}
+              onClick={(e) => handleSelect(language.code, e)}
             >
               <span>{language.nativeName}</span>
               <span>{language.name}</span>

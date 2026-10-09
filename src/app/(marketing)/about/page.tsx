@@ -23,6 +23,7 @@ export default async function AboutPage({
         language={language}
         links={[
           { href: `/learn?language=${language}`, label: strings.nav.learn, activeMatch: "/learn" },
+          { href: `/blogs?language=${language}`, label: strings.nav.blogs, activeMatch: "/blogs" },
           { href: `/about?language=${language}`, label: strings.nav.about, activeMatch: "/about" },
           { href: `/auth?language=${language}`, label: strings.nav.signIn, activeMatch: "/auth" },
         ]}

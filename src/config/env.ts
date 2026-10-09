@@ -44,7 +44,7 @@ export function validateProductionEnv(): void {
 }
 
 export function getEnv(key: string): string | undefined {
-  return process.env[`APP_${key}`];
+  return process.env[`APP_${key}`] || process.env[key];
 }
 
 export function getAwsCredentials() {

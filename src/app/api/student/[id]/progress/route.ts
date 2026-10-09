@@ -3,6 +3,7 @@ import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { topics } from "@/config/topics";
 import { getRoadmap } from "@/lib/learning/roadmap";
 import { DEMO_STUDENT_ID } from "@/lib/auth/session";
+import { getTopicTitle } from "@/lib/i18n";
 
 // GET /api/student/[id]/progress
 // Returns per-topic scores, weakTopics, and overall mastery for a student.
@@ -16,9 +17,10 @@ export async function GET(
   const record = await getStudentRecord(id);
 
   if (record) {
+    const studentLang = record.language ?? "en";
     const allTopicScores = topics.map((t) => ({
       slug: t.slug,
-      title: t.title,
+      title: getTopicTitle(t.slug, studentLang),
       score: record.topics[t.slug]?.score ?? 0,
       attempts: record.topics[t.slug]?.attempts ?? 0,
     }));
@@ -47,7 +49,7 @@ export async function GET(
     const p = roadmap.find((r) => r.topicSlug === t.slug);
     return {
       slug: t.slug,
-      title: t.title,
+      title: getTopicTitle(t.slug, "en"),
       score: p?.mastery ?? 0,
       attempts: p?.attempts ?? 0,
     };

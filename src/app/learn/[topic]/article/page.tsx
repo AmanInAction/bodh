@@ -25,7 +25,7 @@ export default async function ArticlePage({
 
   const [content, mindmap] = await Promise.all([
     getLessonContent(topic, selectedLanguage),
-    getOrGenerateMindmap(topic),
+    getOrGenerateMindmap(topic, selectedLanguage),
   ]);
 
   return (

@@ -1,0 +1,39 @@
+{
+  "slug": "arrays-vs-linked-lists",
+  "language": "en",
+  "title": "Arrays vs Linked Lists: The Real Memory Mental Model",
+  "excerpt": "Why CPU cache locality makes contiguous arrays so fast, and when linked list node pointers are genuinely the right tool.",
+  "lead": "Textbooks often tell you that inserting into a linked list is O(1) while an array is O(n), so linked lists must be better. In practice, modern CPU architecture tells a very different story.",
+  "category": "Data Structures",
+  "tags": ["arrays", "linked-list", "memory"],
+  "authorName": "bodh. Team",
+  "authorRole": "Pedagogy & Foundations",
+  "publishedAt": "2026-10-05",
+  "readingTime": 5,
+  "featured": false,
+  "sections": [
+    {
+      "heading": "1. Contiguous Memory vs Scattered Nodes",
+      "body": "An array lives in one unbroken block of RAM. When your program asks for `arr[0]`, the CPU hardware fetches an entire 64-byte cache line into high-speed L1/L2 cache, bringing `arr[1]`, `arr[2]`, and `arr[3]` along for free. In contrast, linked list nodes can be scattered across disparate corners of memory."
+    },
+    {
+      "heading": "2. The Hidden Cost of Pointer Traversal",
+      "body": "To insert a node into position K of a linked list, you first have to walk from head through K-1 pointers: an O(K) operation. Each hop across a pointer can trigger a CPU cache miss, taking dozens of CPU cycles waiting for main RAM.",
+      "codeSnippet": {
+        "language": "python",
+        "code": "# Array lookup: Direct calculation in O(1)\nval = arr[index]  # address = base + index * size\n\n# Linked list lookup: Sequential hop in O(N)\ncurr = head\nfor _ in range(index):\n    curr = curr.next",
+        "caption": "Address arithmetic vs sequential pointer chasing"
+      }
+    },
+    {
+      "heading": "3. The Memory Overhead",
+      "body": "In a 64-bit operating system, every linked list node must store an 8-byte pointer alongside your data. If you are storing 4-byte integers, more than 60% of your memory is wasted on pointers alone."
+    },
+    {
+      "heading": "4. When to Truly Pick Linked Lists",
+      "body": "Pick linked lists when you need frequent O(1) insertions or deletions strictly at the head (like implementing an undo queue or LRU cache), or when memory is so fragmented that allocating one large contiguous array chunk is impossible.",
+      "callout": "Verdict: Default to arrays for fast indexing, caching, and compactness. Reach for linked lists when head mutations dominate."
+    }
+  ],
+  "relatedTopics": ["arrays", "linked-list"]
+}

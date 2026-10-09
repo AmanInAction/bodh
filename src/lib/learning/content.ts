@@ -1,10 +1,19 @@
-import type { Article, Mindmap, MindmapEdge, MindmapNode } from "@/types/content";
+import type {
+  Article,
+  BlogPost,
+  Mindmap,
+  MindmapEdge,
+  MindmapNode,
+} from "@/types/content";
 import type { LanguageCode } from "@/config/languages";
 import {
   getArticle as s3GetArticle,
+  getBlog as s3GetBlog,
   getMindmap as s3GetMindmap,
+  getContent as s3GetContent,
   putMindmap,
 } from "@/lib/aws/s3";
+import { getContentIndex, listContentIndices } from "@/lib/aws/dynamodb";
 import { invokeBedrockText } from "@/lib/aws/bedrock";
 import { PROMPTS } from "@/lib/ai/prompts";
 
@@ -35,21 +44,42 @@ function loadSeedArticle(slug: string, language: LanguageCode): Article | null {
   }
 }
 
-// ── Public API ─────────────────────────────────────────────────────────────────
+function loadSeedBlog(slug: string, language: LanguageCode): BlogPost | null {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-require-imports
+    const seed = require(`../../../content/seed/blogs/${slug}/${language}.json`) as BlogPost;
+    return seed;
+  } catch {
+    return null;
+  }
+}
+
+// ── Article Content (DynamoDB Index -> S3 Key -> S3 Canonical -> Seed Fallback)
 
 export async function getLessonContent(
   slug: string,
   language: LanguageCode = "en",
 ): Promise<Article> {
-  // 1. Try S3
+  // 1. Resolve via DynamoDB Content Index -> S3 Key
+  try {
+    const index = await getContentIndex("article", slug, language);
+    if (index?.s3Key) {
+      const s3Indexed = await s3GetContent<Article>(index.s3Key);
+      if (s3Indexed) return s3Indexed;
+    }
+  } catch (err) {
+    console.warn("[content] DynamoDB index lookup failed for article:", err);
+  }
+
+  // 2. Direct S3 lookup
   const s3Article = await s3GetArticle(slug, language);
   if (s3Article) return s3Article;
 
-  // 2. Try seed JSON
+  // 3. Try seed JSON
   const seedArticle = loadSeedArticle(slug, language);
   if (seedArticle) return seedArticle;
 
-  // 3. Generate minimal inline fallback (never crashes)
+  // 4. Generate minimal inline fallback (never crashes)
   const topic = getTopicName(slug, language);
   return {
     topicSlug: slug,
@@ -73,6 +103,81 @@ export async function getLessonContent(
         ? `${topic} को रोज़मर्रा की किसी चीज़ से किसी दोस्त को समझाएं।`
         : `Explain ${topic} to a friend using one everyday object and no code.`,
   };
+}
+
+// ── Blog Content (DynamoDB Index -> S3 Key -> S3 Canonical -> Seed Fallback) ──
+
+const KNOWN_BLOG_SLUGS = [
+  "why-time-complexity-matters",
+  "visualizing-recursion-call-stack",
+  "arrays-vs-linked-lists",
+];
+
+export async function getBlogPost(
+  slug: string,
+  language: LanguageCode = "en",
+): Promise<BlogPost | null> {
+  // 1. Resolve via DynamoDB Content Index
+  try {
+    const index = await getContentIndex("blog", slug, language);
+    if (index?.s3Key) {
+      const s3Indexed = await s3GetContent<BlogPost>(index.s3Key);
+      if (s3Indexed) return s3Indexed;
+    }
+  } catch (err) {
+    console.warn("[content] DynamoDB index lookup failed for blog:", err);
+  }
+
+  // 2. Direct S3 lookup
+  const s3Blog = await s3GetBlog(slug, language);
+  if (s3Blog) return s3Blog;
+
+  // 3. Seed blog fallback
+  const seedBlog = loadSeedBlog(slug, language);
+  if (seedBlog) return seedBlog;
+
+  return null;
+}
+
+export async function listBlogPosts(
+  language: LanguageCode = "en",
+): Promise<BlogPost[]> {
+  const posts: BlogPost[] = [];
+  const seenSlugs = new Set<string>();
+
+  // 1. Discover via DynamoDB Content Index
+  try {
+    const indices = await listContentIndices("blog", language);
+    for (const index of indices) {
+      if (!seenSlugs.has(index.slug)) {
+        const post = await getBlogPost(index.slug, language);
+        if (post) {
+          posts.push(post);
+          seenSlugs.add(index.slug);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn("[content] Error listing blogs from index:", err);
+  }
+
+  // 2. Fallback to known seed blog list if index empty
+  for (const slug of KNOWN_BLOG_SLUGS) {
+    if (!seenSlugs.has(slug)) {
+      const post = await getBlogPost(slug, language);
+      if (post) {
+        posts.push(post);
+        seenSlugs.add(slug);
+      }
+    }
+  }
+
+  // Sort: featured first, then published date descending
+  return posts.sort((a, b) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
+  });
 }
 
 // ── Bilingual Fallback Mindmap Builder ─────────────────────────────────────────

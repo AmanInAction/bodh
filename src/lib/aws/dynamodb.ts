@@ -15,6 +15,7 @@ import type {
   TeachingStyle,
   TopicPerformance,
 } from "@/types/student-record";
+import type { ContentIndex, ContentType } from "@/types/content";
 import { getAwsCredentials, getEnv } from "@/config/env";
 import { DEMO_STUDENT_ID } from "@/lib/auth/session";
 
@@ -24,6 +25,7 @@ const REGION = getEnv("AWS_REGION");
 const STUDENT_TABLE = getEnv("AWS_DYNAMODB_TABLE") || "";
 const AUTH_TABLE = getEnv("AWS_AUTH_TABLE") || "";
 const STUDENT_RECORD_TABLE = getEnv("AWS_STUDENT_RECORD_TABLE") || "";
+const CONTENT_TABLE = getEnv("AWS_CONTENT_INDEX_TABLE") || getEnv("AWS_CONTENT_TABLE") || "";
 
 const rawClient = REGION
   ? new DynamoDBClient({ region: REGION, credentials: getAwsCredentials() })
@@ -33,6 +35,184 @@ const db = rawClient ? DynamoDBDocumentClient.from(rawClient) : null;
 // In-memory fallback when DynamoDB is not configured
 const memoryTableStore = new Map<string, Record<string, unknown>>();
 const memoryStudentRecordStore = new Map<string, StudentRecord>();
+const memoryContentIndexStore = new Map<string, ContentIndex>();
+
+// Pre-seed memory content index with initial catalog
+function seedMemoryContentIndex() {
+  const topicsList = [
+    { slug: "arrays", enTitle: "Arrays", hiTitle: "ऐरे (Arrays)" },
+    { slug: "linked-list", enTitle: "Linked Lists", hiTitle: "लिंक्ड लिस्ट" },
+    { slug: "stacks", enTitle: "Stacks", hiTitle: "स्टैक (Stacks)" },
+    { slug: "queues", enTitle: "Queues", hiTitle: "क्यू (Queues)" },
+    { slug: "binary-search", enTitle: "Binary Search", hiTitle: "बाइनरी सर्च" },
+    { slug: "recursion", enTitle: "Recursion", hiTitle: "रिकर्शन" },
+  ];
+
+  const now = "2026-10-09T00:00:00.000Z";
+
+  // Articles & Mindmaps
+  for (const t of topicsList) {
+    // Article EN
+    memoryContentIndexStore.set(`article:${t.slug}:en`, {
+      contentId: `article:${t.slug}:en`,
+      contentType: "article",
+      slug: t.slug,
+      topicSlug: t.slug,
+      language: "en",
+      status: "published",
+      s3Key: `articles/${t.slug}/en.json`,
+      title: `Understanding ${t.enTitle}`,
+      excerpt: `Core intuition and step-by-step mental models for ${t.enTitle}.`,
+      category: "Data Structures",
+      readingTime: 6,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: now,
+    });
+    // Article HI
+    memoryContentIndexStore.set(`article:${t.slug}:hi`, {
+      contentId: `article:${t.slug}:hi`,
+      contentType: "article",
+      slug: t.slug,
+      topicSlug: t.slug,
+      language: "hi",
+      status: "published",
+      s3Key: `articles/${t.slug}/hi.json`,
+      title: `${t.hiTitle} को समझना`,
+      excerpt: `${t.hiTitle} की मुख्य अवधारणा और मानसिक मॉडल।`,
+      category: "डेटा स्ट्रक्चर्स",
+      readingTime: 6,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: now,
+    });
+    // Mindmap EN
+    memoryContentIndexStore.set(`mindmap:${t.slug}:en`, {
+      contentId: `mindmap:${t.slug}:en`,
+      contentType: "mindmap",
+      slug: t.slug,
+      topicSlug: t.slug,
+      language: "en",
+      status: "published",
+      s3Key: `mindmaps/${t.slug}/en.json`,
+      title: `${t.enTitle} Visual Map`,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: now,
+    });
+    // Mindmap HI
+    memoryContentIndexStore.set(`mindmap:${t.slug}:hi`, {
+      contentId: `mindmap:${t.slug}:hi`,
+      contentType: "mindmap",
+      slug: t.slug,
+      topicSlug: t.slug,
+      language: "hi",
+      status: "published",
+      s3Key: `mindmaps/${t.slug}/hi.json`,
+      title: `${t.hiTitle} विज़ुअल मैप`,
+      createdAt: now,
+      updatedAt: now,
+      publishedAt: now,
+    });
+  }
+
+  // Seed Educational Blogs
+  const seedBlogs = [
+    {
+      slug: "why-time-complexity-matters",
+      en: {
+        title: "Why Time Complexity Matters in Class 11–12",
+        excerpt: "Learn how Big-O helps you predict program speed before writing code, without memorizing heavy mathematical notation.",
+        category: "Complexity & Analysis",
+        readingTime: 5,
+      },
+      hi: {
+        title: "कक्षा 11–12 में Time Complexity को समझना क्यों ज़रूरी है?",
+        excerpt: "बिना कठिन गणितीय सूत्रों के समझें कि Big-O कोड चलाने से पहले प्रोग्राम की गति का अनुमान कैसे लगाता है।",
+        category: "जटिलता और विश्लेषण",
+        readingTime: 5,
+      },
+      tags: ["big-o", "time-complexity", "foundations"],
+      authorName: "bodh. Team",
+      publishedAt: "2026-10-01T10:00:00.000Z",
+    },
+    {
+      slug: "visualizing-recursion-call-stack",
+      en: {
+        title: "Visualizing the Recursion Call Stack Without Panic",
+        excerpt: "A calm, visual way to understand base cases, call frames, and how recursion unwinds on the stack.",
+        category: "Core Algorithms",
+        readingTime: 6,
+      },
+      hi: {
+        title: "बिना घबराए Recursion Call Stack को कैसे विज़ुअलाइज़ करें?",
+        excerpt: "Base cases, कॉल फ्रेम्स और स्टैक से फ़ंक्शन की वापसी को समझने का शांत और स्पष्ट विज़ुअल तरीका।",
+        category: "एल्गोरिदम",
+        readingTime: 6,
+      },
+      tags: ["recursion", "call-stack", "visual"],
+      authorName: "bodh. Team",
+      publishedAt: "2026-10-03T10:00:00.000Z",
+    },
+    {
+      slug: "arrays-vs-linked-lists",
+      en: {
+        title: "Arrays vs Linked Lists: The Real Memory Mental Model",
+        excerpt: "Why cache locality makes contiguous arrays fast, and when linked list node pointers are genuinely useful.",
+        category: "Data Structures",
+        readingTime: 5,
+      },
+      hi: {
+        title: "Arrays vs Linked Lists: मेमोरी और परफॉर्मेंस का सही मॉडल",
+        excerpt: "कंप्यूटर मेमोरी में लगातार स्लॉट और अलग-अलग नोड पॉइंटर्स के बीच वास्तविक अंतर को समझें।",
+        category: "डेटा स्ट्रक्चर्स",
+        readingTime: 5,
+      },
+      tags: ["arrays", "linked-list", "memory"],
+      authorName: "bodh. Team",
+      publishedAt: "2026-10-05T10:00:00.000Z",
+    },
+  ];
+
+  for (const b of seedBlogs) {
+    memoryContentIndexStore.set(`blog:${b.slug}:en`, {
+      contentId: `blog:${b.slug}:en`,
+      contentType: "blog",
+      slug: b.slug,
+      language: "en",
+      status: "published",
+      s3Key: `blogs/${b.slug}/en.json`,
+      title: b.en.title,
+      excerpt: b.en.excerpt,
+      category: b.en.category,
+      tags: b.tags,
+      authorName: b.authorName,
+      readingTime: b.en.readingTime,
+      createdAt: b.publishedAt,
+      updatedAt: b.publishedAt,
+      publishedAt: b.publishedAt,
+    });
+    memoryContentIndexStore.set(`blog:${b.slug}:hi`, {
+      contentId: `blog:${b.slug}:hi`,
+      contentType: "blog",
+      slug: b.slug,
+      language: "hi",
+      status: "published",
+      s3Key: `blogs/${b.slug}/hi.json`,
+      title: b.hi.title,
+      excerpt: b.hi.excerpt,
+      category: b.hi.category,
+      tags: b.tags,
+      authorName: b.authorName,
+      readingTime: b.hi.readingTime,
+      createdAt: b.publishedAt,
+      updatedAt: b.publishedAt,
+      publishedAt: b.publishedAt,
+    });
+  }
+}
+
+seedMemoryContentIndex();
 
 /**
  * Resolves any email or student identifier to the canonical `studentId` key
@@ -252,13 +432,24 @@ export async function updateStudentProfile(
   const existing = await getStudentRecord(canonicalId);
   const nowIso = new Date().toISOString();
 
+  const goal = updates.goal ?? existing?.goal;
+  const derivedStyle: TeachingStyle =
+    updates.preferredStyle ??
+    (updates.goal === "scratch"
+      ? "simple"
+      : updates.goal === "foundations"
+      ? "visual"
+      : updates.goal === "interview"
+      ? "interview"
+      : existing?.preferredStyle ?? "simple");
+
   const merged: StudentRecord = {
     studentId: canonicalId,
     name: updates.name ?? existing?.name ?? canonicalId.split("@")[0],
     email: updates.email ?? existing?.email ?? studentIdOrEmail,
     language: updates.language ?? existing?.language ?? "en",
-    preferredStyle: updates.preferredStyle ?? existing?.preferredStyle ?? "simple",
-    goal: updates.goal ?? existing?.goal,
+    preferredStyle: derivedStyle,
+    goal,
     topics: existing?.topics ?? {},
     weakTopics: existing?.weakTopics ?? [],
     streakDays: existing?.streakDays ?? 1,
@@ -273,40 +464,50 @@ export async function updateStudentProfile(
 
   if (db && STUDENT_RECORD_TABLE) {
     try {
+      const updateExpressions = [
+        "SET #lang       = :lang",
+        "    #name       = :name",
+        "    #email      = :email",
+        "    #style      = :style",
+        "    #topics     = if_not_exists(#topics, :emptyMap)",
+        "    #weakTopics = if_not_exists(#weakTopics, :emptyList)",
+        "    #createdAt  = if_not_exists(#createdAt, :createdAt)",
+        "    #updatedAt  = :updatedAt",
+      ];
+      const exprAttrNames: Record<string, string> = {
+        "#lang": "language",
+        "#name": "name",
+        "#email": "email",
+        "#style": "preferredStyle",
+        "#topics": "topics",
+        "#weakTopics": "weakTopics",
+        "#createdAt": "createdAt",
+        "#updatedAt": "updatedAt",
+      };
+      const exprAttrValues: Record<string, unknown> = {
+        ":lang": merged.language,
+        ":name": merged.name,
+        ":email": merged.email,
+        ":style": merged.preferredStyle,
+        ":emptyMap": {},
+        ":emptyList": [],
+        ":createdAt": merged.createdAt,
+        ":updatedAt": merged.updatedAt,
+      };
+
+      if (goal) {
+        updateExpressions.push("    #goal = :goal");
+        exprAttrNames["#goal"] = "goal";
+        exprAttrValues[":goal"] = goal;
+      }
+
       await db.send(
         new UpdateCommand({
           TableName: STUDENT_RECORD_TABLE,
           Key: { studentId: canonicalId },
-          UpdateExpression: [
-            "SET #lang       = :lang",
-            "    #name       = :name",
-            "    #email      = :email",
-            "    #style      = :style",
-            "    #topics     = if_not_exists(#topics, :emptyMap)",
-            "    #weakTopics = if_not_exists(#weakTopics, :emptyList)",
-            "    #createdAt  = if_not_exists(#createdAt, :createdAt)",
-            "    #updatedAt  = :updatedAt",
-          ].join(", "),
-          ExpressionAttributeNames: {
-            "#lang": "language",
-            "#name": "name",
-            "#email": "email",
-            "#style": "preferredStyle",
-            "#topics": "topics",
-            "#weakTopics": "weakTopics",
-            "#createdAt": "createdAt",
-            "#updatedAt": "updatedAt",
-          },
-          ExpressionAttributeValues: {
-            ":lang": merged.language,
-            ":name": merged.name,
-            ":email": merged.email,
-            ":style": merged.preferredStyle,
-            ":emptyMap": {},
-            ":emptyList": [],
-            ":createdAt": merged.createdAt,
-            ":updatedAt": merged.updatedAt,
-          },
+          UpdateExpression: updateExpressions.join(", "),
+          ExpressionAttributeNames: exprAttrNames,
+          ExpressionAttributeValues: exprAttrValues,
         }),
       );
     } catch (error) {
@@ -349,6 +550,37 @@ export async function putStudentProfile(student: Student): Promise<void> {
 }
 
 /**
+ * Daily streak calculator comparing the last active date (YYYY-MM-DD)
+ * against today's calendar date (UTC).
+ * - Same day: streak stays currentStreak (minimum 1).
+ * - Next consecutive day (diff === 1): streak increments by 1.
+ * - Missed 1+ days (diff > 1): streak resets to 1.
+ * - First activity: streak is 1.
+ */
+export function calculateDailyStreak(
+  lastActiveDate?: string,
+  currentStreak = 0,
+): { streakDays: number; lastActiveDate: string } {
+  const today = new Date().toISOString().slice(0, 10);
+  if (!lastActiveDate) {
+    return { streakDays: 1, lastActiveDate: today };
+  }
+  if (lastActiveDate === today) {
+    return { streakDays: Math.max(1, currentStreak), lastActiveDate: today };
+  }
+
+  const lastTime = new Date(`${lastActiveDate}T00:00:00Z`).getTime();
+  const curTime = new Date(`${today}T00:00:00Z`).getTime();
+  const diffDays = Math.round((curTime - lastTime) / (1000 * 60 * 60 * 24));
+
+  if (diffDays === 1) {
+    return { streakDays: Math.max(1, currentStreak) + 1, lastActiveDate: today };
+  } else {
+    return { streakDays: 1, lastActiveDate: today };
+  }
+}
+
+/**
  * Atomically update a single topic's score + attempts for a student,
  * then recompute and persist weakTopics.
  */
@@ -357,13 +589,18 @@ export async function updateTopicScore({
   language,
   topicSlug,
   score,
+  teachingStyle,
+  missedConcepts,
 }: {
   studentId: string;
   language: "en" | "hi";
   topicSlug: string;
   score: number;
+  teachingStyle?: TeachingStyle;
+  missedConcepts?: string[];
 }): Promise<StudentRecord | null> {
   const canonicalId = resolveStudentId(studentId);
+  const nowIso = new Date().toISOString();
 
   if (!db || !STUDENT_RECORD_TABLE) {
     const existing = memoryStudentRecordStore.get(canonicalId) ?? {
@@ -377,14 +614,22 @@ export async function updateTopicScore({
       ...existing.topics,
       [topicSlug]: {
         score: Math.max(prevTopic.score, score),
+        lastScore: score,
         attempts: (prevTopic.attempts ?? 0) + 1,
+        completedLessons: Math.min(4, (prevTopic.completedLessons ?? 0) + 1),
+        lastAttemptAt: nowIso,
+        missedConcepts: missedConcepts ?? prevTopic.missedConcepts,
+        teachingStyle: teachingStyle ?? prevTopic.teachingStyle,
       },
     };
+    const streakResult = calculateDailyStreak(existing.lastActiveDate, existing.streakDays);
     const updatedRecord: StudentRecord = {
       ...existing,
       language: language || existing.language,
       topics: nextTopics,
       weakTopics: computeWeakTopics(nextTopics),
+      streakDays: streakResult.streakDays,
+      lastActiveDate: streakResult.lastActiveDate,
       updatedAt: Date.now(),
     };
     memoryStudentRecordStore.set(canonicalId, updatedRecord);
@@ -435,9 +680,11 @@ export async function updateTopicScore({
         TableName: STUDENT_RECORD_TABLE,
         Key: { studentId: canonicalId },
         UpdateExpression: [
-          "SET #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
-          "    #topics.#slug.#score    = :score",
-          "    #updatedAt              = :now",
+          "SET #topics.#slug.#attempts      = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
+          "    #topics.#slug.#score         = :score",
+          "    #topics.#slug.#lastScore     = :score",
+          "    #topics.#slug.#lastAttemptAt = :attemptAt",
+          "    #updatedAt                   = :now",
         ].join(", "),
         ConditionExpression:
           "attribute_not_exists(#topics.#slug.#score) OR #topics.#slug.#score < :score",
@@ -446,10 +693,13 @@ export async function updateTopicScore({
           "#slug": topicSlug,
           "#attempts": "attempts",
           "#score": "score",
+          "#lastScore": "lastScore",
+          "#lastAttemptAt": "lastAttemptAt",
           "#updatedAt": "updatedAt",
         },
         ExpressionAttributeValues: {
           ":score": score,
+          ":attemptAt": nowIso,
           ":zero": 0,
           ":one": 1,
           ":now": Date.now(),
@@ -463,15 +713,23 @@ export async function updateTopicScore({
         new UpdateCommand({
           TableName: STUDENT_RECORD_TABLE,
           Key: { studentId: canonicalId },
-          UpdateExpression:
-            "SET #topics.#slug.#attempts = if_not_exists(#topics.#slug.#attempts, :zero) + :one, #updatedAt = :now",
+          UpdateExpression: [
+            "SET #topics.#slug.#attempts      = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
+            "    #topics.#slug.#lastScore     = :score",
+            "    #topics.#slug.#lastAttemptAt = :attemptAt",
+            "    #updatedAt                   = :now",
+          ].join(", "),
           ExpressionAttributeNames: {
             "#topics": "topics",
             "#slug": topicSlug,
             "#attempts": "attempts",
+            "#lastScore": "lastScore",
+            "#lastAttemptAt": "lastAttemptAt",
             "#updatedAt": "updatedAt",
           },
           ExpressionAttributeValues: {
+            ":score": score,
+            ":attemptAt": nowIso,
             ":zero": 0,
             ":one": 1,
             ":now": Date.now(),
@@ -483,22 +741,37 @@ export async function updateTopicScore({
     }
   }
 
-  // ── Phase 3: Re-read and recompute weakTopics ─────────────────────────────
+  // ── Phase 3: Re-read and recompute weakTopics & streak ─────────────────────
   const updated = await getStudentRecord(canonicalId);
   if (!updated) return null;
 
   const weakTopics = computeWeakTopics(updated.topics);
+  const streakResult = calculateDailyStreak(updated.lastActiveDate, updated.streakDays);
+
   await db.send(
     new UpdateCommand({
       TableName: STUDENT_RECORD_TABLE,
       Key: { studentId: canonicalId },
-      UpdateExpression: "SET #weakTopics = :wt",
-      ExpressionAttributeNames: { "#weakTopics": "weakTopics" },
-      ExpressionAttributeValues: { ":wt": weakTopics },
+      UpdateExpression: "SET #weakTopics = :wt, #streakDays = :sd, #lastActiveDate = :lad",
+      ExpressionAttributeNames: {
+        "#weakTopics": "weakTopics",
+        "#streakDays": "streakDays",
+        "#lastActiveDate": "lastActiveDate",
+      },
+      ExpressionAttributeValues: {
+        ":wt": weakTopics,
+        ":sd": streakResult.streakDays,
+        ":lad": streakResult.lastActiveDate,
+      },
     }),
   );
 
-  const finalRecord = { ...updated, weakTopics };
+  const finalRecord = {
+    ...updated,
+    weakTopics,
+    streakDays: streakResult.streakDays,
+    lastActiveDate: streakResult.lastActiveDate,
+  };
   memoryStudentRecordStore.set(canonicalId, finalRecord);
   return finalRecord;
 }
@@ -513,34 +786,43 @@ export async function recordLogin({
   language: "en" | "hi";
 }): Promise<void> {
   const canonicalId = resolveStudentId(studentId);
+  const nowIso = new Date().toISOString();
 
   if (!db || !STUDENT_RECORD_TABLE) {
     const existing = memoryStudentRecordStore.get(canonicalId);
+    const streakResult = calculateDailyStreak(existing?.lastActiveDate, existing?.streakDays);
     memoryStudentRecordStore.set(canonicalId, {
       ...existing,
       studentId: canonicalId,
       language: existing?.language ?? language,
       topics: existing?.topics ?? {},
       weakTopics: existing?.weakTopics ?? [],
-      lastLoginAt: new Date().toISOString(),
+      lastLoginAt: nowIso,
       updatedAt: Date.now(),
       loginCount: (existing?.loginCount ?? 0) + 1,
+      streakDays: streakResult.streakDays,
+      lastActiveDate: streakResult.lastActiveDate,
     });
     return;
   }
 
   try {
+    const existing = await getStudentRecord(canonicalId);
+    const streakResult = calculateDailyStreak(existing?.lastActiveDate, existing?.streakDays);
+
     await db.send(
       new UpdateCommand({
         TableName: STUDENT_RECORD_TABLE,
         Key: { studentId: canonicalId },
         UpdateExpression: [
-          "SET #lang        = if_not_exists(#lang,       :lang)",
-          "    #topics      = if_not_exists(#topics,     :emptyMap)",
-          "    #weakTopics  = if_not_exists(#weakTopics, :emptyList)",
-          "    #lastLoginAt = :now",
-          "    #updatedAt   = :ts",
-          "    #loginCount  = if_not_exists(#loginCount, :zero) + :one",
+          "SET #lang           = if_not_exists(#lang,       :lang)",
+          "    #topics         = if_not_exists(#topics,     :emptyMap)",
+          "    #weakTopics     = if_not_exists(#weakTopics, :emptyList)",
+          "    #lastLoginAt    = :now",
+          "    #updatedAt      = :ts",
+          "    #loginCount     = if_not_exists(#loginCount, :zero) + :one",
+          "    #streakDays     = :streakDays",
+          "    #lastActiveDate = :lastActiveDate",
         ].join(", "),
         ExpressionAttributeNames: {
           "#lang": "language",
@@ -549,19 +831,81 @@ export async function recordLogin({
           "#lastLoginAt": "lastLoginAt",
           "#updatedAt": "updatedAt",
           "#loginCount": "loginCount",
+          "#streakDays": "streakDays",
+          "#lastActiveDate": "lastActiveDate",
         },
         ExpressionAttributeValues: {
           ":lang": language,
           ":emptyMap": {},
           ":emptyList": [],
-          ":now": new Date().toISOString(),
+          ":now": nowIso,
           ":ts": Date.now(),
           ":zero": 0,
           ":one": 1,
+          ":streakDays": streakResult.streakDays,
+          ":lastActiveDate": streakResult.lastActiveDate,
         },
       }),
     );
   } catch (error) {
     console.error(`[dynamodb] Error in recordLogin for ${canonicalId}:`, error);
   }
+}
+
+// ── Content Index Architecture ────────────────────────────────────────────────
+// Partition key: contentId (e.g. "article:arrays:en", "blog:why-time-complexity-matters:hi")
+
+export async function getContentIndex(
+  contentType: ContentType,
+  slug: string,
+  language: SupportedLanguage = "en",
+): Promise<ContentIndex | null> {
+  const contentId = `${contentType}:${slug}:${language}`;
+  if (!db || !CONTENT_TABLE) {
+    return memoryContentIndexStore.get(contentId) ?? null;
+  }
+  try {
+    const res = await db.send(
+      new GetCommand({
+        TableName: CONTENT_TABLE,
+        Key: { contentId },
+      }),
+    );
+    if (res.Item) {
+      const item = res.Item as ContentIndex;
+      memoryContentIndexStore.set(contentId, item);
+      return item;
+    }
+    return memoryContentIndexStore.get(contentId) ?? null;
+  } catch (error) {
+    console.error(`[dynamodb] Error in getContentIndex for ${contentId}:`, error);
+    return memoryContentIndexStore.get(contentId) ?? null;
+  }
+}
+
+export async function putContentIndex(item: ContentIndex): Promise<void> {
+  memoryContentIndexStore.set(item.contentId, item);
+  if (!db || !CONTENT_TABLE) return;
+  try {
+    await db.send(
+      new PutCommand({
+        TableName: CONTENT_TABLE,
+        Item: item,
+      }),
+    );
+  } catch (error) {
+    console.error(`[dynamodb] Error in putContentIndex for ${item.contentId}:`, error);
+  }
+}
+
+export async function listContentIndices(
+  contentType?: ContentType,
+  language?: SupportedLanguage,
+): Promise<ContentIndex[]> {
+  const items = Array.from(memoryContentIndexStore.values());
+  return items.filter((item) => {
+    if (contentType && item.contentType !== contentType) return false;
+    if (language && item.language !== language) return false;
+    return item.status === "published";
+  });
 }

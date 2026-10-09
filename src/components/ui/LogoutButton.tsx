@@ -17,7 +17,7 @@ export function LogoutButton({
     } catch (err) {
       console.error("Logout error:", err);
     } finally {
-      window.location.replace("/");
+      window.location.replace(`/?language=${language}`);
     }
   }
 

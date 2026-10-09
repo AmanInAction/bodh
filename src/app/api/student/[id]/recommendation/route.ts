@@ -33,6 +33,12 @@ export async function POST(
     roadmap = await getRoadmap(email);
   }
 
-  const recommendations = getRecommendations(roadmap);
+  const language = record?.language ?? "en";
+  const recommendations = getRecommendations(
+    roadmap,
+    language,
+    record?.goal,
+    record?.weakTopics,
+  );
   return NextResponse.json(recommendations);
 }

@@ -67,8 +67,25 @@ const TOPIC_CONCEPTS: Record<string, { en: string; hi: string }> = {
   },
 };
 
+const HINDI_TOPIC_ALIASES: Record<string, string> = {
+  "ऐरे": "array",
+  "लिंक्ड": "linked-list",
+  "स्टैक": "stack",
+  "क्यू": "queue",
+  "बाइनरी": "binary-search",
+  "रिकर्शन": "recursion",
+};
+
 function getTopicConcept(topic: string, lang: "en" | "hi"): string {
-  const slug = topic.toLowerCase().replace(/\s+/g, "-");
+  const normalized = topic.toLowerCase().trim();
+  let mappedKey = "";
+  for (const [hiName, enKey] of Object.entries(HINDI_TOPIC_ALIASES)) {
+    if (normalized.includes(hiName)) {
+      mappedKey = enKey;
+      break;
+    }
+  }
+  const slug = (mappedKey || normalized).replace(/\s+/g, "-");
   const entry =
     TOPIC_CONCEPTS[slug] ??
     Object.entries(TOPIC_CONCEPTS).find(
@@ -141,6 +158,13 @@ function buildFollowUp(
   }
 }
 
+const ALTERNATIVE_STYLES: Record<TeachingStyle, TeachingStyle> = {
+  simple: "visual",
+  visual: "socratic",
+  socratic: "interview",
+  interview: "simple",
+};
+
 function localResult(
   topic: string,
   style: TeachingStyle,
@@ -151,8 +175,8 @@ function localResult(
     provider: "local",
     explanation: buildExplanation(topic, style, concept, language),
     followUp: buildFollowUp(topic, style, language),
-    recommendedStyle: style,
-    confidence: 72,
+    recommendedStyle: ALTERNATIVE_STYLES[style] ?? "visual",
+    confidence: 80,
   };
 }
 
@@ -232,8 +256,8 @@ export async function runTeachingTeam(
         provider: "bedrock",
         explanation,
         followUp,
-        recommendedStyle: style,
-        confidence: 75,
+        recommendedStyle: ALTERNATIVE_STYLES[style] ?? "visual",
+        confidence: 80,
       };
     }
   } catch (error) {

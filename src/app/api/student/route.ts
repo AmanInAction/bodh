@@ -1,8 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSessionOrDemo, sessionCookie } from "@/lib/auth/session";
-import { getStudentProfile, putStudentProfile } from "@/lib/aws/dynamodb";
-import type { Student } from "@/types/student";
+import { getSessionOrDemo, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
+import { getStudentRecord, updateStudentProfile } from "@/lib/aws/dynamodb";
+import { LANGUAGE_COOKIE } from "@/lib/i18n";
+import type { LearningGoal, SupportedLanguage, TeachingStyle } from "@/types/student-record";
 
 export async function GET() {
   let session;
@@ -14,24 +15,20 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const profile = await getStudentProfile(session.email);
+  const isDemo = session.email === "student_001@bodh.demo";
+  const studentId = isDemo ? DEMO_STUDENT_ID : session.email;
+  let record = await getStudentRecord(studentId);
 
-  if (!profile) {
-    const newStudent: Student = {
-      id: session.email,
+  if (!record) {
+    record = await updateStudentProfile(studentId, {
       name: session.name,
       email: session.email,
       language: "en",
       preferredStyle: "simple",
-      createdAt: new Date().toISOString(),
-    };
-
-    await putStudentProfile(newStudent);
-
-    return NextResponse.json(newStudent);
+    });
   }
 
-  return NextResponse.json(profile);
+  return NextResponse.json(record);
 }
 
 export async function POST(request: Request) {
@@ -44,20 +41,34 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const updates = (await request.json()) as Partial<Student>;
-  const existing = await getStudentProfile(session.email);
-
-  const student: Student = {
-    id: session.email,
-    name: updates.name ?? existing?.name ?? session.name,
-    email: session.email,
-    language: updates.language ?? existing?.language ?? "en",
-    preferredStyle:
-      updates.preferredStyle ?? existing?.preferredStyle ?? "simple",
-    createdAt: existing?.createdAt ?? new Date().toISOString(),
+  const updates = (await request.json()) as {
+    name?: string;
+    language?: SupportedLanguage;
+    preferredStyle?: TeachingStyle;
+    goal?: LearningGoal;
   };
 
-  await putStudentProfile(student);
+  const isDemo = session.email === "student_001@bodh.demo";
+  const studentId = isDemo ? DEMO_STUDENT_ID : session.email;
 
-  return NextResponse.json(student, { status: 200 });
+  const updatedRecord = await updateStudentProfile(studentId, {
+    name: updates.name,
+    email: session.email,
+    language: updates.language,
+    preferredStyle: updates.preferredStyle,
+    goal: updates.goal,
+  });
+
+  const response = NextResponse.json(updatedRecord, { status: 200 });
+
+  if (updates.language) {
+    response.cookies.set(LANGUAGE_COOKIE, updates.language, {
+      path: "/",
+      maxAge: 31536000,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+    });
+  }
+
+  return response;
 }

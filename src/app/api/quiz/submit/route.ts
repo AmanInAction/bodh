@@ -9,6 +9,7 @@ import { generateFeedback } from "@/lib/ai/feedback";
 import { runTeachingTeam, type TeachingStyle } from "@/lib/agentcore/teaching";
 import { getNextTopic, recordAssessment } from "@/lib/learning/roadmap";
 import { updateTopicScore } from "@/lib/aws/dynamodb";
+import { getTopicTitle } from "@/lib/i18n";
 import type { QuizQuestion } from "@/types/quiz";
 
 const VALID_STYLES: TeachingStyle[] = ["simple", "socratic", "visual", "interview"];
@@ -86,7 +87,14 @@ export async function POST(request: Request) {
     ]);
 
     try {
-      await updateTopicScore({ studentId, language, topicSlug, score });
+      await updateTopicScore({
+        studentId,
+        language,
+        topicSlug,
+        score,
+        teachingStyle: teaching.recommendedStyle,
+        missedConcepts,
+      });
     } catch (err) {
       console.error("[quiz/submit] updateTopicScore failed:", err);
     }
@@ -124,7 +132,10 @@ export async function POST(request: Request) {
       },
       recommendedStyle: teaching.recommendedStyle,
       nextStrategy,
-      nextTopic: { slug: nextTopic.slug, title: nextTopic.title },
+      nextTopic: {
+        slug: nextTopic.slug,
+        title: getTopicTitle(nextTopic.slug, language),
+      },
       roadmap,
     });
   } catch (error) {

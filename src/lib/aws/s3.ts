@@ -3,7 +3,7 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import type { Article, Mindmap } from "@/types/content";
+import type { Article, BlogPost, Mindmap } from "@/types/content";
 import { getAwsCredentials, getEnv } from "@/config/env";
 
 const BUCKET = getEnv("AWS_S3_BUCKET") || "";
@@ -13,6 +13,14 @@ const client = REGION
   : null;
 
 const memoryS3Store = new Map<string, unknown>();
+
+export async function getContent<T>(key: string): Promise<T | null> {
+  return s3Get<T>(key);
+}
+
+export async function putContent<T>(key: string, data: T): Promise<void> {
+  return s3Put(key, data);
+}
 
 async function s3Get<T>(key: string): Promise<T | null> {
   if (!client || !BUCKET) {
@@ -71,6 +79,19 @@ export async function putArticle(article: Article): Promise<void> {
   );
 }
 
+// ── Blogs (blogs/<slug>/<language>.json) ──────────────────────────────────────
+
+export async function getBlog(
+  slug: string,
+  language: "en" | "hi" = "en",
+): Promise<BlogPost | null> {
+  return s3Get<BlogPost>(`blogs/${slug}/${language}.json`);
+}
+
+export async function putBlog(blog: BlogPost): Promise<void> {
+  await s3Put(`blogs/${blog.slug}/${blog.language}.json`, blog);
+}
+
 // ── Mindmaps (Language-Keyed: mindmaps/<topic>/<language>.json) ───────────────
 
 export async function getMindmap(
@@ -90,3 +111,4 @@ export async function putMindmap(
     language: resolvedLang,
   });
 }
+

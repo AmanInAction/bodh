@@ -19,7 +19,7 @@ export default async function MindMapPage({
     cookieStore.get(LANGUAGE_COOKIE)?.value,
   );
   const strings = UI_STRINGS[language];
-  const mindmap = await getOrGenerateMindmap(topic);
+  const mindmap = await getOrGenerateMindmap(topic, language);
 
   return (
     <main className="site-shell">

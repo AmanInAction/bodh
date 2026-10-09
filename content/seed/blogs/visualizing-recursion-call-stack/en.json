@@ -1,0 +1,39 @@
+{
+  "slug": "visualizing-recursion-call-stack",
+  "language": "en",
+  "title": "Visualizing the Recursion Call Stack Without Panic",
+  "excerpt": "A calm, visual way to understand base cases, call frames, and how recursive functions build up and unwind on the stack.",
+  "lead": "Recursion often feels like magic or a hall of mirrors. But inside your computer, it's just a stack of plates: each function call places a plate down, and returns pick plates back up one at a time.",
+  "category": "Core Algorithms",
+  "tags": ["recursion", "call-stack", "visual"],
+  "authorName": "bodh. Team",
+  "authorRole": "Pedagogy & Foundations",
+  "publishedAt": "2026-10-03",
+  "readingTime": 6,
+  "featured": false,
+  "sections": [
+    {
+      "heading": "1. The Stack of Plates Metaphor",
+      "body": "When function `factorial(3)` calls `factorial(2)`, the computer cannot finish `factorial(3)` yet. It pauses, pushes a new memory frame onto the call stack for `factorial(2)`, and starts running that. Only when the top of the stack returns can lower frames resume."
+    },
+    {
+      "heading": "2. The Base Case Is the Floor",
+      "body": "Without a base case, your function stacks plates forever until memory runs out — causing the famous `RecursionError` or Stack Overflow. The base case is the condition where no further call is made; the recursion stops and starts returning values upward.",
+      "codeSnippet": {
+        "language": "python",
+        "code": "def factorial(n):\n    # 1. Base case (stops the stack from growing)\n    if n <= 1:\n        return 1\n    # 2. Recursive step (smaller subproblem)\n    return n * factorial(n - 1)",
+        "caption": "Base case terminates the chain at n=1"
+      }
+    },
+    {
+      "heading": "3. The Two Phases: Winding & Unwinding",
+      "body": "Every recursive function goes through two distinct phases: Winding (calling deeper, passing parameters forward, building up the stack) and Unwinding (reaching the base case, calculating results, popping frames, and passing answers back).",
+      "callout": "Key insight: Work done before the recursive call happens on the way down; work done with the return value happens on the way up."
+    },
+    {
+      "heading": "4. Mental Model Checklist",
+      "body": "Before writing recursive code, answer three questions: 1. What is the smallest subproblem that can be answered immediately? (Base case) 2. How does each call make the input strictly smaller? 3. How do I combine the returned sub-result with current state?"
+    }
+  ],
+  "relatedTopics": ["recursion", "stacks"]
+}
