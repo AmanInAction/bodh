@@ -1,9 +1,34 @@
-import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { getSessionOrDemo, sessionCookie, DEMO_STUDENT_ID } from "@/lib/auth/session";
-import { getStudentRecord, updateStudentProfile } from "@/lib/aws/dynamodb";
-import { LANGUAGE_COOKIE } from "@/lib/i18n";
-import type { LearningGoal, SupportedLanguage, TeachingStyle } from "@/types/student-record";
+import { NextResponse } from "next/server";
+import {
+  getSessionOrDemo,
+  sessionCookie,
+  DEMO_STUDENT_ID,
+} from "@/lib/auth/session";
+import {
+  getStudentRecord,
+  updateStudentProfile,
+  resolveStudentId,
+} from "@/lib/aws/dynamodb";
+import {
+  getLocalStudentRecord,
+  putLocalStudentRecord,
+} from "@/lib/local/store";
+import { LANGUAGE_COOKIE, resolveLanguage } from "@/lib/i18n";
+import type {
+  LearningGoal,
+  StudentRecord,
+  SupportedLanguage,
+  TeachingStyle,
+} from "@/types/student-record";
+
+const VALID_GOALS: LearningGoal[] = ["scratch", "foundations", "interview"];
+const VALID_STYLES: TeachingStyle[] = [
+  "simple",
+  "socratic",
+  "visual",
+  "interview",
+];
 
 export async function GET() {
   let session;
@@ -15,20 +40,34 @@ export async function GET() {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const isDemo = session.email === "student_001@bodh.demo";
-  const studentId = isDemo ? DEMO_STUDENT_ID : session.email;
-  let record = await getStudentRecord(studentId);
+  const cookieStore = await cookies();
+  const cookieLang = cookieStore.get(LANGUAGE_COOKIE)?.value;
+  const studentId =
+    session.email === "student_001@bodh.demo"
+      ? DEMO_STUDENT_ID
+      : resolveStudentId(session.email);
 
-  if (!record) {
-    record = await updateStudentProfile(studentId, {
-      name: session.name,
-      email: session.email,
-      language: "en",
-      preferredStyle: "simple",
-    });
-  }
+  const record =
+    (await getStudentRecord(studentId)) ??
+    (await getLocalStudentRecord(studentId));
 
-  return NextResponse.json(record);
+  const language = resolveLanguage(null, record?.language, cookieLang);
+
+  const canonical: StudentRecord = record ?? {
+    studentId,
+    name: session.name,
+    email: session.email,
+    language,
+    preferredStyle: "simple",
+    topics: {},
+    weakTopics: [],
+    createdAt: new Date().toISOString(),
+  };
+
+  return NextResponse.json({
+    ...canonical,
+    id: canonical.studentId,
+  });
 }
 
 export async function POST(request: Request) {
@@ -41,32 +80,57 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  const updates = (await request.json()) as {
+  const body = (await request.json().catch(() => ({}))) as {
     name?: string;
-    language?: SupportedLanguage;
-    preferredStyle?: TeachingStyle;
-    goal?: LearningGoal;
+    language?: string;
+    preferredStyle?: string;
+    goal?: string;
   };
 
-  const isDemo = session.email === "student_001@bodh.demo";
-  const studentId = isDemo ? DEMO_STUDENT_ID : session.email;
+  const studentId =
+    session.email === "student_001@bodh.demo"
+      ? DEMO_STUDENT_ID
+      : resolveStudentId(session.email);
+
+  const nextLanguage: SupportedLanguage | undefined =
+    body.language === "hi"
+      ? "hi"
+      : body.language === "en"
+        ? "en"
+        : undefined;
+
+  const nextStyle: TeachingStyle | undefined = VALID_STYLES.includes(
+    body.preferredStyle as TeachingStyle,
+  )
+    ? (body.preferredStyle as TeachingStyle)
+    : undefined;
+
+  const nextGoal: LearningGoal | undefined = VALID_GOALS.includes(
+    body.goal as LearningGoal,
+  )
+    ? (body.goal as LearningGoal)
+    : undefined;
 
   const updatedRecord = await updateStudentProfile(studentId, {
-    name: updates.name,
+    name: typeof body.name === "string" && body.name.trim() ? body.name.trim() : session.name,
     email: session.email,
-    language: updates.language,
-    preferredStyle: updates.preferredStyle,
-    goal: updates.goal,
+    language: nextLanguage,
+    preferredStyle: nextStyle,
+    goal: nextGoal,
   });
 
-  const response = NextResponse.json(updatedRecord, { status: 200 });
+  await putLocalStudentRecord(updatedRecord).catch(() => {});
 
-  if (updates.language) {
-    response.cookies.set(LANGUAGE_COOKIE, updates.language, {
+  const response = NextResponse.json({
+    ...updatedRecord,
+    id: updatedRecord.studentId,
+  });
+
+  if (nextLanguage) {
+    response.cookies.set(LANGUAGE_COOKIE, nextLanguage, {
       path: "/",
-      maxAge: 31536000,
+      maxAge: 60 * 60 * 24 * 365,
       sameSite: "lax",
-      secure: process.env.NODE_ENV === "production",
     });
   }
 

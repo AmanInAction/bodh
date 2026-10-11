@@ -150,6 +150,9 @@ export function Navbar({
             })}
           </div>
           <div className="nav-mobile-footer">
+            <Suspense fallback={null}>
+              <LanguageToggle currentLanguage={language} />
+            </Suspense>
             {userName && (
               <div className="nav-mobile-user">
                 <span className="avatar">{userName[0]?.toUpperCase() ?? "S"}</span>

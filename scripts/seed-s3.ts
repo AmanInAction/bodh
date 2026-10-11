@@ -150,7 +150,7 @@ function buildMindmap(article: Article): Mindmap {
 
     // Extract two meaningful phrases from the section body as leaf nodes
     const sentences = section.body
-      .split(/[.!?]+/)
+      .split(/[.!?।]+/)
       .map((s) => s.trim())
       .filter((s) => s.length > 10)
       .slice(0, 2);
@@ -165,10 +165,19 @@ function buildMindmap(article: Article): Mindmap {
   });
 
   // Add "Try This" as a branch
-  nodes.push({ id: "try", label: "Try This", level: 1 });
+  nodes.push({
+    id: "try",
+    label: article.language === "hi" ? "यह आज़माएं" : "Try This",
+    level: 1,
+  });
   edges.push({ from: rootId, to: "try" });
 
-  return { topicSlug: article.topicSlug, nodes, edges };
+  return {
+    topicSlug: article.topicSlug,
+    language: article.language,
+    nodes,
+    edges,
+  };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -237,9 +246,6 @@ async function main() {
     const files = await readdir(topicDir);
     const jsonFiles = files.filter((f) => f.endsWith(".json"));
 
-    // Track whether we've already built + uploaded a mindmap for this topic
-    let mindmapDone = false;
-
     for (const file of jsonFiles) {
       const language = file.replace(".json", "") as "en" | "hi";
       const articleKey = `articles/${topic}/${language}.json`;
@@ -259,20 +265,17 @@ async function main() {
           totalUploads++;
         }
 
-        // ── Mindmap (English article only, language-agnostic mindmap) ────────
-        if (language === "en" && !mindmapDone) {
-          const mindmapKey = `mindmaps/${topic}.json`;
-          const mindmapExists = await s3Exists(mindmapKey);
-          if (mindmapExists) {
-            console.log(`  ⏭  ${mindmapKey}  (already exists)`);
-            totalSkips++;
-          } else {
-            const mindmap = buildMindmap(article);
-            await s3Put(mindmapKey, mindmap);
-            console.log(`  ✅  ${mindmapKey}`);
-            totalUploads++;
-          }
-          mindmapDone = true;
+        // ── Mindmap (Language-specific: mindmaps/<topic>/<language>.json) ─────
+        const mindmapKey = `mindmaps/${topic}/${language}.json`;
+        const mindmapExists = await s3Exists(mindmapKey);
+        if (mindmapExists) {
+          console.log(`  ⏭  ${mindmapKey}  (already exists)`);
+          totalSkips++;
+        } else {
+          const mindmap = buildMindmap(article);
+          await s3Put(mindmapKey, mindmap);
+          console.log(`  ✅  ${mindmapKey}`);
+          totalUploads++;
         }
       } catch (err) {
         const msg = `  ❌  ${articleKey}: ${String(err)}`;

@@ -17,7 +17,6 @@ import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { Navbar } from "@/components/ui/Navbar";
 import { ButtonLink } from "@/components/ui/Button";
-import { Badge } from "@/components/ui/Badge";
 import { getEnv } from "@/config/env";
 import {
   LANGUAGE_COOKIE,
@@ -84,7 +83,7 @@ export default async function DashboardPage({
   const lessonsCompleted = record
     ? Object.values(record.topics).reduce((s, t) => s + (t.attempts ?? 0), 0)
     : roadmap.reduce((s, r) => s + r.completedLessons, 0);
-  const loginStreak = record?.streakDays ?? (record?.loginCount ?? 1);
+  const loginStreak = record?.loginCount ?? 1;
 
   // Weak topics
   const weakTopics = record
@@ -97,20 +96,8 @@ export default async function DashboardPage({
   const weakestSlug = weakTopics[0];
   const weakestTopic = topics.find((t) => t.slug === weakestSlug);
 
-  const recommendations = getRecommendations(
-    roadmap,
-    language,
-    record?.goal,
-    weakTopics,
-  );
+  const recommendations = getRecommendations(roadmap, language);
   const greeting = getGreeting(language);
-
-  const goalTitle =
-    record?.goal === "scratch"
-      ? strings.learnPage.goalScratch
-      : record?.goal === "interview"
-      ? strings.learnPage.goalInterview
-      : strings.learnPage.goalFoundations;
 
   return (
     <main className="site-shell">
@@ -127,11 +114,6 @@ export default async function DashboardPage({
             label: strings.nav.learn,
             activeMatch: "/learn",
           },
-          {
-            href: `/blogs?language=${language}`,
-            label: strings.nav.blogs,
-            activeMatch: "/blogs",
-          },
         ]}
         userName={session.name}
         showLogout={Boolean(userSession)}
@@ -144,17 +126,6 @@ export default async function DashboardPage({
             {greeting}, {session.name}.
           </h1>
           <p>{strings.dashboardPage.keepGoing}</p>
-          <div style={{ marginTop: "0.625rem", display: "flex", alignItems: "center", gap: "0.75rem", flexWrap: "wrap" }}>
-            <Badge variant="primary">
-              {goalTitle}
-            </Badge>
-            <Link
-              href={`/onboarding?language=${language}`}
-              style={{ fontSize: "0.8125rem", color: "var(--text-muted)", textDecoration: "underline" }}
-            >
-              {isHindi ? "लक्ष्य बदलें" : "Change goal"}
-            </Link>
-          </div>
         </div>
 
         <div className="streak">

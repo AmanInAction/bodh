@@ -2,34 +2,32 @@
 
 import { Suspense } from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { languages } from "@/config/languages";
-import { resolveLanguage, setClientLanguage } from "@/lib/i18n";
+import {
+  getClientLanguage,
+  resolveLanguage,
+  setClientLanguage,
+} from "@/lib/i18n";
 import { Navbar } from "@/components/ui/Navbar";
 
 function LanguageSelectionContent() {
-  const router = useRouter();
   const searchParams = useSearchParams();
-  const currentLang = resolveLanguage(searchParams.get("language"));
+  const currentLang = resolveLanguage(
+    searchParams.get("language"),
+    getClientLanguage(),
+  );
+  const goal = searchParams.get("goal") ?? undefined;
   const isHindi = currentLang === "hi";
 
-  async function handleSelect(code: string, e: React.MouseEvent) {
-    e.preventDefault();
+  function handleSelect(code: string) {
     setClientLanguage(code);
-    const goal = searchParams.get("goal") || undefined;
-    try {
-      await fetch("/api/student", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ language: code, goal }),
-      });
-    } catch {
-      // Continue even if network fails
-    }
-    const targetUrl = goal
-      ? `/learn?language=${code}&goal=${goal}`
-      : `/learn?language=${code}`;
-    router.push(targetUrl);
+    fetch("/api/student", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      keepalive: true,
+      body: JSON.stringify({ language: code, goal }),
+    }).catch(() => {});
   }
 
   return (
@@ -58,7 +56,7 @@ function LanguageSelectionContent() {
             <Link
               key={language.code}
               href={`/learn?language=${language.code}`}
-              onClick={(e) => handleSelect(language.code, e)}
+              onClick={() => handleSelect(language.code)}
             >
               <span>{language.nativeName}</span>
               <span>{language.name}</span>

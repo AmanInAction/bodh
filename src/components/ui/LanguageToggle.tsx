@@ -19,18 +19,23 @@ export function LanguageToggle({
   const searchParams = useSearchParams();
   const [isPending, startTransition] = useTransition();
 
-  function selectLanguage(nextLang: SupportedLanguage) {
+  async function selectLanguage(nextLang: SupportedLanguage) {
     if (nextLang === currentLanguage || isPending) return;
 
-    // 1. Set persistent cookie across the entire domain
+    // 1. Set persistent cookie across the entire domain immediately
     setClientLanguage(nextLang);
 
-    // 2. Persist to student profile if session exists
-    fetch("/api/student", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ language: nextLang }),
-    }).catch(() => {});
+    // 2. Persist to canonical StudentRecord before refreshing server components
+    try {
+      await fetch("/api/student", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({ language: nextLang }),
+      });
+    } catch {
+      // Ignore network/auth errors for unauthenticated visitors
+    }
 
     // 3. Update URL search params and refresh page smoothly
     startTransition(() => {

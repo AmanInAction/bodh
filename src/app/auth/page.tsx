@@ -94,6 +94,7 @@ function AuthForm() {
       const data = (await res.json()) as {
         ok?: boolean;
         isNewUser?: boolean;
+        language?: SupportedLanguage;
         error?: string;
       };
       if (!res.ok) {
@@ -106,12 +107,17 @@ function AuthForm() {
         return;
       }
 
+      const resolvedLang = data.language ?? (isHindi ? "hi" : "en");
+      setClientLanguage(resolvedLang);
+      setLang(resolvedLang);
+
       if (data.isNewUser) {
         setStep("signup");
         return;
       }
 
-      router.push(nextPath);
+      const separator = nextPath.includes("?") ? "&" : "?";
+      router.push(`${nextPath}${separator}language=${resolvedLang}`);
     } finally {
       setLoading(false);
     }
@@ -124,13 +130,15 @@ function AuthForm() {
     setLoading(true);
     try {
       setClientLanguage(language);
-      if (name.trim()) {
-        await fetch("/api/student", {
-          method: "POST",
-          headers: { "content-type": "application/json" },
-          body: JSON.stringify({ name: name.trim(), language }),
-        });
-      }
+      await fetch("/api/student", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        keepalive: true,
+        body: JSON.stringify({
+          name: name.trim() || undefined,
+          language,
+        }),
+      });
       router.push(`/onboarding?language=${language}`);
     } finally {
       setLoading(false);

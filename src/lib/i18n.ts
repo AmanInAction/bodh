@@ -10,6 +10,16 @@ export function setClientLanguage(code: string) {
   }
 }
 
+export function getClientLanguage(): SupportedLanguage | null {
+  if (typeof document === "undefined") return null;
+  const match = document.cookie.match(
+    new RegExp(`(?:^|;\\s*)${LANGUAGE_COOKIE}=([^;]+)`),
+  );
+  const val = match?.[1]?.trim();
+  if (val === "hi" || val === "en") return val;
+  return null;
+}
+
 /**
  * Resolves active language preference following precedence:
  * 1. Explicit search param (?language=hi)

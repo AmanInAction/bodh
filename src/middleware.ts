@@ -34,19 +34,27 @@ export async function middleware(req: NextRequest) {
   const isLoggedIn = !!payload?.email;
   const allowDemo = getEnv("ALLOW_DEMO") !== "false";
 
-  const { pathname } = req.nextUrl;
+  const { pathname, searchParams } = req.nextUrl;
+  const langParam = searchParams.get("language");
   const isProtected = PROTECTED.some((p) => pathname.startsWith(p));
   const isAuthOnly = pathname === "/" || AUTH_ONLY.filter(p => p !== "/").some((p) => pathname.startsWith(p));
 
   // Logged-in user visiting /auth → send to dashboard
   if (isLoggedIn && isAuthOnly) {
-    return NextResponse.redirect(new URL("/dashboard", req.url));
+    const url = new URL("/dashboard", req.url);
+    if (langParam === "hi" || langParam === "en") {
+      url.searchParams.set("language", langParam);
+    }
+    return NextResponse.redirect(url);
   }
 
   // Unauthenticated user visiting a protected route when demo mode is disabled → send to /auth
   if (!isLoggedIn && !allowDemo && isProtected) {
     const url = new URL("/auth", req.url);
     url.searchParams.set("next", pathname);
+    if (langParam === "hi" || langParam === "en") {
+      url.searchParams.set("language", langParam);
+    }
     return NextResponse.redirect(url);
   }
 
