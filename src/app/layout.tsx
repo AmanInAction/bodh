@@ -1,7 +1,9 @@
 import type { Metadata } from "next";
+import { getAppUrl } from "@/config/env";
 import "./globals.css";
 
 export const metadata: Metadata = {
+  metadataBase: new URL(getAppUrl()),
   title: "bodh. | Make difficult ideas easy to grasp",
   description: "A calmer way to learn computer science.",
   openGraph: {

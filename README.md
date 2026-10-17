@@ -11,9 +11,11 @@ bodh. is a bilingual, AI-powered learning app for students aged 15–20 who want
 | Feature                       | Description                                                          |
 | ----------------------------- | -------------------------------------------------------------------- |
 | 📖 **Bilingual lessons**      | Every topic has a full article in English and Hindi                  |
-| 🗺️ **Visual mindmaps**        | AI-generated concept maps for each topic                             |
-| 🧠 **Adaptive quizzes**       | Five questions per topic, generated via Amazon Bedrock               |
-| 🤖 **Teaching team**          | Teacher, Evaluator, and Assessor agents collaborate via `/api/teach` |
+| 🧠 **Adaptive quizzes**       | Five conceptual questions per topic with server-side validation     |
+| 🎯 **Evidence-based assessment** | Agent diagnoses weak concepts and misconceptions after each quiz   |
+| 💡 **Explain Differently**    | Targeted explanations in Simple, Socratic, Visual, or Interview style |
+| 🔄 **Targeted re-testing**    | Fresh follow-up questions to verify comprehension before advancing   |
+| 🤖 **Teaching team**          | Multi-agent architecture orchestrated for Class 10–12 students       |
 | 📊 **Progress dashboard**     | Mastery scores, roadmap recommendations, and next-topic suggestions  |
 | 🔐 **Magic-link auth**        | Passwordless sign-in via email verification codes                    |
 | 🌐 **Offline-first fallback** | Seed content loads without AWS — the UI never breaks                 |
@@ -72,18 +74,23 @@ The app runs in local mode without AWS credentials. Seed content is loaded from 
 | `/learn`                 | Browse the topic library              |
 | `/learn/[topic]`         | Topic overview and lesson path        |
 | `/learn/[topic]/article` | Read the bilingual lesson article     |
-| `/learn/[topic]/mindmap` | Explore the topic visually            |
 | `/learn/[topic]/quiz`    | Take a five-question practice quiz    |
 | `/dashboard`             | Progress overview and recommendations |
 | `/auth`                  | Request and verify a magic-link code  |
 
-**Typical learning flow:** sign in → choose language → pick a topic → read the article → take the quiz → get AI feedback → follow the recommended next topic.
+**Typical learning flow:** sign in → choose language → pick a topic → read the article → take the quiz → get AI assessment & Explain Differently → targeted re-test → advance to recommended topic.
 
 ---
 
 ## Configuration
 
-Create a `.env.local` file in the project root. All variables are optional for local development — the app degrades gracefully without them.
+Copy `.env.example` to `.env.local` in the project root. All variables are optional for local development — the app degrades gracefully with seed content and local mock fallbacks without them.
+
+```bash
+cp .env.example .env.local
+```
+
+### Environment variables overview
 
 ```bash
 # AWS (required for full AI + persistence features)
@@ -93,8 +100,12 @@ AWS_DYNAMODB_TABLE=bodh-students
 AWS_AUTH_TABLE=bodh-auth
 AWS_STUDENT_RECORD_TABLE=bodh-student-records
 
-# Amazon Bedrock
+# Amazon Bedrock (default & task-specific models)
 BEDROCK_MODEL_ID=amazon.nova-lite-v1:0
+BEDROCK_QUIZ_MODEL_ID=amazon.nova-lite-v1:0
+BEDROCK_ASSESSMENT_MODEL_ID=amazon.nova-lite-v1:0
+BEDROCK_TEACHING_MODEL_ID=amazon.nova-lite-v1:0
+BEDROCK_RECOMMENDATION_MODEL_ID=amazon.nova-lite-v1:0
 
 # Auth (required in production)
 AUTH_SECRET=<generate with: openssl rand -base64 32>
@@ -137,7 +148,7 @@ This creates:
 
 ## Seeding content to S3
 
-After AWS setup, upload all seed articles and mindmaps:
+After AWS setup, upload all seed articles:
 
 ```bash
 # PowerShell (Windows)
@@ -152,7 +163,6 @@ Add `SEED_DRY_RUN=true` to preview what would be uploaded without touching S3. A
 The script uploads:
 
 - `articles/<topic>/<lang>.json` — one per topic per language (12 total)
-- `mindmaps/<topic>.json` — one per topic (6 total), built from the English article
 
 ---
 
@@ -172,21 +182,21 @@ src/
     api/              REST endpoints (learn, quiz, teach, progress, auth…)
     auth/             Sign-in and verify pages
     dashboard/        Progress and recommendations
-    learn/            Topic library, article, mindmap, and quiz pages
+    learn/            Topic library, article, and quiz pages
     onboarding/       Language and starting-point selection
   components/
     dashboard/        Progress cards and roadmap UI
-    learning/         Article reader, mindmap canvas, topic cards
-    quiz/             Quiz session and feedback components
+    learning/         Article reader, Explain Differently, topic cards
+    quiz/             Quiz session, assessment, and targeted re-test components
     ui/               Buttons, cards, progress, language, and auth controls
   config/
     topics.ts         Topic slugs, titles, levels, and colors
     languages.ts      Supported language codes (en, hi)
   lib/
-    ai/               Prompts, quiz generation, and feedback logic
+    ai/               Prompts, quiz generation, assessment, and feedback logic
     agentcore/        Teaching team agent orchestration
     aws/              Bedrock, DynamoDB, and S3 clients
-    learning/         Content loading, mindmap generation, roadmap logic
+    learning/         Content loading and roadmap logic
   types/              Shared TypeScript domain types
 ```
 

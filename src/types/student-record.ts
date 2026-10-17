@@ -2,6 +2,37 @@ export type LearningGoal = "scratch" | "foundations" | "interview";
 export type TeachingStyle = "simple" | "socratic" | "visual" | "interview";
 export type SupportedLanguage = "en" | "hi";
 
+export type ConceptEvidence = {
+  concept: string;
+  correctCount: number;
+  incorrectCount: number;
+  lastTestedAt: string;
+  resolved?: boolean;
+};
+
+/**
+ * Structured assessment contract produced by Agent 2 (Assessment Agent)
+ * and persisted on the student's topic performance record.
+ */
+export type StructuredAssessment = {
+  strengths: string[];
+  weakConcepts: string[];
+  misconceptions: string[];
+  recommendedAction: "advance" | "practice" | "explain_differently" | "review_prerequisite";
+  recommendedStyle: TeachingStyle;
+  prerequisiteTopicSlug?: string;
+  masteryEvidence: {
+    score: number;
+    correct: number;
+    total: number;
+    isRetest?: boolean;
+    improvedConcepts?: string[];
+  };
+  confidence: number;
+  reasoningSummary: string;
+  nextStep: string;
+};
+
 /**
  * Shape of a single topic's performance data inside StudentRecord.
  */
@@ -12,6 +43,10 @@ export type TopicPerformance = {
   completedLessons?: number;  // Completed lessons count
   lastAttemptAt?: string;     // ISO-8601 timestamp
   missedConcepts?: string[];  // Concepts missed in recent attempt
+  weakConcepts?: string[];    // Ongoing weak sub-concepts needing reinforcement
+  masteredConcepts?: string[]; // Sub-concepts demonstrated accurately
+  conceptHistory?: Record<string, ConceptEvidence>;
+  lastAssessment?: StructuredAssessment;
   teachingStyle?: TeachingStyle;
 };
 

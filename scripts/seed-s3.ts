@@ -1,7 +1,7 @@
 /**
  * scripts/seed-s3.ts
  *
- * Uploads all seed content (articles + mindmaps) to the configured S3 bucket.
+ * Uploads all seed content (articles + blogs) to the configured S3 bucket.
  *
  * Usage:
  *   npx tsx scripts/seed-s3.ts
@@ -22,12 +22,7 @@ import {
   PutObjectCommand,
   HeadObjectCommand,
 } from "@aws-sdk/client-s3";
-import type {
-  Article,
-  Mindmap,
-  MindmapNode,
-  MindmapEdge,
-} from "../src/types/content";
+import type { Article } from "../src/types/content";
 
 async function loadEnvFile(filePath: string) {
   try {
@@ -95,7 +90,6 @@ async function initializeConfig() {
   }
 }
 
-// Client is created lazily so SEED_DRY_RUN=true never validates the region
 let _client: S3Client | null = null;
 function getClient(): S3Client {
   if (!_client) _client = new S3Client({ region: REGION });
@@ -124,60 +118,13 @@ async function s3Put(key: string, body: unknown): Promise<void> {
 }
 
 async function s3Exists(key: string): Promise<boolean> {
-  if (DRY_RUN) return false; // always re-upload in dry-run so output is visible
+  if (DRY_RUN) return false;
   try {
     await getClient().send(new HeadObjectCommand({ Bucket: BUCKET, Key: key }));
     return true;
   } catch {
     return false;
   }
-}
-
-// ── Mindmap builder ───────────────────────────────────────────────────────────
-// Generates a static mindmap from the article seed so the script works
-// without a Bedrock call. The live app will overwrite this with an AI-generated
-// version the first time a user visits the mindmap page.
-
-function buildMindmap(article: Article): Mindmap {
-  const rootId = "root";
-  const nodes: MindmapNode[] = [{ id: rootId, label: article.title, level: 0 }];
-  const edges: MindmapEdge[] = [];
-
-  article.sections.forEach((section, i) => {
-    const branchId = `branch-${i}`;
-    nodes.push({ id: branchId, label: section.heading, level: 1 });
-    edges.push({ from: rootId, to: branchId });
-
-    // Extract two meaningful phrases from the section body as leaf nodes
-    const sentences = section.body
-      .split(/[.!?।]+/)
-      .map((s) => s.trim())
-      .filter((s) => s.length > 10)
-      .slice(0, 2);
-
-    sentences.forEach((phrase, j) => {
-      const leafId = `leaf-${i}-${j}`;
-      const label =
-        phrase.length > 40 ? phrase.slice(0, 37).trimEnd() + "…" : phrase;
-      nodes.push({ id: leafId, label, level: 2 });
-      edges.push({ from: branchId, to: leafId });
-    });
-  });
-
-  // Add "Try This" as a branch
-  nodes.push({
-    id: "try",
-    label: article.language === "hi" ? "यह आज़माएं" : "Try This",
-    level: 1,
-  });
-  edges.push({ from: rootId, to: "try" });
-
-  return {
-    topicSlug: article.topicSlug,
-    language: article.language,
-    nodes,
-    edges,
-  };
 }
 
 // ── Main ──────────────────────────────────────────────────────────────────────
@@ -190,7 +137,6 @@ async function main() {
   console.log(`    Region : ${REGION}`);
   console.log(`    Source : ${SEED_ROOT}\n`);
 
-  // Enumerate topic folders
   const topicEntries = await readdir(SEED_ROOT, { withFileTypes: true });
   const topicFolders = topicEntries
     .filter((e) => e.isDirectory())
@@ -251,7 +197,6 @@ async function main() {
       const articleKey = `articles/${topic}/${language}.json`;
 
       try {
-        // ── Article ──────────────────────────────────────────────────────────
         const raw = await readFile(join(topicDir, file), "utf-8");
         const article = JSON.parse(raw) as Article;
 
@@ -264,19 +209,6 @@ async function main() {
           console.log(`  ✅  ${articleKey}`);
           totalUploads++;
         }
-
-        // ── Mindmap (Language-specific: mindmaps/<topic>/<language>.json) ─────
-        const mindmapKey = `mindmaps/${topic}/${language}.json`;
-        const mindmapExists = await s3Exists(mindmapKey);
-        if (mindmapExists) {
-          console.log(`  ⏭  ${mindmapKey}  (already exists)`);
-          totalSkips++;
-        } else {
-          const mindmap = buildMindmap(article);
-          await s3Put(mindmapKey, mindmap);
-          console.log(`  ✅  ${mindmapKey}`);
-          totalUploads++;
-        }
       } catch (err) {
         const msg = `  ❌  ${articleKey}: ${String(err)}`;
         console.error(msg);
@@ -285,7 +217,6 @@ async function main() {
     }
   }
 
-  // ── Summary ────────────────────────────────────────────────────────────────
   console.log("\n────────────────────────────────────────");
   console.log(`  Topics  : ${topicFolders.length}`);
   console.log(`  Uploaded: ${totalUploads}`);

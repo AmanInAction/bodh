@@ -17,7 +17,7 @@ import { getRoadmap } from "@/lib/learning/roadmap";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { Navbar } from "@/components/ui/Navbar";
 import { ButtonLink } from "@/components/ui/Button";
-import { getEnv } from "@/config/env";
+import { isDemoAllowed } from "@/config/env";
 import {
   LANGUAGE_COOKIE,
   resolveLanguage,
@@ -37,7 +37,7 @@ export default async function DashboardPage({
   const userSession = await readSession(token);
 
   if (!userSession) {
-    const allowDemo = getEnv("ALLOW_DEMO") !== "false";
+    const allowDemo = isDemoAllowed();
     if (!allowDemo) {
       redirect("/auth");
     }
@@ -83,7 +83,7 @@ export default async function DashboardPage({
   const lessonsCompleted = record
     ? Object.values(record.topics).reduce((s, t) => s + (t.attempts ?? 0), 0)
     : roadmap.reduce((s, r) => s + r.completedLessons, 0);
-  const loginStreak = record?.loginCount ?? 1;
+  const loginStreak = record?.streakDays ?? 1;
 
   // Weak topics
   const weakTopics = record
@@ -96,7 +96,12 @@ export default async function DashboardPage({
   const weakestSlug = weakTopics[0];
   const weakestTopic = topics.find((t) => t.slug === weakestSlug);
 
-  const recommendations = getRecommendations(roadmap, language);
+  const recommendations = getRecommendations(
+    roadmap,
+    language,
+    record?.goal,
+    weakTopics,
+  );
   const greeting = getGreeting(language);
 
   return (

@@ -3,13 +3,17 @@ import {
   GetObjectCommand,
   PutObjectCommand,
 } from "@aws-sdk/client-s3";
-import type { Article, BlogPost, Mindmap } from "@/types/content";
-import { getAwsCredentials, getEnv } from "@/config/env";
+import type { Article, BlogPost } from "@/types/content";
+import { getAwsCredentials, getAwsMaxAttempts, getEnv } from "@/config/env";
 
 const BUCKET = getEnv("AWS_S3_BUCKET") || "";
 const REGION = getEnv("AWS_REGION");
 const client = REGION
-  ? new S3Client({ region: REGION, credentials: getAwsCredentials() })
+  ? new S3Client({
+      region: REGION,
+      credentials: getAwsCredentials(),
+      maxAttempts: getAwsMaxAttempts(),
+    })
   : null;
 
 const memoryS3Store = new Map<string, unknown>();
@@ -91,24 +95,3 @@ export async function getBlog(
 export async function putBlog(blog: BlogPost): Promise<void> {
   await s3Put(`blogs/${blog.slug}/${blog.language}.json`, blog);
 }
-
-// ── Mindmaps (Language-Keyed: mindmaps/<topic>/<language>.json) ───────────────
-
-export async function getMindmap(
-  topicSlug: string,
-  language: "en" | "hi" = "en",
-): Promise<Mindmap | null> {
-  return s3Get<Mindmap>(`mindmaps/${topicSlug}/${language}.json`);
-}
-
-export async function putMindmap(
-  mindmap: Mindmap,
-  language?: "en" | "hi",
-): Promise<void> {
-  const resolvedLang = language ?? mindmap.language ?? "en";
-  await s3Put(`mindmaps/${mindmap.topicSlug}/${resolvedLang}.json`, {
-    ...mindmap,
-    language: resolvedLang,
-  });
-}
-

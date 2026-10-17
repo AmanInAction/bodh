@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { jwtVerify } from "jose/jwt/verify";
 import { sessionCookie, getAuthSecret } from "@/lib/auth/session";
-import { getEnv, validateProductionEnv } from "@/config/env";
+import { isDemoAllowed, validateProductionEnv } from "@/config/env";
 
 let envValidated = false;
 
@@ -32,7 +32,7 @@ export async function middleware(req: NextRequest) {
   const token = req.cookies.get(sessionCookie)?.value;
   const payload = token ? await verifyJwtPayload(token) : null;
   const isLoggedIn = !!payload?.email;
-  const allowDemo = getEnv("ALLOW_DEMO") !== "false";
+  const allowDemo = isDemoAllowed();
 
   const { pathname, searchParams } = req.nextUrl;
   const langParam = searchParams.get("language");

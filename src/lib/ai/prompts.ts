@@ -1,37 +1,88 @@
 /**
- * Central prompt library for all AI calls.
- * Keeping prompts here makes the provider layer replaceable.
+ * Central prompt library for all AI calls across the 3-agent learning workflow:
+ * - Agent 1: Quiz & Testing (Grounded MCQ & Targeted Re-test generation)
+ * - Agent 2: Assessment (Evidence-based strengths, weakConcepts, misconceptions, recommendedAction)
+ * - Agent 3: Explain Differently (Style-adaptive explanations & follow-ups)
+ * - Recommendation Coach
  */
 
 export const PROMPTS = {
+  // ── Agent 1: Quiz and Testing ──────────────────────────────────────────────
   quizSystem: (language: "en" | "hi") =>
     language === "hi"
       ? `आप कक्षा 10–12 के विद्यार्थियों के लिए एक धैर्यवान DSA (Data Structures & Algorithms) शिक्षक हैं।
-दिए गए विषय पर ठीक 5 बहुविकल्पीय प्रश्न (MCQs) बनाएं।
-हर प्रश्न में 4 विकल्प हों। भाषा सहज शैक्षिक हिंदी/Hinglish रखें (जहाँ तकनीकी शब्द जैसे Array, Index, Pointer, Push, Pop, O(1), O(log n) प्राकृतिक लगें उन्हें रखें)।
+दिए गए पाठ और सीखने के उद्देश्यों (learning objectives) के आधार पर ठीक 5 बहुविकल्पीय प्रश्न (MCQs) बनाएं।
+हर प्रश्न में 4 विकल्प हों जो अवधारणात्मक समझ और व्यावहारिक तर्क को परखें (केवल रटने को नहीं)।
+भाषा सहज शैक्षिक हिंदी/Hinglish रखें (जहाँ तकनीकी शब्द जैसे Array, Index, Pointer, Push, Pop, O(1), O(log n) प्राकृतिक लगें उन्हें रखें)।
+"concept" फ़ील्ड में उस विशिष्ट उप-अवधारणा (2-4 शब्द अंग्रेजी में) का नाम दें जिसकी जाँच हो रही है।
 केवल वैध JSON array लौटाएं:
-[{"id":"1","prompt":"प्रश्न...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"अवधारणा का नाम"}]`
+[{"id":"1","prompt":"प्रश्न...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"index access"}]`
       : `You are a DSA (Data Structures & Algorithms) teacher for Class 10–12 students.
-Generate exactly 5 multiple-choice questions (MCQ) about the given topic.
+Generate exactly 5 multiple-choice questions (MCQ) grounded in the provided article and learning objectives.
+Test conceptual understanding and practical reasoning, not just memorization. Include plausible distractors.
 Each question must have 4 options. Return only a valid JSON array, no markdown.
-The "concept" field must be a short English phrase (2-5 words) naming the specific concept tested.
+The "concept" field must be a short English phrase (2-4 words) naming the specific sub-concept tested.
 Format:
 [{"id":"1","prompt":"Question...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"mid calculation"}]`,
 
-  quizUser: (topicSlug: string, language: "en" | "hi") =>
-    language === "hi"
-      ? `विषय: ${topicSlug}. इस विषय पर 5 MCQ हिंदी में बनाएं जो अवधारणा को वास्तव में परखें। हर प्रश्न के लिए एक concept field भी दें।`
-      : `Topic: ${topicSlug}. Generate 5 MCQs that genuinely test understanding of this concept. Include a concept field for each question.`,
+  quizUser: (
+    topicSlug: string,
+    language: "en" | "hi",
+    context?: {
+      articleSummary?: string;
+      objectives?: string[];
+      weakConcepts?: string[];
+    },
+  ) => {
+    const objText = context?.objectives?.length
+      ? `\nLearning Objectives: ${context.objectives.join("; ")}`
+      : "";
+    const weakText = context?.weakConcepts?.length
+      ? `\nTarget weak concepts to include: ${context.weakConcepts.join(", ")}`
+      : "";
+    const artText = context?.articleSummary
+      ? `\nArticle Context: ${context.articleSummary}`
+      : "";
 
+    return language === "hi"
+      ? `विषय: ${topicSlug}.${objText}${weakText}${artText}\nइस विषय पर 5 MCQ हिंदी में बनाएं जो अवधारणा को वास्तव में परखें। हर प्रश्न के लिए एक concept field भी दें।`
+      : `Topic: ${topicSlug}.${objText}${weakText}${artText}\nGenerate 5 MCQs that genuinely test understanding of this concept. Include a concept field for each question.`;
+  },
+
+  retestQuestionSystem: (language: "en" | "hi") =>
+    language === "hi"
+      ? `आप कक्षा 10–12 के विद्यार्थियों के लिए एक DSA शिक्षक हैं।
+छात्र को अभी-अभी एक कमजोर अवधारणा समझाई गई है। यह जाँचने के लिए कि क्या उनकी समझ में सुधार हुआ है, ठीक 1 नया बहुविकल्पीय प्रश्न (MCQ) बनाएं।
+प्रश्न में सीधे उत्तर का संकेत न दें। केवल वैध JSON object लौटाएं:
+{"id":"retest-1","prompt":"...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"..."}`
+      : `You are a DSA teacher for Class 10–12 students.
+The student just received a targeted explanation for a weak concept. Generate exactly 1 fresh multiple-choice question (MCQ) testing that specific concept without giving away the answer in the wording.
+Return only a valid JSON object:
+{"id":"retest-1","prompt":"...","options":["A","B","C","D"],"answer":0,"explanation":"...","concept":"..."}`,
+
+  retestQuestionUser: (
+    topicSlug: string,
+    concept: string,
+    language: "en" | "hi",
+    explanationGiven?: string,
+  ) =>
+    language === "hi"
+      ? `विषय: ${topicSlug}. लक्षित अवधारणा (Weak Concept): ${concept}.${explanationGiven ? `\nदी गई व्याख्या का संदर्भ: ${explanationGiven.slice(0, 200)}` : ""}\nएक नया जाँच प्रश्न हिंदी में बनाएं।`
+      : `Topic: ${topicSlug}. Target weak concept: ${concept}.${explanationGiven ? `\nContext of explanation given: ${explanationGiven.slice(0, 200)}` : ""}\nGenerate 1 fresh check question testing this concept.`,
+
+  // ── Agent 2: Assessment Agent ──────────────────────────────────────────────
   feedbackSystem: (language: "en" | "hi") =>
     language === "hi"
-      ? `आप एक दयालु और प्रोत्साहित करने वाले DSA शिक्षक हैं।
-छात्र के क्विज़ परिणाम के आधार पर सहज हिंदी में संक्षिप्त प्रतिक्रिया दें।
-केवल JSON लौटाएं:
-{"strengths":["..."],"weaknesses":["..."],"nextStep":"...","confidence":75}`
-      : `You are a kind, encouraging DSA teacher.
-Give brief feedback based on the student's quiz result and missed concepts.
-Return JSON only: {"strengths":["..."],"weaknesses":["..."],"nextStep":"...","confidence":75}`,
+      ? `आप एक साक्ष्य-आधारित (evidence-based) DSA मूल्यांकन शिक्षक हैं।
+छात्र के क्विज़ उत्तरों, सही/गलत अवधारणाओं और पिछले प्रयासों का विश्लेषण करें।
+केवल उपलब्ध साक्ष्य के आधार पर निष्कर्ष निकालें — यदि पर्याप्त साक्ष्य न हो तो काल्पनिक भ्रांतियाँ (misconceptions) न गढ़ें।
+केवल वैध JSON लौटाएं:
+{"strengths":["..."],"weakConcepts":["..."],"misconceptions":["..."],"recommendedAction":"advance|practice|explain_differently|review_prerequisite","recommendedStyle":"simple|socratic|visual|interview","confidence":75,"reasoningSummary":"...","nextStep":"..."}`
+      : `You are an evidence-based DSA assessment agent for Class 10–12 students.
+Analyze the student's quiz responses, per-question correctness, and previous attempts.
+Distinguish isolated mistakes from recurring misconceptions only when evidence supports it — do not fabricate misconceptions when evidence is insufficient.
+Return JSON only:
+{"strengths":["..."],"weakConcepts":["..."],"misconceptions":["..."],"recommendedAction":"advance|practice|explain_differently|review_prerequisite","recommendedStyle":"simple|socratic|visual|interview","confidence":75,"reasoningSummary":"...","nextStep":"..."}`,
 
   feedbackUser: (
     topic: string,
@@ -40,57 +91,84 @@ Return JSON only: {"strengths":["..."],"weaknesses":["..."],"nextStep":"...","co
     total: number,
     language: "en" | "hi",
     missedConcepts?: string[],
-  ) =>
-    language === "hi"
-      ? `विषय: ${topic}. स्कोर: ${score}% (${correct}/${total}).${missedConcepts?.length ? ` ध्यान देने योग्य अवधारणाएं: ${missedConcepts.join(", ")}.` : ""} हिंदी में संक्षिप्त, सकारात्मक प्रतिक्रिया और अगला कदम दें।`
-      : `Topic: ${topic}. Score: ${score}% (${correct}/${total}).${missedConcepts?.length ? ` Missed concepts: ${missedConcepts.join(", ")}.` : ""} Give concise, positive feedback with one actionable next step.`,
+    extraContext?: {
+      masteredConcepts?: string[];
+      previousAttempts?: number;
+      recurringWeakConcepts?: string[];
+      prerequisites?: string[];
+    },
+  ) => {
+    const mastered = extraContext?.masteredConcepts?.length
+      ? ` Correct concepts: ${extraContext.masteredConcepts.join(", ")}.`
+      : "";
+    const recurring = extraContext?.recurringWeakConcepts?.length
+      ? ` Recurring weak concepts from prior attempts: ${extraContext.recurringWeakConcepts.join(", ")}.`
+      : "";
+    const attemptsInfo =
+      extraContext?.previousAttempts !== undefined
+        ? ` Previous attempts on this topic: ${extraContext.previousAttempts}.`
+        : "";
 
+    return language === "hi"
+      ? `विषय: ${topic}. स्कोर: ${score}% (${correct}/${total}).${missedConcepts?.length ? ` छूटी हुई अवधारणाएं: ${missedConcepts.join(", ")}.` : ""}${mastered}${recurring}${attemptsInfo} हिंदी में सटीक मूल्यांकन और अगला कदम दें।`
+      : `Topic: ${topic}. Score: ${score}% (${correct}/${total}).${missedConcepts?.length ? ` Missed concepts: ${missedConcepts.join(", ")}.` : ""}${mastered}${recurring}${attemptsInfo} Provide structured assessment and one concrete next step.`;
+  },
+
+  // ── Agent 3: Explain Differently ───────────────────────────────────────────
   teacherSystem: (style: string, language: "en" | "hi") =>
     language === "hi"
-      ? `आप कक्षा 10–12 के छात्रों के लिए एक DSA शिक्षक हैं। शिक्षण शैली: ${style}.
-${style === "socratic"
-  ? "सवाल पूछकर और संकेत देकर छात्र को खुद सोचने में मदद करें।"
-  : style === "visual"
-    ? "दृश्य और स्थानिक उदाहरणों (box-and-pointer, मेमोरी चित्र) का उपयोग करें।"
-    : style === "interview"
-      ? "इंटरव्यू प्रश्न, time/space complexity और edge cases के साथ समझाएं।"
-      : "सरल और दोस्ताना भाषा में रोज़मर्रा के उदाहरण से समझाएं।"}
-सहज हिंदी (आवश्यक तकनीकी शब्दों के साथ) में उत्तर दें। 150 शब्दों से कम रखें।`
-      : `You are a DSA teacher for Class 10–12 students. Teaching style: ${style}.
-Explain ${style === "socratic"
-  ? "by asking guiding questions"
-  : style === "visual"
-    ? "using spatial/visual analogies"
-    : style === "interview"
-      ? "as if it's an interview question"
-      : "in simple, friendly language"}.
-Be concise (under 150 words).`,
+      ? `आप कक्षा 10–12 के छात्रों के लिए एक अनुभवी DSA शिक्षक हैं। शिक्षण शैली: ${style}.
+${
+  style === "socratic"
+    ? "सीधे उत्तर बताने के बजाय 2-3 क्रमबद्ध, सोचने वाले प्रश्नों के माध्यम से छात्र को खुद सही तर्क तक पहुँचने में मदद करें।"
+    : style === "visual"
+      ? "स्पष्ट शाब्दिक चित्रण, मेमोरी बॉक्स ([0][1][2]), तीर (→) और कदम-दर-कदम स्टेट ट्रेस (state trace) का उपयोग करके समझाएं।"
+      : style === "interview"
+        ? "तकनीकी तर्क, टाइम और स्पेस कॉम्प्लेक्सिटी (Big-O), एज केस (edge cases) और समस्या-समाधान पैटर्न पर ध्यान केंद्रित करें।"
+        : "सरल, मित्रवत भाषा और रोज़मर्रा के भारतीय जीवन के उदाहरणों के साथ कदम-दर-कदम अंतर्ज्ञान (intuition) समझाएं।"
+}
+सहज हिंदी/Hinglish (आवश्यक तकनीकी अंग्रेजी शब्दों जैसे Array, Pointer, Stack, Queue, O(n) के साथ) में उत्तर दें। 160 शब्दों से कम रखें।`
+      : `You are an expert DSA teacher for Class 10–12 students. Teaching style: ${style}.
+${
+  style === "socratic"
+    ? "Guide the student using 2-3 step-by-step questions and hints so they derive the insight independently rather than just handing them a definition."
+    : style === "visual"
+      ? "Use structured verbal diagrams, ASCII box-and-pointer traces ([0] -> [1]), and step-by-step state changes so the student can picture the operation in memory."
+      : style === "interview"
+        ? "Focus on technical reasoning, Big-O time/space trade-offs, boundary edge cases, and how to communicate the solution clearly in an interview."
+        : "Use beginner-friendly plain language, everyday analogies, and step-by-step intuition."
+}
+Address the specific concept the learner struggled with. Keep it concise (under 160 words).`,
 
   evaluatorSystem: (language: "en" | "hi") =>
     language === "hi"
       ? `आप एक शिक्षक हैं।
-व्याख्या की समीक्षा करें और एक स्पष्ट follow-up प्रश्न पूछें जो छात्र की समझ को गहरा करे।
-सहज हिंदी में उत्तर दें। 80 शब्दों से कम रखें।`
+व्याख्या की समीक्षा करें और एक स्पष्ट, छोटा follow-up विचार प्रश्न पूछें जो छात्र की समझ को परखे।
+सहज हिंदी में उत्तर दें। 60 शब्दों से कम रखें।`
       : `You are an evaluator. Review the teacher's explanation.
-Ask one precise follow-up question that deepens the student's understanding.
-Under 80 words.`,
+Ask one precise, thought-provoking follow-up question that checks whether the student grasped the core idea.
+Under 60 words.`,
 
   assessorSystem: (language: "en" | "hi") =>
     language === "hi"
-      ? `आप एक mastery evaluator हैं।
-शिक्षण संवाद के आधार पर केवल JSON लौटाएं:
-{"recommendedStyle":"simple|socratic|visual|interview","nextSkill":"...","confidence":75}`
-      : `You are a mastery assessor. Based on the teaching dialogue, return JSON only:
-{"recommendedStyle":"simple|socratic|visual|interview","nextSkill":"...","confidence":75}`,
+      ? `आप एक शैक्षणिक मूल्यांकनकर्ता हैं।
+छात्र की कठिनाई, वर्तमान शिक्षण शैली और विषय के आधार पर मूल्यांकन करें कि यदि छात्र को अभी भी कठिनाई हो तो कौन-सी वैकल्पिक शिक्षण शैली (simple, socratic, visual, interview) सबसे अधिक मदद करेगी।
+वर्तमान शैली को ही बिना सोचे-समझे न दोहराएं। केवल वैध JSON लौटाएं:
+{"recommendedStyle":"simple|socratic|visual|interview","nextSkill":"...","confidence":80}`
+      : `You are a pedagogical assessor.
+Given the topic, the student's question/weak concept, and the current teaching style, determine which alternative teaching style (simple, socratic, visual, interview) would best complement or clarify the concept if the learner wants another perspective.
+Do not blindly return the current style. Return valid JSON only:
+{"recommendedStyle":"simple|socratic|visual|interview","nextSkill":"...","confidence":80}`,
 
+  // ── Recommendation Engine ──────────────────────────────────────────────────
   recommendationSystem: (language: "en" | "hi") =>
     language === "hi"
       ? `आप एक personalized DSA learning coach हैं।
-छात्र की progress देखकर अगले 3 learning actions हिंदी में चुनें।
+छात्र की progress, लक्ष्य (goal) और कमजोर अवधारणाओं को देखकर अगले 3 learning actions हिंदी में चुनें।
 केवल JSON array लौटाएं:
 [{"topicSlug":"...","reason":"..."}]`
       : `You are a personalized DSA learning coach.
-Review the student's progress and choose the next 3 learning actions.
+Review the student's progress, learning goal, and weak concepts to choose the next 3 learning actions.
 Return only JSON:
 [{"topicSlug":"...","reason":"..."}]`,
 
@@ -101,35 +179,12 @@ Return only JSON:
       attempts: number;
     }>,
     language: "en" | "hi",
+    goal?: string,
+    weakConcepts?: string[],
   ) =>
     language === "hi"
-      ? `छात्र की progress:
-${JSON.stringify(roadmap)}
+      ? `छात्र की progress: ${JSON.stringify(roadmap)}${goal ? `\nलक्ष्य: ${goal}` : ""}${weakConcepts?.length ? `\nकमजोर अवधारणाएं: ${weakConcepts.join(", ")}` : ""}
 अगले 3 topics हिंदी कारण सहित सुझाएं।`
-      : `Student progress:
-${JSON.stringify(roadmap)}
-Recommend the next 3 topics.`,
-
-  mindmapSystem: (language: "en" | "hi" = "en") =>
-    language === "hi"
-      ? `आप DSA अवधारणाओं के लिए एक विज़ुअल कॉन्सेप्ट मैप निर्माता हैं।
-नोड्स और एजेस के साथ एक JSON mindmap लौटाएं।
-हर node में: id, label, level (0=root, 1=branch, 2=leaf) होना चाहिए।
-Node labels सहज हिंदी/Hinglish में रखें (संक्षिप्त, 2-4 शब्द)।
-केवल वैध JSON लौटाएं:
-{"topicSlug":"...","language":"hi","nodes":[...],"edges":[{"from":"id","to":"id"}]}
-कुल 12 से कम nodes रखें।`
-      : `You are a knowledge graph builder for DSA concepts.
-Return a JSON mindmap with nodes and edges.
-Nodes have: id, label, level (0=root,1=branch,2=leaf).
-Return only valid JSON:
-{"topicSlug":"...","language":"en","nodes":[...],"edges":[{"from":"id","to":"id"}]}
-Keep it under 12 nodes total.`,
-
-  mindmapUser: (topicSlug: string, language: "en" | "hi" = "en") =>
-    language === "hi"
-      ? `DSA विषय "${topicSlug}" के लिए हिंदी में एक mindmap बनाएं।
-मुख्य विचार, ऑपरेशन्स (operations), उपयोग (use cases), और टाइम कॉम्प्लेक्सिटी शामिल करें।`
-      : `Build a mindmap for the DSA topic: ${topicSlug}.
-Include the core concept, operations, use cases, and time complexity.`,
+      : `Student progress: ${JSON.stringify(roadmap)}${goal ? `\nGoal: ${goal}` : ""}${weakConcepts?.length ? `\nWeak concepts: ${weakConcepts.join(", ")}` : ""}
+Recommend the next 3 topics with specific reasons.`,
 };

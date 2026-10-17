@@ -1,5 +1,9 @@
 import { cookies } from "next/headers";
-import { generateQuiz } from "@/lib/ai/quiz";
+import {
+  generateQuiz,
+  toPublicQuestions,
+  createQuizSessionToken,
+} from "@/lib/ai/quiz";
 import { QuizSession } from "@/components/quiz/QuizSession";
 import { Navbar } from "@/components/ui/Navbar";
 import {
@@ -34,7 +38,16 @@ export default async function QuizPage({
     record?.language,
   );
   const strings = UI_STRINGS[selectedLanguage];
-  const questions = await generateQuiz(topic, selectedLanguage);
+  const weakConcepts = record?.topics?.[topic]?.weakConcepts;
+  const fullQuestions = await generateQuiz(topic, selectedLanguage, {
+    weakConcepts,
+  });
+  const quizToken = await createQuizSessionToken(
+    topic,
+    selectedLanguage,
+    fullQuestions,
+  );
+  const publicQuestions = toPublicQuestions(fullQuestions);
 
   return (
     <main className="site-shell quiz-page">
@@ -47,7 +60,9 @@ export default async function QuizPage({
         <QuizSession
           topic={topic}
           language={selectedLanguage}
-          questions={questions}
+          questions={publicQuestions}
+          quizToken={quizToken}
+          initialStyle={record?.preferredStyle ?? "simple"}
         />
       </div>
     </main>

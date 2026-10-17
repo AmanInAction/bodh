@@ -1,7 +1,24 @@
 import { NextResponse } from "next/server";
-import { generateQuiz } from "@/lib/ai/quiz";
+import {
+  generateQuiz,
+  toPublicQuestions,
+  createQuizSessionToken,
+} from "@/lib/ai/quiz";
+
 export async function POST(request: Request) {
-  const { topic = "arrays", language = "en" } = await request.json();
-  const questions = await generateQuiz(topic, language === "hi" ? "hi" : "en");
-  return NextResponse.json(questions);
+  const body = await request.json().catch(() => ({}));
+  const topic = typeof body.topic === "string" ? body.topic : "arrays";
+  const language: "en" | "hi" = body.language === "hi" ? "hi" : "en";
+  const weakConcepts = Array.isArray(body.weakConcepts)
+    ? body.weakConcepts.map(String)
+    : undefined;
+
+  const questions = await generateQuiz(topic, language, { weakConcepts });
+  const quizToken = await createQuizSessionToken(topic, language, questions);
+  const publicQuestions = toPublicQuestions(questions);
+
+  return NextResponse.json({
+    questions: publicQuestions,
+    quizToken,
+  });
 }

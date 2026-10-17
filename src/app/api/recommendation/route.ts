@@ -33,6 +33,11 @@ export async function GET(request: Request) {
 
   const roadmap = await getRoadmap(session.email);
   return NextResponse.json(
-    await generateSmartRecommendations(roadmap, language),
+    await generateSmartRecommendations(
+      roadmap,
+      language,
+      record?.goal,
+      record?.weakTopics,
+    ),
   );
 }

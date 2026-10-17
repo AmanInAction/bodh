@@ -19,7 +19,6 @@ import {
   getLessonContent,
   getBlogPost,
   listBlogPosts,
-  getOrGenerateMindmap,
 } from "@/lib/learning/content";
 
 describe("Phase 2 Verification Audit", () => {
@@ -251,18 +250,12 @@ describe("Phase 2 Verification Audit", () => {
       expect(listEn.every((p) => p.language === "en")).toBe(true);
     });
 
-    it("retrieves language-aware mindmaps with distinct nodes per language", async () => {
-      const mmEn = await getOrGenerateMindmap("arrays", "en");
-      const mmHi = await getOrGenerateMindmap("arrays", "hi");
+    it("includes structured learningObjectives in localized articles", async () => {
+      const articleEn = await getLessonContent("arrays", "en");
+      const articleHi = await getLessonContent("arrays", "hi");
 
-      expect(mmEn.language).toBe("en");
-      expect(mmHi.language).toBe("hi");
-      expect(mmEn.nodes.length).toBeGreaterThan(0);
-      expect(mmHi.nodes.length).toBeGreaterThan(0);
-
-      // Hindi mindmap root label must be Hindi
-      const rootHi = mmHi.nodes.find((n) => n.id === "root");
-      expect(rootHi?.label).toContain("ऐरे");
+      expect(articleEn.learningObjectives?.length).toBeGreaterThan(0);
+      expect(articleHi.learningObjectives?.length).toBeGreaterThan(0);
     });
 
     it("handles missing topic lesson content with a non-crashing localized fallback", async () => {

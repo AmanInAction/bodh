@@ -1,9 +1,8 @@
 import { cookies } from "next/headers";
 import { ArticleViewer } from "@/components/learning/ArticleViewer";
-import { MindMap } from "@/components/learning/MindMap";
 import { Navbar } from "@/components/ui/Navbar";
 import { ButtonLink } from "@/components/ui/Button";
-import { getLessonContent, getOrGenerateMindmap } from "@/lib/learning/content";
+import { getLessonContent } from "@/lib/learning/content";
 import {
   readSession,
   DEMO_SESSION,
@@ -37,11 +36,9 @@ export default async function ArticlePage({
     record?.language,
   );
   const strings = UI_STRINGS[selectedLanguage];
+  const isHindi = selectedLanguage === "hi";
 
-  const [content, mindmap] = await Promise.all([
-    getLessonContent(topic, selectedLanguage),
-    getOrGenerateMindmap(topic, selectedLanguage),
-  ]);
+  const content = await getLessonContent(topic, selectedLanguage);
 
   return (
     <main className="site-shell">
@@ -60,7 +57,26 @@ export default async function ArticlePage({
           language={selectedLanguage}
         />
         <aside className="article-sidebar">
-          <MindMap mindmap={mindmap} language={selectedLanguage} />
+          <div className="card">
+            <span className="eyebrow">
+              {isHindi ? "सीखने के उद्देश्य" : "What you will learn"}
+            </span>
+            <ul
+              style={{
+                margin: "12px 0 0",
+                paddingLeft: "18px",
+                display: "grid",
+                gap: "8px",
+                fontSize: "0.9375rem",
+                color: "var(--text-secondary)",
+                lineHeight: 1.55,
+              }}
+            >
+              {(content.learningObjectives ?? []).map((obj) => (
+                <li key={obj}>{obj}</li>
+              ))}
+            </ul>
+          </div>
           <ButtonLink
             variant="primary"
             size="lg"

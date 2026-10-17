@@ -2,6 +2,7 @@
 
 import { useState, useRef, useCallback } from "react";
 import type { TeachingStyle } from "@/lib/agentcore/teaching";
+import type { PublicQuizQuestion } from "@/types/quiz";
 import { LoadingState, ErrorState } from "@/components/ui/States";
 import { Button } from "@/components/ui/Button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
@@ -72,14 +73,22 @@ function localFallback(topic: string, style: TeachingStyle, hindi: boolean): str
 }
 
 function Cursor() {
-  return <span className="ed-cursor" aria-hidden="true">▌</span>;
+  return (
+    <span className="ed-cursor" aria-hidden="true">
+      ▌
+    </span>
+  );
 }
 
 export function ExplainDifferently({
   topic,
+  topicSlug,
+  weakConcepts,
   language = "en",
 }: {
   topic: string;
+  topicSlug?: string;
+  weakConcepts?: string[];
   language?: string;
 }) {
   const hindi = language === "hi";
@@ -90,6 +99,19 @@ export function ExplainDifferently({
   const [recommended, setRecommended] = useState<TeachingStyle | null>(null);
   const [confidence, setConfidence] = useState<number | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Follow-up targeted re-test state
+  const [followUpQuestion, setFollowUpQuestion] = useState<{
+    question: PublicQuizQuestion;
+    quizToken: string;
+  } | null>(null);
+  const [retestChoice, setRetestChoice] = useState<number | null>(null);
+  const [retestLoading, setRetestLoading] = useState(false);
+  const [retestFeedback, setRetestFeedback] = useState<{
+    isCorrect: boolean;
+    explanation: string;
+  } | null>(null);
+
   const abortRef = useRef<AbortController | null>(null);
 
   const fetchExplanation = useCallback(
@@ -104,6 +126,9 @@ export function ExplainDifferently({
       setFollowUp("");
       setRecommended(null);
       setConfidence(null);
+      setFollowUpQuestion(null);
+      setRetestChoice(null);
+      setRetestFeedback(null);
 
       try {
         const res = await fetch("/api/teach", {
@@ -111,6 +136,8 @@ export function ExplainDifferently({
           headers: { "content-type": "application/json" },
           body: JSON.stringify({
             topic,
+            topicSlug,
+            weakConcepts,
             question: hindi
               ? `इस विषय को ${chosenStyle} तरीके से समझाएं।`
               : `Explain this topic in a ${chosenStyle} way.`,
@@ -143,12 +170,16 @@ export function ExplainDifferently({
           followUp: string;
           recommendedStyle: TeachingStyle;
           confidence?: number;
+          followUpQuestion?: {
+            question: PublicQuizQuestion;
+            quizToken: string;
+          };
         };
 
         const chars = data.explanation.split("");
         for (const char of chars) {
           if (controller.signal.aborted) return;
-          const delay = chars.length > 500 ? 4 : 10;
+          const delay = chars.length > 500 ? 3 : 8;
           await new Promise((r) => setTimeout(r, delay));
           setText((t) => t + char);
         }
@@ -156,21 +187,67 @@ export function ExplainDifferently({
         setFollowUp(data.followUp ?? "");
         setRecommended(data.recommendedStyle ?? null);
         setConfidence(data.confidence ?? null);
+        if (data.followUpQuestion) {
+          setFollowUpQuestion(data.followUpQuestion);
+        }
       } catch (e) {
         if ((e as Error).name === "AbortError") return;
         setError(
           e instanceof Error
             ? e.message
             : hindi
-            ? "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।"
-            : "Something went wrong. Please try again.",
+              ? "कुछ गड़बड़ हो गई। कृपया फिर से कोशिश करें।"
+              : "Something went wrong. Please try again.",
         );
       } finally {
         setStreaming(false);
       }
     },
-    [topic, language, hindi],
+    [topic, topicSlug, weakConcepts, language, hindi],
   );
+
+  async function verifyRetestAnswer() {
+    if (retestChoice === null || !followUpQuestion) return;
+    setRetestLoading(true);
+    try {
+      const slug =
+        topicSlug || topic.toLowerCase().trim().replace(/\s+/g, "-");
+      const res = await fetch("/api/quiz/submit", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          topicSlug: slug,
+          answers: [retestChoice],
+          language,
+          style,
+          quizToken: followUpQuestion.quizToken,
+          questions: [followUpQuestion.question],
+          isRetest: true,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        const graded = data.gradedQuestions?.[0];
+        const isCorrect = graded ? graded.isCorrect : data.score === 100;
+        setRetestFeedback({
+          isCorrect,
+          explanation:
+            graded?.explanation ??
+            (isCorrect
+              ? hindi
+                ? "बिल्कुल सही! आपकी समझ पक्की हो गई है।"
+                : "Correct! Your understanding is verified."
+              : hindi
+                ? "ऊपर दी गई व्याख्या को एक बार फिर देखें और छोटे उदाहरण पर सोचें।"
+                : "Review the explanation above and trace a small example."),
+        });
+      }
+    } catch {
+      /* ignore */
+    } finally {
+      setRetestLoading(false);
+    }
+  }
 
   const hasContent = text.length > 0;
   const activeStyle = STYLES.find((s) => s.id === style);
@@ -277,6 +354,115 @@ export function ExplainDifferently({
                 {hindi ? "सोचकर देखें:" : "Think about this:"}
               </span>
               <p>{followUp}</p>
+            </div>
+          )}
+
+          {/* Targeted 1-question check right inside Explain Differently */}
+          {!streaming && followUpQuestion && (
+            <div
+              style={{
+                padding: "16px 18px",
+                borderTop: "1px solid var(--border)",
+                background: "var(--bg-surface)",
+              }}
+            >
+              <span className="eyebrow">
+                {hindi
+                  ? `समझ की जाँच · ${followUpQuestion.question.concept}`
+                  : `Quick check · ${followUpQuestion.question.concept}`}
+              </span>
+              <p
+                style={{
+                  fontWeight: 600,
+                  fontSize: "0.95rem",
+                  margin: "6px 0 12px",
+                  color: "var(--text)",
+                }}
+              >
+                {followUpQuestion.question.prompt}
+              </p>
+              <div className="qs-options">
+                {followUpQuestion.question.options.map((opt, idx) => {
+                  const isSel = retestChoice === idx;
+                  return (
+                    <button
+                      key={opt}
+                      type="button"
+                      disabled={Boolean(retestFeedback)}
+                      className={`qs-option${isSel ? " qs-option-selected" : ""}`}
+                      onClick={() => setRetestChoice(idx)}
+                    >
+                      <span className="qs-option-letter">
+                        {String.fromCharCode(65 + idx)}
+                      </span>
+                      <span className="qs-option-text">{opt}</span>
+                      {isSel && <span className="qs-option-check">✓</span>}
+                    </button>
+                  );
+                })}
+              </div>
+
+              {!retestFeedback ? (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "flex-end",
+                    marginTop: "10px",
+                  }}
+                >
+                  <Button
+                    type="button"
+                    variant="primary"
+                    size="sm"
+                    disabled={retestChoice === null || retestLoading}
+                    onClick={verifyRetestAnswer}
+                  >
+                    {retestLoading
+                      ? hindi
+                        ? "जाँच हो रही है…"
+                        : "Checking…"
+                      : hindi
+                        ? "उत्तर जाँचें →"
+                        : "Check answer →"}
+                  </Button>
+                </div>
+              ) : (
+                <div
+                  style={{
+                    marginTop: "10px",
+                    padding: "10px 14px",
+                    borderRadius: "var(--radius-sm)",
+                    background: retestFeedback.isCorrect
+                      ? "var(--success-soft)"
+                      : "var(--warning-soft)",
+                    border: `1px solid ${
+                      retestFeedback.isCorrect
+                        ? "var(--success-border)"
+                        : "var(--warning-border)"
+                    }`,
+                    fontSize: "0.875rem",
+                  }}
+                >
+                  <strong
+                    style={{
+                      color: retestFeedback.isCorrect
+                        ? "var(--success)"
+                        : "var(--warning)",
+                      display: "block",
+                      marginBottom: "2px",
+                    }}
+                  >
+                    {retestFeedback.isCorrect
+                      ? hindi
+                        ? "✓ सही उत्तर! समझ में सुधार दर्ज किया गया।"
+                        : "✓ Correct! Improvement recorded."
+                      : hindi
+                        ? "△ एक बार और सोचें:"
+                        : "△ Let's review:"}
+                  </strong>
+                  <span>{retestFeedback.explanation}</span>
+                </div>
+              )}
             </div>
           )}
 

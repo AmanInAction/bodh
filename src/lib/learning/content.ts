@@ -1,21 +1,14 @@
 import type {
   Article,
   BlogPost,
-  Mindmap,
-  MindmapEdge,
-  MindmapNode,
 } from "@/types/content";
 import type { LanguageCode } from "@/config/languages";
 import {
   getArticle as s3GetArticle,
   getBlog as s3GetBlog,
-  getMindmap as s3GetMindmap,
   getContent as s3GetContent,
-  putMindmap,
 } from "@/lib/aws/s3";
 import { getContentIndex, listContentIndices } from "@/lib/aws/dynamodb";
-import { invokeBedrockText } from "@/lib/aws/bedrock";
-import { PROMPTS } from "@/lib/ai/prompts";
 
 // ── Topic name map ─────────────────────────────────────────────────────────────
 
@@ -28,8 +21,113 @@ const names: Record<string, { en: string; hi: string }> = {
   recursion: { en: "Recursion", hi: "रिकर्शन" },
 };
 
+export const TOPIC_LEARNING_META: Record<
+  string,
+  {
+    prerequisites: string[];
+    objectivesEn: string[];
+    objectivesHi: string[];
+  }
+> = {
+  arrays: {
+    prerequisites: [],
+    objectivesEn: [
+      "Understand O(1) index-based random access in contiguous memory",
+      "Recognize why inserting or deleting in the middle costs O(n) due to shifting",
+      "Identify when fixed-order contiguous storage is the right choice",
+    ],
+    objectivesHi: [
+      "लगातार मेमोरी (contiguous memory) में O(1) इंडेक्स एक्सेस को समझना",
+      "बीच में जोड़ने या हटाने पर तत्वों को खिसकाने (shifting) की O(n) लागत पहचानना",
+      "यह जानना कि कब ऐरे का उपयोग सबसे उपयुक्त होता है",
+    ],
+  },
+  "linked-list": {
+    prerequisites: ["arrays"],
+    objectivesEn: [
+      "Understand how nodes store values and next pointers in non-contiguous memory",
+      "Explain why head insertion is O(1) while arbitrary lookup requires O(n) traversal",
+      "Trace pointer reassignment carefully without losing the rest of the chain",
+    ],
+    objectivesHi: [
+      "समझना कि नोड्स डेटा और अगले नोड का पॉइंटर कैसे रखते हैं",
+      "यह जानना कि शुरुआत में जोड़ना O(1) क्यों है और खोजने में O(n) क्यों लगता है",
+      "चेन को खोए बिना पॉइंटर बदलने के क्रम को सही से ट्रेस करना",
+    ],
+  },
+  stacks: {
+    prerequisites: ["arrays"],
+    objectivesEn: [
+      "Master the Last-In, First-Out (LIFO) ordering rule",
+      "Understand O(1) push, pop, and peek operations at the top of the stack",
+      "Apply stacks to nested matching, undo history, and function call frames",
+    ],
+    objectivesHi: [
+      "Last-In, First-Out (LIFO) के नियम को स्पष्ट रूप से समझना",
+      "स्टैक के शीर्ष पर O(1) push, pop और peek ऑपरेशन्स को समझना",
+      "ब्रैकेट मिलान, Undo हिस्ट्री और कॉल स्टैक में इसका उपयोग करना",
+    ],
+  },
+  queues: {
+    prerequisites: ["arrays", "linked-list"],
+    objectivesEn: [
+      "Master the First-In, First-Out (FIFO) ordering rule",
+      "Distinguish enqueue at the back from dequeue at the front",
+      "Understand how circular buffers or linked pointers avoid O(n) shifting on dequeue",
+    ],
+    objectivesHi: [
+      "First-In, First-Out (FIFO) के नियम को स्पष्ट रूप से समझना",
+      "पीछे से जोड़ने (enqueue) और आगे से निकालने (dequeue) के अंतर को समझना",
+      "जानना कि बिना O(n) शिफ्टिंग के तेज़ क्यू कैसे काम करती है",
+    ],
+  },
+  "binary-search": {
+    prerequisites: ["arrays"],
+    objectivesEn: [
+      "Verify the sorted-data precondition before applying binary search",
+      "Correctly compute mid and narrow the low/high boundaries without infinite loops",
+      "Explain why halving the search space each step yields O(log n) time complexity",
+    ],
+    objectivesHi: [
+      "बाइनरी सर्च लगाने से पहले डेटा के क्रमबद्ध (sorted) होने की शर्त जाँचना",
+      "बिना अनंत लूप के सही mid निकालना और low/high सीमाओं को छोटा करना",
+      "समझना कि हर कदम पर खोज क्षेत्र आधा करने से O(log n) समय क्यों लगता है",
+    ],
+  },
+  recursion: {
+    prerequisites: ["stacks"],
+    objectivesEn: [
+      "Define a clear base case that stops recursive calls from running forever",
+      "Ensure every recursive step moves strictly toward the base case with a smaller input",
+      "Trace how call frames push onto and unwind from the call stack",
+    ],
+    objectivesHi: [
+      "स्पष्ट बेस केस (base case) तय करना जो रिकर्सिव कॉल को सही समय पर रोके",
+      "यह सुनिश्चित करना कि हर कदम छोटे इनपुट के साथ बेस केस की ओर बढ़े",
+      "कॉल स्टैक पर फ़ंक्शन कॉल्स के जुड़ने और वापस लौटने के क्रम को ट्रेस करना",
+    ],
+  },
+};
+
 export function getTopicName(slug: string, language: LanguageCode = "en") {
   return names[slug]?.[language] ?? names[slug]?.en ?? slug;
+}
+
+export function getTopicLearningObjectives(
+  slug: string,
+  language: LanguageCode = "en",
+): string[] {
+  const meta = TOPIC_LEARNING_META[slug];
+  if (!meta) {
+    return language === "hi"
+      ? ["मुख्य अवधारणा और संचालन समझें", "समय जटिलता और उपयोग की स्थितियाँ पहचानें"]
+      : ["Understand core structure and operations", "Identify time complexity and practical use cases"];
+  }
+  return language === "hi" ? meta.objectivesHi : meta.objectivesEn;
+}
+
+export function getTopicPrerequisites(slug: string): string[] {
+  return TOPIC_LEARNING_META[slug]?.prerequisites ?? [];
 }
 
 // ── Seed content (used when S3 is not configured) ─────────────────────────────
@@ -54,6 +152,17 @@ function loadSeedBlog(slug: string, language: LanguageCode): BlogPost | null {
   }
 }
 
+function enrichArticleMetadata(article: Article, slug: string, language: LanguageCode): Article {
+  return {
+    ...article,
+    topicSlug: slug,
+    language,
+    learningObjectives:
+      article.learningObjectives ?? getTopicLearningObjectives(slug, language),
+    prerequisites: article.prerequisites ?? getTopicPrerequisites(slug),
+  };
+}
+
 // ── Article Content (DynamoDB Index -> S3 Key -> S3 Canonical -> Seed Fallback)
 
 export async function getLessonContent(
@@ -65,7 +174,7 @@ export async function getLessonContent(
     const index = await getContentIndex("article", slug, language);
     if (index?.s3Key) {
       const s3Indexed = await s3GetContent<Article>(index.s3Key);
-      if (s3Indexed) return s3Indexed;
+      if (s3Indexed) return enrichArticleMetadata(s3Indexed, slug, language);
     }
   } catch (err) {
     console.warn("[content] DynamoDB index lookup failed for article:", err);
@@ -73,36 +182,40 @@ export async function getLessonContent(
 
   // 2. Direct S3 lookup
   const s3Article = await s3GetArticle(slug, language);
-  if (s3Article) return s3Article;
+  if (s3Article) return enrichArticleMetadata(s3Article, slug, language);
 
   // 3. Try seed JSON
   const seedArticle = loadSeedArticle(slug, language);
-  if (seedArticle) return seedArticle;
+  if (seedArticle) return enrichArticleMetadata(seedArticle, slug, language);
 
   // 4. Generate minimal inline fallback (never crashes)
   const topic = getTopicName(slug, language);
-  return {
-    topicSlug: slug,
+  return enrichArticleMetadata(
+    {
+      topicSlug: slug,
+      language,
+      title: language === "hi" ? `${topic} को समझना` : `Understanding ${topic}`,
+      lead:
+        language === "hi"
+          ? `${topic} कोड लिखने से पहले समस्या को साफ़ तरीके से देखने में मदद करते हैं।`
+          : `${topic} becomes easier when you picture the problem before writing code.`,
+      sections: [
+        {
+          heading: language === "hi" ? "पहले आकार समझें" : "Start with the shape",
+          body:
+            language === "hi"
+              ? `${topic} में जानकारी कैसे रखी जाती है और कौन-सा काम सबसे ज़्यादा करना है।`
+              : `Ask how information is arranged inside ${topic} and which operation should be fastest.`,
+        },
+      ],
+      tryThis:
+        language === "hi"
+          ? `${topic} को रोज़मर्रा की किसी चीज़ से किसी दोस्त को समझाएं।`
+          : `Explain ${topic} to a friend using one everyday object and no code.`,
+    },
+    slug,
     language,
-    title: language === "hi" ? `${topic} को समझना` : `Understanding ${topic}`,
-    lead:
-      language === "hi"
-        ? `${topic} कोड लिखने से पहले समस्या को साफ़ तरीके से देखने में मदद करते हैं।`
-        : `${topic} becomes easier when you picture the problem before writing code.`,
-    sections: [
-      {
-        heading: language === "hi" ? "पहले आकार समझें" : "Start with the shape",
-        body:
-          language === "hi"
-            ? `${topic} में जानकारी कैसे रखी जाती है और कौन-सा काम सबसे ज़्यादा करना है।`
-            : `Ask how information is arranged inside ${topic} and which operation should be fastest.`,
-      },
-    ],
-    tryThis:
-      language === "hi"
-        ? `${topic} को रोज़मर्रा की किसी चीज़ से किसी दोस्त को समझाएं।`
-        : `Explain ${topic} to a friend using one everyday object and no code.`,
-  };
+  );
 }
 
 // ── Blog Content (DynamoDB Index -> S3 Key -> S3 Canonical -> Seed Fallback) ──
@@ -178,138 +291,4 @@ export async function listBlogPosts(
     if (!a.featured && b.featured) return 1;
     return new Date(b.publishedAt).getTime() - new Date(a.publishedAt).getTime();
   });
-}
-
-// ── Bilingual Fallback Mindmap Builder ─────────────────────────────────────────
-
-const TOPIC_MINDMAP_LEAVES: Record<
-  string,
-  { en: [string, string, string, string]; hi: [string, string, string, string] }
-> = {
-  arrays: {
-    en: ["O(1) Index Lookup", "Contiguous Memory", "O(n) Middle Insert", "Fixed Slot Order"],
-    hi: ["O(1) इंडेक्स एक्सेस", "लगातार मेमोरी", "O(n) बीच में जोड़ना", "निश्चित क्रम"],
-  },
-  "linked-list": {
-    en: ["Node + Next Pointer", "O(1) Head Insert", "O(n) Search Traversal", "Dynamic Memory"],
-    hi: ["नोड + पॉइंटर", "O(1) तेज़ जोड़ना", "O(n) क्रम से खोजना", "लचीली मेमोरी"],
-  },
-  stacks: {
-    en: ["LIFO Order", "O(1) Push & Pop", "Peek Top Item", "Undo & Call Stack"],
-    hi: ["LIFO क्रम", "O(1) Push और Pop", "ऊपरी तत्व देखें", "Undo और Call Stack"],
-  },
-  queues: {
-    en: ["FIFO Order", "Enqueue at Back", "Dequeue from Front", "BFS & Scheduling"],
-    hi: ["FIFO क्रम", "पीछे से Enqueue", "आगे से Dequeue", "BFS और शेड्यूलिंग"],
-  },
-  "binary-search": {
-    en: ["Requires Sorted Data", "Check Middle Element", "Halve Search Space", "O(log n) Time"],
-    hi: ["क्रमबद्ध डेटा ज़रूरी", "बीच का तत्व जाँचें", "आधा क्षेत्र हटाएं", "O(log n) समय"],
-  },
-  recursion: {
-    en: ["Base Case Stops", "Smaller Subproblem", "Call Stack Unwinds", "Tree & Divide Steps"],
-    hi: ["Base Case रोकता है", "छोटा उप-सवाल", "Call Stack वापसी", "कदम-दर-कदम हल"],
-  },
-};
-
-function buildBilingualFallbackMindmap(
-  slug: string,
-  language: LanguageCode,
-): Mindmap {
-  const seed = loadSeedArticle(slug, language);
-  const rootLabel = getTopicName(slug, language);
-  const leaves =
-    TOPIC_MINDMAP_LEAVES[slug]?.[language] ??
-    (language === "hi"
-      ? ["मुख्य नियम", "तेज़ ऑपरेशन", "समय जटिलता", "व्यावहारिक उपयोग"]
-      : ["Core Rule", "Key Operations", "Time Complexity", "Real Use Cases"]);
-
-  const nodes: MindmapNode[] = [{ id: "root", label: rootLabel, level: 0 }];
-  const edges: MindmapEdge[] = [];
-
-  const section1Heading =
-    seed?.sections?.[0]?.heading ??
-    (language === "hi" ? "मुख्य विचार" : "Core Idea");
-  const section2Heading =
-    seed?.sections?.[1]?.heading ??
-    (language === "hi" ? "उपयोग और नियम" : "Trade-offs & Use");
-  const practiceHeading =
-    language === "hi" ? "अभ्यास (Try This)" : "Practice Step";
-
-  const branches = [
-    { id: "b1", label: section1Heading, leaves: [leaves[0], leaves[1]] },
-    { id: "b2", label: section2Heading, leaves: [leaves[2], leaves[3]] },
-    {
-      id: "b3",
-      label: practiceHeading,
-      leaves: [
-        language === "hi" ? "उदाहरण ट्रेस करें" : "Trace an Example",
-      ],
-    },
-  ];
-
-  branches.forEach((branch) => {
-    nodes.push({ id: branch.id, label: branch.label, level: 1 });
-    edges.push({ from: "root", to: branch.id });
-    branch.leaves.forEach((leafLabel, idx) => {
-      const leafId = `${branch.id}-l${idx}`;
-      nodes.push({ id: leafId, label: leafLabel, level: 2 });
-      edges.push({ from: branch.id, to: leafId });
-    });
-  });
-
-  return {
-    topicSlug: slug,
-    language,
-    nodes,
-    edges,
-  };
-}
-
-// ── Mindmap (Language-Aware S3 Cache → AI Generation → Bilingual Fallback) ─────
-
-export async function getOrGenerateMindmap(
-  slug: string,
-  language: LanguageCode = "en",
-): Promise<Mindmap> {
-  // 1. Try language-specific S3 / memory cache (`mindmaps/<slug>/<language>.json`)
-  const cached = await s3GetMindmap(slug, language);
-  if (cached && Array.isArray(cached.nodes) && cached.nodes.length > 0) {
-    return { ...cached, topicSlug: slug, language };
-  }
-
-  // 2. Generate via AI (when configured)
-  let mindmap: Mindmap;
-  try {
-    const raw = await invokeBedrockText(
-      PROMPTS.mindmapSystem(language),
-      PROMPTS.mindmapUser(slug, language),
-      { maxTokens: 600, temperature: 0.4 },
-    );
-    if (raw && !raw.startsWith("[local]")) {
-      const jsonStr = raw.replace(/```json?\n?/gi, "").replace(/```/g, "").trim();
-      const parsed = JSON.parse(jsonStr) as Mindmap;
-      if (Array.isArray(parsed.nodes) && parsed.nodes.length > 0) {
-        mindmap = {
-          ...parsed,
-          topicSlug: slug,
-          language,
-        };
-      } else {
-        mindmap = buildBilingualFallbackMindmap(slug, language);
-      }
-    } else {
-      mindmap = buildBilingualFallbackMindmap(slug, language);
-    }
-  } catch (error) {
-    console.error("[content] Mindmap generation fallback used:", error);
-    mindmap = buildBilingualFallbackMindmap(slug, language);
-  }
-
-  // 3. Cache under language-specific key `mindmaps/<slug>/<language>.json`
-  putMindmap(mindmap, language).catch((err) => {
-    console.warn("[content] Failed to cache mindmap to S3:", err);
-  });
-
-  return mindmap;
 }

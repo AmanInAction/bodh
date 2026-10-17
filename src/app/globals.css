@@ -1964,7 +1964,7 @@ input:disabled,
   line-height: 1.55;
 }
 
-/* ── 7. Article Viewer & Mind Map (/learn/[topic]/article & /mindmap) ────── */
+/* ── 7. Article Viewer (/learn/[topic]/article) ────────────────────────── */
 
 .article-layout {
   max-width: var(--container-max);
@@ -2221,107 +2221,7 @@ input:disabled,
   color: var(--text-secondary);
 }
 
-/* ── 9. MindMap (Calm Light Interactive Canvas) ──────────────────────────── */
-
-.mm-container {
-  background: var(--bg-surface);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-xl);
-  overflow: hidden;
-  position: relative;
-}
-
-.mm-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  gap: 12px;
-  padding: 14px 18px;
-  border-bottom: 1px solid var(--border);
-  background: var(--bg-subtle);
-}
-
-.mm-controls {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.mm-reset-btn {
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  color: var(--text-secondary);
-  border-radius: var(--radius-sm);
-  padding: 5px 10px;
-  min-height: 32px;
-  min-width: 32px;
-  font-family: var(--font-sans);
-  font-size: 0.8125rem;
-  font-weight: 600;
-  cursor: pointer;
-  transition: background-color 0.15s ease, border-color 0.15s ease;
-}
-
-.mm-reset-btn:hover {
-  background: var(--primary-soft);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-.mm-canvas-wrap {
-  overflow: hidden;
-  height: 380px;
-  background:
-    radial-gradient(circle at center, #f4f7f2 0%, #edf1e8 100%);
-}
-
-.mm-svg {
-  width: 100%;
-  height: 100%;
-  display: block;
-}
-
-.mm-tooltip {
-  position: absolute;
-  bottom: 42px;
-  left: 50%;
-  transform: translateX(-50%);
-  background: var(--bg-surface);
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-md);
-  padding: 8px 14px;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  box-shadow: var(--shadow-md);
-  pointer-events: none;
-  z-index: 10;
-}
-
-.mm-tooltip strong {
-  font-size: 0.875rem;
-  color: var(--text);
-}
-
-.mm-tooltip-level {
-  font-size: 0.75rem;
-  color: var(--primary);
-  background: var(--primary-soft);
-  padding: 2px 8px;
-  border-radius: var(--radius-sm);
-  font-weight: 600;
-}
-
-.mm-hint {
-  text-align: center;
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  padding: 8px;
-  background: var(--bg-subtle);
-  border-top: 1px solid var(--border);
-}
-
-/* ── 10. QuizSession (Practice & Check Understanding) ────────────────────── */
+/* ── 9. QuizSession (Practice & Check Understanding) ────────────────────── */
 
 .quiz-wrap {
   max-width: 680px;

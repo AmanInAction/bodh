@@ -16,19 +16,25 @@ import type {
   TopicPerformance,
 } from "@/types/student-record";
 import type { ContentIndex, ContentType } from "@/types/content";
-import { getAwsCredentials, getEnv } from "@/config/env";
+import { getAwsCredentials, getAwsMaxAttempts, getEnv } from "@/config/env";
 import { DEMO_STUDENT_ID } from "@/lib/auth/session";
 
 // ── Clients ───────────────────────────────────────────────────────────────────
 
 const REGION = getEnv("AWS_REGION");
-const STUDENT_TABLE = getEnv("AWS_DYNAMODB_TABLE") || "";
+const STUDENT_TABLE =
+  getEnv("AWS_DYNAMODB_TABLE") || getEnv("AWS_STUDENTS_TABLE") || "";
 const AUTH_TABLE = getEnv("AWS_AUTH_TABLE") || "";
 const STUDENT_RECORD_TABLE = getEnv("AWS_STUDENT_RECORD_TABLE") || "";
-const CONTENT_TABLE = getEnv("AWS_CONTENT_INDEX_TABLE") || getEnv("AWS_CONTENT_TABLE") || "";
+const CONTENT_TABLE =
+  getEnv("AWS_CONTENT_INDEX_TABLE") || getEnv("AWS_CONTENT_TABLE") || "";
 
 const rawClient = REGION
-  ? new DynamoDBClient({ region: REGION, credentials: getAwsCredentials() })
+  ? new DynamoDBClient({
+      region: REGION,
+      credentials: getAwsCredentials(),
+      maxAttempts: getAwsMaxAttempts(),
+    })
   : null;
 const db = rawClient ? DynamoDBDocumentClient.from(rawClient) : null;
 
@@ -50,7 +56,7 @@ function seedMemoryContentIndex() {
 
   const now = "2026-10-09T00:00:00.000Z";
 
-  // Articles & Mindmaps
+  // Articles
   for (const t of topicsList) {
     // Article EN
     memoryContentIndexStore.set(`article:${t.slug}:en`, {
@@ -82,34 +88,6 @@ function seedMemoryContentIndex() {
       excerpt: `${t.hiTitle} की मुख्य अवधारणा और मानसिक मॉडल।`,
       category: "डेटा स्ट्रक्चर्स",
       readingTime: 6,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: now,
-    });
-    // Mindmap EN
-    memoryContentIndexStore.set(`mindmap:${t.slug}:en`, {
-      contentId: `mindmap:${t.slug}:en`,
-      contentType: "mindmap",
-      slug: t.slug,
-      topicSlug: t.slug,
-      language: "en",
-      status: "published",
-      s3Key: `mindmaps/${t.slug}/en.json`,
-      title: `${t.enTitle} Visual Map`,
-      createdAt: now,
-      updatedAt: now,
-      publishedAt: now,
-    });
-    // Mindmap HI
-    memoryContentIndexStore.set(`mindmap:${t.slug}:hi`, {
-      contentId: `mindmap:${t.slug}:hi`,
-      contentType: "mindmap",
-      slug: t.slug,
-      topicSlug: t.slug,
-      language: "hi",
-      status: "published",
-      s3Key: `mindmaps/${t.slug}/hi.json`,
-      title: `${t.hiTitle} विज़ुअल मैप`,
       createdAt: now,
       updatedAt: now,
       publishedAt: now,
@@ -591,6 +569,8 @@ export async function updateTopicScore({
   score,
   teachingStyle,
   missedConcepts,
+  masteredConcepts,
+  assessment,
 }: {
   studentId: string;
   language: "en" | "hi";
@@ -598,182 +578,109 @@ export async function updateTopicScore({
   score: number;
   teachingStyle?: TeachingStyle;
   missedConcepts?: string[];
+  masteredConcepts?: string[];
+  assessment?: import("@/types/student-record").StructuredAssessment;
 }): Promise<StudentRecord | null> {
   const canonicalId = resolveStudentId(studentId);
   const nowIso = new Date().toISOString();
 
-  if (!db || !STUDENT_RECORD_TABLE) {
-    const existing = memoryStudentRecordStore.get(canonicalId) ?? {
-      studentId: canonicalId,
-      language,
-      topics: {},
-      weakTopics: [],
-    };
-    const prevTopic = existing.topics[topicSlug] ?? { score: 0, attempts: 0 };
-    const nextTopics = {
-      ...existing.topics,
-      [topicSlug]: {
-        score: Math.max(prevTopic.score, score),
-        lastScore: score,
-        attempts: (prevTopic.attempts ?? 0) + 1,
-        completedLessons: Math.min(4, (prevTopic.completedLessons ?? 0) + 1),
-        lastAttemptAt: nowIso,
-        missedConcepts: missedConcepts ?? prevTopic.missedConcepts,
-        teachingStyle: teachingStyle ?? prevTopic.teachingStyle,
-      },
-    };
-    const streakResult = calculateDailyStreak(existing.lastActiveDate, existing.streakDays);
-    const updatedRecord: StudentRecord = {
-      ...existing,
-      language: language || existing.language,
-      topics: nextTopics,
-      weakTopics: computeWeakTopics(nextTopics),
-      streakDays: streakResult.streakDays,
-      lastActiveDate: streakResult.lastActiveDate,
-      updatedAt: Date.now(),
-    };
-    memoryStudentRecordStore.set(canonicalId, updatedRecord);
-    return updatedRecord;
-  }
+  const existing = (await getStudentRecord(canonicalId)) ?? {
+    studentId: canonicalId,
+    language,
+    topics: {},
+    weakTopics: [],
+  };
 
-  // ── Phase 1: Ensure the item and top-level topics map exist ──────────────
-  await db.send(
-    new UpdateCommand({
-      TableName: STUDENT_RECORD_TABLE,
-      Key: { studentId: canonicalId },
-      UpdateExpression: [
-        "SET #lang       = :lang",
-        "    #topics     = if_not_exists(#topics,     :emptyMap)",
-        "    #weakTopics = if_not_exists(#weakTopics, :emptyList)",
-        "    #updatedAt  = :now",
-      ].join(", "),
-      ExpressionAttributeNames: {
-        "#lang": "language",
-        "#topics": "topics",
-        "#weakTopics": "weakTopics",
-        "#updatedAt": "updatedAt",
-      },
-      ExpressionAttributeValues: {
-        ":lang": language,
-        ":emptyMap": {},
-        ":emptyList": [],
-        ":now": Date.now(),
-      },
-    }),
-  );
+  const prevTopic = existing.topics[topicSlug] ?? { score: 0, attempts: 0 };
+  const prevConceptHistory = { ...(prevTopic.conceptHistory ?? {}) };
 
-  // Phase 1b: ensure topics[slug] exists
-  await db.send(
-    new UpdateCommand({
-      TableName: STUDENT_RECORD_TABLE,
-      Key: { studentId: canonicalId },
-      UpdateExpression:
-        "SET #topics.#slug = if_not_exists(#topics.#slug, :emptyTopic)",
-      ExpressionAttributeNames: { "#topics": "topics", "#slug": topicSlug },
-      ExpressionAttributeValues: { ":emptyTopic": { score: 0, attempts: 0 } },
-    }),
-  );
-  // ── Phase 2: Write nested score + increment attempts ──────────────────────
-  try {
-    await db.send(
-      new UpdateCommand({
-        TableName: STUDENT_RECORD_TABLE,
-        Key: { studentId: canonicalId },
-        UpdateExpression: [
-          "SET #topics.#slug.#attempts      = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
-          "    #topics.#slug.#score         = :score",
-          "    #topics.#slug.#lastScore     = :score",
-          "    #topics.#slug.#lastAttemptAt = :attemptAt",
-          "    #updatedAt                   = :now",
-        ].join(", "),
-        ConditionExpression:
-          "attribute_not_exists(#topics.#slug.#score) OR #topics.#slug.#score < :score",
-        ExpressionAttributeNames: {
-          "#topics": "topics",
-          "#slug": topicSlug,
-          "#attempts": "attempts",
-          "#score": "score",
-          "#lastScore": "lastScore",
-          "#lastAttemptAt": "lastAttemptAt",
-          "#updatedAt": "updatedAt",
-        },
-        ExpressionAttributeValues: {
-          ":score": score,
-          ":attemptAt": nowIso,
-          ":zero": 0,
-          ":one": 1,
-          ":now": Date.now(),
-        },
-      }),
-    );
-  } catch (err: unknown) {
-    const awsErr = err as { name?: string };
-    if (awsErr?.name === "ConditionalCheckFailedException") {
-      await db.send(
-        new UpdateCommand({
-          TableName: STUDENT_RECORD_TABLE,
-          Key: { studentId: canonicalId },
-          UpdateExpression: [
-            "SET #topics.#slug.#attempts      = if_not_exists(#topics.#slug.#attempts, :zero) + :one",
-            "    #topics.#slug.#lastScore     = :score",
-            "    #topics.#slug.#lastAttemptAt = :attemptAt",
-            "    #updatedAt                   = :now",
-          ].join(", "),
-          ExpressionAttributeNames: {
-            "#topics": "topics",
-            "#slug": topicSlug,
-            "#attempts": "attempts",
-            "#lastScore": "lastScore",
-            "#lastAttemptAt": "lastAttemptAt",
-            "#updatedAt": "updatedAt",
-          },
-          ExpressionAttributeValues: {
-            ":score": score,
-            ":attemptAt": nowIso,
-            ":zero": 0,
-            ":one": 1,
-            ":now": Date.now(),
-          },
-        }),
-      );
-    } else {
-      throw err;
+  if (masteredConcepts) {
+    for (const c of masteredConcepts) {
+      const prev = prevConceptHistory[c] ?? {
+        concept: c,
+        correctCount: 0,
+        incorrectCount: 0,
+        lastTestedAt: nowIso,
+      };
+      prevConceptHistory[c] = {
+        ...prev,
+        correctCount: prev.correctCount + 1,
+        lastTestedAt: nowIso,
+        resolved: true,
+      };
     }
   }
 
-  // ── Phase 3: Re-read and recompute weakTopics & streak ─────────────────────
-  const updated = await getStudentRecord(canonicalId);
-  if (!updated) return null;
+  if (missedConcepts) {
+    for (const c of missedConcepts) {
+      const prev = prevConceptHistory[c] ?? {
+        concept: c,
+        correctCount: 0,
+        incorrectCount: 0,
+        lastTestedAt: nowIso,
+      };
+      prevConceptHistory[c] = {
+        ...prev,
+        incorrectCount: prev.incorrectCount + 1,
+        lastTestedAt: nowIso,
+        resolved: false,
+      };
+    }
+  }
 
-  const weakTopics = computeWeakTopics(updated.topics);
-  const streakResult = calculateDailyStreak(updated.lastActiveDate, updated.streakDays);
+  const activeWeakConcepts = Object.values(prevConceptHistory)
+    .filter((ce) => !ce.resolved && ce.incorrectCount > 0)
+    .map((ce) => ce.concept);
 
-  await db.send(
-    new UpdateCommand({
-      TableName: STUDENT_RECORD_TABLE,
-      Key: { studentId: canonicalId },
-      UpdateExpression: "SET #weakTopics = :wt, #streakDays = :sd, #lastActiveDate = :lad",
-      ExpressionAttributeNames: {
-        "#weakTopics": "weakTopics",
-        "#streakDays": "streakDays",
-        "#lastActiveDate": "lastActiveDate",
-      },
-      ExpressionAttributeValues: {
-        ":wt": weakTopics,
-        ":sd": streakResult.streakDays,
-        ":lad": streakResult.lastActiveDate,
-      },
-    }),
+  const activeMasteredConcepts = Object.values(prevConceptHistory)
+    .filter((ce) => ce.resolved || ce.correctCount > ce.incorrectCount)
+    .map((ce) => ce.concept);
+
+  const nextTopicPerf: TopicPerformance = {
+    ...prevTopic,
+    score: Math.max(prevTopic.score ?? 0, score),
+    lastScore: score,
+    attempts: (prevTopic.attempts ?? 0) + 1,
+    completedLessons: Math.min(4, (prevTopic.completedLessons ?? 0) + 1),
+    lastAttemptAt: nowIso,
+    missedConcepts: missedConcepts ?? prevTopic.missedConcepts ?? [],
+    weakConcepts:
+      activeWeakConcepts.length > 0
+        ? activeWeakConcepts
+        : missedConcepts ?? prevTopic.weakConcepts ?? [],
+    masteredConcepts:
+      activeMasteredConcepts.length > 0
+        ? activeMasteredConcepts
+        : masteredConcepts ?? prevTopic.masteredConcepts ?? [],
+    conceptHistory: prevConceptHistory,
+    lastAssessment: assessment ?? prevTopic.lastAssessment,
+    teachingStyle: teachingStyle ?? prevTopic.teachingStyle,
+  };
+
+  const nextTopics: Record<string, TopicPerformance> = {
+    ...existing.topics,
+    [topicSlug]: nextTopicPerf,
+  };
+
+  const streakResult = calculateDailyStreak(
+    existing.lastActiveDate,
+    existing.streakDays,
   );
+  const weakTopics = computeWeakTopics(nextTopics);
 
-  const finalRecord = {
-    ...updated,
+  const updatedRecord: StudentRecord = {
+    ...existing,
+    studentId: canonicalId,
+    language: language || existing.language || "en",
+    topics: nextTopics,
     weakTopics,
     streakDays: streakResult.streakDays,
     lastActiveDate: streakResult.lastActiveDate,
+    updatedAt: Date.now(),
   };
-  memoryStudentRecordStore.set(canonicalId, finalRecord);
-  return finalRecord;
+
+  await putStudentRecord(updatedRecord);
+  return updatedRecord;
 }
 
 // ── recordLogin ───────────────────────────────────────────────────────────────

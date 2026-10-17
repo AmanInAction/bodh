@@ -10,29 +10,13 @@ export type Article = {
   lead: string;
   sections: ArticleSection[];
   tryThis: string;
-};
-
-export type MindmapNode = {
-  id: string;
-  label: string;
-  level: number; // 0 = root, 1 = branch, 2 = leaf
-};
-
-export type MindmapEdge = {
-  from: string;
-  to: string;
-};
-
-export type Mindmap = {
-  topicSlug: string;
-  language?: "en" | "hi";
-  nodes: MindmapNode[];
-  edges: MindmapEdge[];
+  learningObjectives?: string[];
+  prerequisites?: string[];
 };
 
 // ── Content Index Architecture (DynamoDB Index <-> S3 Canonical Content) ──────
 
-export type ContentType = "article" | "blog" | "mindmap";
+export type ContentType = "article" | "blog";
 export type ContentStatus = "draft" | "published" | "archived";
 
 export type ContentIndex = {

@@ -24,8 +24,8 @@ const FEATURES_EN = [
   },
   {
     num: "04",
-    title: "Visual Concept Maps",
-    body: "See how every part of a topic connects at a glance before diving into code and problem solving.",
+    title: "Targeted Re-Testing Loop",
+    body: "After an AI explanation, answer a fresh follow-up question on the exact concept you missed to prove and lock in your understanding.",
   },
 ];
 
@@ -47,8 +47,8 @@ const FEATURES_HI = [
   },
   {
     num: "04",
-    title: "विज़ुअल कॉन्सेप्ट मैप्स",
-    body: "कोड और सवालों में जाने से पहले पूरे विषय की संरचना एक नज़र में साफ़ देखें।",
+    title: "लक्षित पुनर्जाँच (Targeted Re-Test)",
+    body: "AI से नया स्पष्टीकरण पढ़ने के बाद, उसी अवधारणा पर एक नया प्रश्न हल करें और अपनी पक्की समझ दर्ज करें।",
   },
 ];
 

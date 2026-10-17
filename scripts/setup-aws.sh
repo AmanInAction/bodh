@@ -3,7 +3,7 @@
 # scripts/setup-aws.sh
 #
 # Provisions all AWS infrastructure required by the Bodh app:
-#   • S3 bucket         (article + mindmap cache)
+#   • S3 bucket         (articles + blogs storage)
 #   • DynamoDB table    (student profiles, roadmaps)
 #   • DynamoDB table    (auth codes with TTL)
 #   • Bedrock model access  (informational — must be enabled in console)

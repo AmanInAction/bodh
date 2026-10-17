@@ -9,7 +9,7 @@ import {
 } from "@/lib/auth/session";
 import { getStudentRecord } from "@/lib/aws/dynamodb";
 import { getTopicScores } from "@/lib/learning/scores";
-import { getEnv } from "@/config/env";
+import { isDemoAllowed } from "@/config/env";
 import { getTopic } from "@/lib/learning/topics";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { Navbar } from "@/components/ui/Navbar";
@@ -42,7 +42,7 @@ export default async function TopicPage({
   const userSession = await readSession(token);
 
   if (!userSession) {
-    const allowDemo = getEnv("ALLOW_DEMO") !== "false";
+    const allowDemo = isDemoAllowed();
     if (!allowDemo) {
       redirect("/auth");
     }
@@ -58,6 +58,7 @@ export default async function TopicPage({
     record?.language,
   );
   const mastery = (await getTopicScores(session))[slug] ?? 0;
+  const topicPerf = record?.topics?.[slug];
 
   const strings = UI_STRINGS[language];
   const title = getTopicTitle(slug, language);
@@ -82,12 +83,14 @@ export default async function TopicPage({
         <div className="topic-summary">
           <span>{formatLessons(topic.lessons, language)}</span>
           <span aria-hidden="true">·</span>
-          <span className="tabular-nums">{formatMastery(mastery, language)}</span>
+          <span className="tabular-nums">
+            {formatMastery(mastery, language)}
+          </span>
         </div>
         <ProgressBar value={mastery} label={title} />
       </section>
 
-      {/* ── 3-Action Study Steps ──────────────────────────────────── */}
+      {/* ── Study Steps (Read Article + Practice Quiz) ─────────────── */}
       <section className="section">
         <div className="section-heading">
           <div>
@@ -95,37 +98,41 @@ export default async function TopicPage({
             <h2>{strings.topicPage.actionHeading}</h2>
           </div>
         </div>
-        <div className="topic-actions-grid">
+        <div
+          className="topic-actions-grid"
+          style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
+        >
           <Link
             className="topic-action-card"
             href={`/learn/${slug}/article?language=${language}`}
           >
-            <span className="topic-action-step">01 · {language === "hi" ? "पढ़ें" : "Read"}</span>
+            <span className="topic-action-step">
+              01 · {language === "hi" ? "पढ़ें" : "Read"}
+            </span>
             <strong>{strings.topicPage.learnTitle}</strong>
             <p>{strings.topicPage.learnDesc}</p>
           </Link>
           <Link
             className="topic-action-card"
-            href={`/learn/${slug}/mindmap?language=${language}`}
-          >
-            <span className="topic-action-step">02 · {language === "hi" ? "देखें" : "Visualize"}</span>
-            <strong>{strings.topicPage.mindmapTitle}</strong>
-            <p>{strings.topicPage.mindmapDesc}</p>
-          </Link>
-          <Link
-            className="topic-action-card"
             href={`/learn/${slug}/quiz?language=${language}`}
           >
-            <span className="topic-action-step">03 · {language === "hi" ? "अभ्यास" : "Practice"}</span>
+            <span className="topic-action-step">
+              02 · {language === "hi" ? "अभ्यास" : "Practice"}
+            </span>
             <strong>{strings.topicPage.quizTitle}</strong>
             <p>{strings.topicPage.quizDesc}</p>
           </Link>
         </div>
       </section>
 
-      {/* ── Explain Differently ───────────────────────────────────── */}
+      {/* ── Explain Differently (Agent 3) ──────────────────────────── */}
       <section className="section">
-        <ExplainDifferently topic={title} language={language} />
+        <ExplainDifferently
+          topic={title}
+          topicSlug={slug}
+          weakConcepts={topicPerf?.weakConcepts ?? topicPerf?.missedConcepts}
+          language={language}
+        />
       </section>
     </main>
   );

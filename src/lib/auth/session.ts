@@ -1,6 +1,6 @@
 import { jwtVerify } from "jose/jwt/verify";
 import { SignJWT } from "jose/jwt/sign";
-import { getEnv } from "@/config/env";
+import { getEnv, isDemoAllowed } from "@/config/env";
 
 export const sessionCookie = "bodh_session";
 export function getAuthSecret(): Uint8Array {
@@ -60,8 +60,7 @@ export async function getSessionOrDemo(
   const session = await readSession(token);
   if (session) return session;
 
-  const allowDemo =
-    getEnv("ALLOW_DEMO") !== "false";
+  const allowDemo = isDemoAllowed();
 
   if (!allowDemo) {
     throw new Error(
